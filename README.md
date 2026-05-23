@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.0.4`
+Current version: `0.0.5`
 
 ## Core idea
 
@@ -223,7 +223,7 @@ The updater does not expect `ChangedFiles/` to already exist inside `~/Dev/OrynF
 
 ## Update behaviour
 
-`update.sh` extracts the selected `Oryn-*.zip` archive into `/tmp`, finds `ChangedFiles/`, copies those files into `~/Dev/OrynFoundry`, initialises Git there when the folder exists but has no `.git/`, sets the origin remote to `https://github.com/Liberation26/C--2-FSOS-Compiler.git`, commits the copied files, and then attempts to push.
+`update.sh` extracts the selected `Oryn-*.zip` archive into `/tmp`, finds `ChangedFiles/`, copies those files into `~/Dev/OrynFoundry`, initialises Git there when the folder exists but has no `.git/`, sets the origin remote to `https://github.com/Liberation26/CS-2-FSOS-Compiler.git`, commits the copied files, and then attempts to push.
 
 Existing non-Git target folders are no longer treated as fatal errors.
 
@@ -235,3 +235,9 @@ Existing non-Git target folders are no longer treated as fatal errors.
 ### 0.0.4 updater behaviour
 
 `update.sh` selects the highest versioned `Oryn-x.y.z.zip` from `~/Downloads` when no path is supplied and self-resets from the selected archive if that archive contains a different updater.
+
+## Update workflow 0.0.5
+
+`update.sh` now uses the GitHub remote `https://github.com/Liberation26/CS-2-FSOS-Compiler.git`.
+
+The updater continues to display its own version number, choose the highest semantic `Oryn-x.y.z.zip` from `~/Downloads`, extract to `/tmp`, reset itself when a different archive updater is present, copy `ChangedFiles/` into `~/Dev/OrynFoundry`, commit the copied files, and attempt to push.

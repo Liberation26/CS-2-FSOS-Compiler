@@ -1,5 +1,5 @@
 Oryn archive manifest
-Version: 0.0.4
+Version: 0.0.5
 
 Files:
 - .gitignore
@@ -73,3 +73,6 @@ Files:
 0.0.4 update.sh: initialises existing non-Git target folders before commit.
 
 Oryn 0.0.4: updater version display and non-git target initialisation fix.
+- Documents/ReleaseNotes/0.0.5.md
+
+Oryn 0.0.5: updated GitHub remote to https://github.com/Liberation26/CS-2-FSOS-Compiler.git.
