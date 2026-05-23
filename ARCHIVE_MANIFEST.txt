@@ -1,82 +1,9 @@
-Oryn archive manifest
-Version: 0.1.0
+Oryn 0.1.1 archive manifest
+Section: ChangedFiles
 
-Files:
-- .gitignore
-- Docs/.gitkeep
-- Documents/Design/.gitkeep
-- Documents/Design/OrynFilesystem.md
-- Documents/ReleaseNotes/.gitkeep
-- Documents/ReleaseNotes/0.0.0.md
-- Documents/ReleaseNotes/0.0.1.md
-- Documents/ReleaseNotes/0.0.2.md
-- Documents/ReleaseNotes/0.0.3.md
-- Documents/ReleaseNotes/0.0.4.md
-- Documents/ReleaseNotes/0.0.5.md
-- Documents/ReleaseNotes/0.1.0.md
-- LICENSE
-- Manual/.gitkeep
-- Modules/Cpu/.gitkeep
-- Modules/Cpu/README.md
-- Modules/Diagnostics/.gitkeep
-- Modules/Diagnostics/README.md
-- Modules/Memory/.gitkeep
-- Modules/Memory/README.md
-- README.md
-- Scripts/.gitkeep
-- Source/Core/Oryn.Compiler/Backends/Native/Object/.gitkeep
-- Source/Core/Oryn.Compiler/Backends/Native/X64/.gitkeep
-- Source/Core/Oryn.Compiler/Frontend/CSharpParser/.gitkeep
-- Source/Core/Oryn.Compiler/Frontend/SafeSubsetValidator/.gitkeep
-- Source/Core/Oryn.Compiler/Frontend/SemanticModel/.gitkeep
-- Source/Core/Oryn.Compiler/IR/ControlFlowGraph/.gitkeep
-- Source/Core/Oryn.Compiler/IR/OrynIr/.gitkeep
-- Source/Core/Oryn.Compiler/IR/TypeLowering/.gitkeep
-- Source/Core/Oryn.Compiler/KernelModel/CapabilityTable/.gitkeep
-- Source/Core/Oryn.Compiler/KernelModel/KernelAst/.gitkeep
-- Source/Core/Oryn.Compiler/KernelModel/ModuleAst/.gitkeep
-- Source/Core/Oryn.Compiler/KernelModel/SymbolTable/.gitkeep
-- Source/Core/Oryn.Compiler/Oryn.Compiler.csproj
-- Source/Core/Oryn.Compiler/Program.cs
-- Source/Core/Oryn.Compiler/Runtime/ArrayModel/.gitkeep
-- Source/Core/Oryn.Compiler/Runtime/ObjectModel/.gitkeep
-- Source/Core/Oryn.Compiler/Runtime/Panic/.gitkeep
-- Source/Core/Oryn.Compiler/Runtime/Startup/.gitkeep
-- Source/Core/Oryn.Compiler/Runtime/StringModel/.gitkeep
-- Source/Core/Oryn.Compiler/Tests/Stage0/.gitkeep
-- Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs
-- Source/Native/Modules/Cpu/.gitkeep
-- Source/Native/Modules/Cpu/Cpu.Native.c
-- Source/Native/Modules/Cpu/Cpu.Native.h
-- Source/Native/Modules/Diagnostics/.gitkeep
-- Source/Native/Modules/Diagnostics/Diagnostics.Native.c
-- Source/Native/Modules/Diagnostics/Diagnostics.Native.h
-- Source/Native/Modules/Memory/.gitkeep
-- Source/Native/Modules/Memory/Memory.Native.c
-- Source/Native/Modules/Memory/Memory.Native.h
-- Source/Native/Runtime/.gitkeep
-- Source/Native/Runtime/OrynRuntime.h
-- Source/Sdk/Apis/Oryn.Kernel.Cpu/.gitkeep
-- Source/Sdk/Apis/Oryn.Kernel.Cpu/Cpu.cs
-- Source/Sdk/Apis/Oryn.Kernel.Cpu/Oryn.Kernel.Cpu.csproj
-- Source/Sdk/Apis/Oryn.Kernel.Diagnostics/.gitkeep
-- Source/Sdk/Apis/Oryn.Kernel.Diagnostics/Diagnostics.cs
-- Source/Sdk/Apis/Oryn.Kernel.Diagnostics/Oryn.Kernel.Diagnostics.csproj
-- Source/Sdk/Apis/Oryn.Kernel.Memory/.gitkeep
-- Source/Sdk/Apis/Oryn.Kernel.Memory/Memory.cs
-- Source/Sdk/Apis/Oryn.Kernel.Memory/Oryn.Kernel.Memory.csproj
-- Source/Sdk/Bindings/.gitkeep
-- Source/Sdk/Bindings/Cpu.binding.json
-- Source/Sdk/Bindings/Diagnostics.binding.json
-- Source/Sdk/Bindings/Memory.binding.json
-- Tests/Compiler/Stage0/.gitkeep
-- Tests/Compiler/Stage0/README.md
-- Tests/Compiler/Stage1/README.md
-- Tests/Compiler/Stage1/run.sh
-- VERSION
-- update.sh
-- ARCHIVE_MANIFEST.txt
-
-Oryn 0.1.0: first working compiler and backend proof.
-- Implements Stage 1 compile command.
-- Emits Oryn IR manifest, freestanding C backend snippet, x64 assembly backend sketch, and object placeholder.
+Documents/ReleaseNotes/0.1.1.md
+README.md
+Runqemu.sh
+Source/Core/Oryn.Compiler/Program.cs
+VERSION
+update.sh

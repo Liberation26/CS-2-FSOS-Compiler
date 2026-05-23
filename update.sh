@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UPDATE_VERSION="0.1.0"
+UPDATE_VERSION="0.1.1"
 REMOTE_URL="https://github.com/Liberation26/CS-2-FSOS-Compiler.git"
 REPO_DIR="${ORYN_REPO_DIR:-$HOME/Dev/OrynFoundry}"
 DOWNLOADS_DIR="${ORYN_DOWNLOADS_DIR:-$HOME/Downloads}"
@@ -195,6 +195,20 @@ CurrentBranch() {
     printf '%s\n' "$Branch"
 }
 
+LaunchRunqemu() {
+    local RunQemuScript="$REPO_DIR/Runqemu.sh"
+    if [ -f "$RunQemuScript" ]; then
+        chmod +x "$RunQemuScript" || fail "Could not mark Runqemu.sh executable: $RunQemuScript"
+    fi
+
+    if [ -x "$RunQemuScript" ]; then
+        info "Launching Runqemu.sh to build and run the freestanding kernel."
+        "$RunQemuScript"
+    else
+        fail "Runqemu.sh was not found or is not executable after update: $RunQemuScript"
+    fi
+}
+
 RequireTool git
 RequireTool unzip
 RequireTool find
@@ -240,6 +254,7 @@ git -C "$REPO_DIR" add -A
 
 if git -C "$REPO_DIR" diff --cached --quiet; then
     warn "No changed files to commit."
+    LaunchRunqemu
     exit 0
 fi
 
@@ -252,3 +267,5 @@ else
     warn "Git push failed. The local commit still exists in: $REPO_DIR"
     warn "Check GitHub authentication, or pull/merge remote changes before pushing again."
 fi
+
+LaunchRunqemu

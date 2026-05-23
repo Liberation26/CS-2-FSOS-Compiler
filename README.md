@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.1.0`
+Current version: `0.1.1`
 
 ## Core idea
 
@@ -212,6 +212,27 @@ Build/Kernel.o
 ```
 
 `Kernel.o` is intentionally a text placeholder in Stage 1. The real ELF64 relocatable writer is the next backend milestone. The generated `.c` and `.S` files are the first backend proof outputs.
+
+## RunQEMU handoff
+
+Version `0.1.1` adds `Runqemu.sh` at the repository root. After `update.sh` copies `ChangedFiles/`, commits, and attempts to push, it now launches:
+
+```bash
+./Runqemu.sh
+```
+
+`Runqemu.sh` performs the first end-to-end freestanding backend proof:
+
+```text
+1. Runs Oryn.Compiler against the Stage 1 test kernel source.
+2. Produces the Stage 1 backend assembly.
+3. Generates a small freestanding x86_64 boot harness.
+4. Builds native Diagnostics, Cpu, and Memory module objects.
+5. Links an ELF64 freestanding kernel image.
+6. Runs that kernel in qemu-system-x86_64.
+```
+
+The generated kernel intentionally halts forever after `Cpu.HaltForever()`, so `Runqemu.sh` treats the configured timeout as a successful proof that the kernel remained running. Set `ORYN_SKIP_QEMU=1` to build the freestanding kernel without launching QEMU.
 
 ## Native backend target
 
