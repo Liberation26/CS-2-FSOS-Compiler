@@ -1,7 +1,6 @@
 using Oryn.Compiler.Backends.Native.X64;
 using Oryn.Compiler.Frontend.CSharpParser;
 using Oryn.Compiler.Frontend.SafeSubsetValidator;
-using Oryn.Compiler.Frontend.SemanticModel;
 using Oryn.Compiler.IR.ControlFlowGraph;
 using Oryn.Compiler.IR.TypeLowering;
 

@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.2.4`
+Current version: `0.2.5`
 
 ## Core idea
 
@@ -215,7 +215,7 @@ Build/Kernel.o
 
 
 
-### Runqemu default behaviour in 0.2.4
+### Runqemu default behaviour in 0.2.5
 
 `./Runqemu.sh` now runs headless by default and captures serial output to each stage build folder as `Qemu.serial.log`. After QEMU exits or times out, the script prints the captured serial log back to the terminal with `[SERIAL]` prefixes.
 
@@ -246,7 +246,7 @@ A C# literal such as `0` may be represented as `ConstInt32 0` in the IR because 
 
 ## Stage 2 phase 2 compiler separation
 
-Version `0.2.4` moves compiler logic out of `Program.cs` and into the first real compiler component layout:
+Version `0.2.5` moves compiler logic out of `Program.cs` and into the first real compiler component layout:
 
 ```text
 Source/Core/Oryn.Compiler/
@@ -471,10 +471,10 @@ The default is now `All`, so Stage1 remains a regression proof and Stage2 runs a
 Stage2 0.2.1 also adds a boot-level serial proof before `Kernel_Main` and waits for COM1 transmitter readiness before writing diagnostics bytes.
 
 
-## 0.2.4 compiler structure
+## 0.2.5 compiler structure
 
 Stage 2 phase 2 separates `Oryn.Compiler` into frontend parsing, safe-subset validation, semantic binding, kernel model, IR lowering, CFG construction, and native x64 backend emission. `Program.cs` is now only the small CLI entry point.
 
-### 0.2.4 Runqemu compiler build visibility
+### 0.2.5 Runqemu compiler build visibility
 
 If `update.sh` launches `Runqemu.sh`, the compiler build now prints live `dotnet build` output instead of hiding it. The same log is written to `Build/Oryn.Compiler.build.log`. Set `ORYN_COMPILER_BUILD_TIMEOUT=<seconds>` to change the default 240 second compiler build timeout.

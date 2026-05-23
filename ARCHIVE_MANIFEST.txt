@@ -1,9 +1,9 @@
-Oryn archive version: 0.2.4
+Oryn archive version: 0.2.5
 
 This archive contains:
 
-- FullSource/  complete source tree snapshot for Oryn 0.2.4
-- ChangedFiles/ files changed since Oryn 0.2.3
+- FullSource/  complete source tree snapshot for Oryn 0.2.5
+- ChangedFiles/ files changed since Oryn 0.2.4
 
 Primary change:
 
