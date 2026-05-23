@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.1.1`
+Current version: `0.1.2`
 
 ## Core idea
 
@@ -304,3 +304,7 @@ Stage 1 does not yet compile arbitrary C#. It intentionally accepts a narrow pro
 `update.sh` now uses the GitHub remote `https://github.com/Liberation26/CS-2-FSOS-Compiler.git`.
 
 The updater continues to display its own version number, choose the highest semantic `Oryn-x.y.z.zip` from `~/Downloads`, extract to `/tmp`, reset itself when a different archive updater is present, copy `ChangedFiles/` into `~/Dev/OrynFoundry`, commit the copied files, and attempt to push.
+
+## Version 0.1.2 build fix
+
+`Source/Core/Oryn.Compiler/Tests/**/*.cs` files are compiler input samples, not part of the .NET compiler application. The compiler project excludes those files from normal SDK compilation so `Runqemu.sh` can pass them to `Oryn.Compiler compile` without `.NET` trying to resolve `Oryn.Kernel.*` namespaces as project references.
