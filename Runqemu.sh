@@ -1,10 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.2.0"
+RUNQEMU_VERSION="0.2.1"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage2}}"
+REQUESTED_STAGE="${1:-${ORYN_STAGE:-All}}"
+
+RunOneStage() {
+    local SELECTED_STAGE="$1"
+    ORYN_STAGE="$SELECTED_STAGE" "$0" "$SELECTED_STAGE"
+}
+
 case "$REQUESTED_STAGE" in
+    all|All|ALL)
+        info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
+        info "Runqemu.sh version ${RUNQEMU_VERSION}"
+        info "Selected stage set: All"
+        info "Running Stage1 first, then Stage2."
+        RunOneStage Stage1
+        RunOneStage Stage2
+        info "All requested stages completed."
+        exit 0
+        ;;
     1|stage1|Stage1|STAGE1)
         STAGE_NAME="Stage1"
         STAGE_LABEL="stage1"
@@ -14,7 +30,7 @@ case "$REQUESTED_STAGE" in
         STAGE_LABEL="stage2"
         ;;
     *)
-        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use Stage1 or Stage2.\n' "$REQUESTED_STAGE"
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage1, or Stage2.\n' "$REQUESTED_STAGE"
         exit 1
         ;;
 esac
@@ -142,12 +158,72 @@ LongModeEntry:
     mov %ax, %ss
     mov $BootStackTop64, %rsp
     xor %rbp, %rbp
+    call BootSerialInitialize
+    lea BootSerialMessage(%rip), %rsi
+    call BootSerialWriteString
     call Kernel_Main
 BootHalt:
     hlt
     jmp BootHalt
 
+BootSerialInitialize:
+    mov $0x3F9, %dx
+    xor %al, %al
+    outb %al, %dx
+    mov $0x3FB, %dx
+    mov $0x80, %al
+    outb %al, %dx
+    mov $0x3F8, %dx
+    mov $0x03, %al
+    outb %al, %dx
+    mov $0x3F9, %dx
+    xor %al, %al
+    outb %al, %dx
+    mov $0x3FB, %dx
+    mov $0x03, %al
+    outb %al, %dx
+    mov $0x3FA, %dx
+    mov $0xC7, %al
+    outb %al, %dx
+    mov $0x3FC, %dx
+    mov $0x0B, %al
+    outb %al, %dx
+    ret
+
+BootSerialWait:
+    mov $0x3FD, %dx
+1:
+    inb %dx, %al
+    test $0x20, %al
+    jz 1b
+    ret
+
+BootSerialWriteChar:
+    push %rax
+    call BootSerialWait
+    pop %rax
+    mov $0x3F8, %dx
+    outb %al, %dx
+    ret
+
+BootSerialWriteString:
+    lodsb
+    test %al, %al
+    jz 2f
+    cmp $10, %al
+    jne 3f
+    mov $13, %al
+    call BootSerialWriteChar
+    mov $10, %al
+3:
+    call BootSerialWriteChar
+    jmp BootSerialWriteString
+2:
+    ret
+
 .section .rodata
+BootSerialMessage:
+    .asciz "[ OK ] [ BOOT     ] Long mode entered; calling Kernel_Main\n"
 .align 8
 Gdt:
     .quad 0x0000000000000000

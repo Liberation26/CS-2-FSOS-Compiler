@@ -12,6 +12,20 @@ static void OutByte(uint16_t Port, uint8_t Value)
     __asm__ volatile ("outb %0, %1" : : "a"(Value), "Nd"(Port));
 }
 
+static uint8_t InByte(uint16_t Port)
+{
+    uint8_t Value;
+    __asm__ volatile ("inb %1, %0" : "=a"(Value) : "Nd"(Port));
+    return Value;
+}
+
+static void SerialWaitForTransmitReady(void)
+{
+    while ((InByte(0x3F8 + 5) & 0x20) == 0)
+    {
+    }
+}
+
 static void SerialInitialize(void)
 {
     OutByte(0x3F8 + 1, 0x00);
@@ -38,9 +52,11 @@ static void SerialWriteChar(char Character)
 {
     if (Character == '\n')
     {
+        SerialWaitForTransmitReady();
         OutByte(0x3F8, '\r');
     }
 
+    SerialWaitForTransmitReady();
     OutByte(0x3F8, (uint8_t)Character);
 }
 

@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.2.0`
+Current version: `0.2.1`
 
 ## Core idea
 
@@ -216,7 +216,7 @@ Build/Kernel.o
 
 ## Stage 2 part 1
 
-Version `0.2.0` starts the Stage 2 line. Stage 2 part 1 adds a separate Stage 2 OS source tree and lets the root run script select which stage to build.
+Version `0.2.1` starts the Stage 2 line. Stage 2 part 1 adds a separate Stage 2 OS source tree and lets the root run script select which stage to build.
 
 ```bash
 ./Runqemu.sh Stage2
@@ -386,7 +386,7 @@ grub-mkrescue
 
 `xorriso` may also be required by the host `grub-mkrescue` installation.
 
-## Version 0.2.0 Stage 2 part 1
+## Version 0.2.1 Stage 2 part 1
 
 `Runqemu.sh` now accepts a stage selector:
 
@@ -406,3 +406,24 @@ Tests/Compiler/Stage2/README.md
 ```
 
 This first Stage 2 delivery deliberately keeps the known-good Stage 1 native call backend while establishing the Stage 2 source tree and build path. The next Stage 2 compiler work is to add real IR records for locals/constants, then assignments, arithmetic, branches, loops, and helper methods.
+
+
+## Running stages
+
+Run every currently packaged compiler/kernel stage:
+
+```bash
+./Runqemu.sh
+./Runqemu.sh All
+```
+
+Run a single stage explicitly:
+
+```bash
+./Runqemu.sh Stage1
+./Runqemu.sh Stage2
+```
+
+The default is now `All`, so Stage1 remains a regression proof and Stage2 runs after it.
+
+Stage2 0.2.1 also adds a boot-level serial proof before `Kernel_Main` and waits for COM1 transmitter readiness before writing diagnostics bytes.
