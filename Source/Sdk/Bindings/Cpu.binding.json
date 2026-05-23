@@ -1,0 +1,14 @@
+{
+  "module": "Cpu",
+  "namespace": "Oryn.Kernel.Cpu",
+  "stage": 1,
+  "methods": [
+    {
+      "managedName": "Cpu.HaltForever",
+      "signature": "void HaltForever()",
+      "nativeSymbol": "Cpu_HaltForever",
+      "allowedInKernel": true,
+      "summary": "Stops the processor in a halt loop."
+    }
+  ]
+}

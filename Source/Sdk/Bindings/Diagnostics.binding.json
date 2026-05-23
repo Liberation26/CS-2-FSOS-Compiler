@@ -1,0 +1,28 @@
+{
+  "module": "Diagnostics",
+  "namespace": "Oryn.Kernel.Diagnostics",
+  "stage": 1,
+  "methods": [
+    {
+      "managedName": "Diagnostics.WriteOk",
+      "signature": "void WriteOk(string Message)",
+      "nativeSymbol": "Diagnostics_WriteOk",
+      "allowedInKernel": true,
+      "summary": "Writes a successful diagnostic status line."
+    },
+    {
+      "managedName": "Diagnostics.WriteWarn",
+      "signature": "void WriteWarn(string Message)",
+      "nativeSymbol": "Diagnostics_WriteWarn",
+      "allowedInKernel": true,
+      "summary": "Writes a warning diagnostic status line."
+    },
+    {
+      "managedName": "Diagnostics.WriteFail",
+      "signature": "void WriteFail(string Message)",
+      "nativeSymbol": "Diagnostics_WriteFail",
+      "allowedInKernel": true,
+      "summary": "Writes a failure diagnostic status line."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+# Build output
+bin/
+obj/
+Build/
+Out/
+Generated/
+*.o
+*.obj
+*.elf
+*.iso
+*.map
+*.log
+
+# Local tooling
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
