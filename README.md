@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.2.1`
+Current version: `0.2.2`
 
 ## Core idea
 
@@ -213,6 +213,22 @@ Build/Kernel.o
 
 `Kernel.o` is intentionally a text placeholder in Stage 1. The real ELF64 relocatable writer is the next backend milestone. The generated `.c` and `.S` files are the first backend proof outputs.
 
+
+
+### Runqemu default behaviour in 0.2.2
+
+`./Runqemu.sh` now runs headless by default and captures serial output to each stage build folder as `Qemu.serial.log`. After QEMU exits or times out, the script prints the captured serial log back to the terminal with `[SERIAL]` prefixes.
+
+The default stage selector remains `All`, so a plain run builds the compiler once, then runs Stage1 followed by Stage2 without rebuilding the compiler between stages.
+
+Use these overrides when needed:
+
+```bash
+./Runqemu.sh Stage1
+./Runqemu.sh Stage2
+ORYN_QEMU_DISPLAY=headed ./Runqemu.sh Stage2
+ORYN_SKIP_QEMU=1 ./Runqemu.sh Stage2
+```
 
 ## Stage 2 part 1
 

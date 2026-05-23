@@ -1,9 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.2.1"
+RUNQEMU_VERSION="0.2.2"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
+COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
+COMPILER_FRAMEWORK="${ORYN_COMPILER_FRAMEWORK:-net8.0}"
+COMPILER_DLL="$PROJECT_ROOT/Source/Core/Oryn.Compiler/bin/${COMPILER_CONFIGURATION}/${COMPILER_FRAMEWORK}/Oryn.Compiler.dll"
 REQUESTED_STAGE="${1:-${ORYN_STAGE:-All}}"
+
+info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
+warn() { printf '[WARN] [ RUNQEMU  ] %s\n' "$1"; }
+fail() { printf '[FAIL] [ RUNQEMU  ] %s\n' "$1"; exit 1; }
+
+RequireTool() {
+    command -v "$1" >/dev/null 2>&1 || fail "Required tool not found: $1"
+}
+
+BuildCompilerOnce() {
+    RequireTool dotnet
+    [ -f "$COMPILER_PROJECT" ] || fail "Compiler project not found: $COMPILER_PROJECT"
+    info "Building Oryn.Compiler once for all requested stages"
+    dotnet build "$COMPILER_PROJECT" -c "$COMPILER_CONFIGURATION" >/dev/null
+    [ -f "$COMPILER_DLL" ] || fail "Compiler DLL was not produced: $COMPILER_DLL"
+    export ORYN_COMPILER_PREBUILT=1
+    export ORYN_COMPILER_DLL="$COMPILER_DLL"
+}
 
 RunOneStage() {
     local SELECTED_STAGE="$1"
@@ -12,10 +34,10 @@ RunOneStage() {
 
 case "$REQUESTED_STAGE" in
     all|All|ALL)
-        info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
         info "Selected stage set: All"
         info "Running Stage1 first, then Stage2."
+        BuildCompilerOnce
         RunOneStage Stage1
         RunOneStage Stage2
         info "All requested stages completed."
@@ -36,7 +58,6 @@ case "$REQUESTED_STAGE" in
 esac
 BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/OSes/$STAGE_NAME/Build/Runqemu}"
 SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/OSes/$STAGE_NAME/Source/Kernel.cs}"
-COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 KERNEL_OBJECT_PLACEHOLDER="$BUILD_ROOT/Kernel.${STAGE_LABEL}.o"
 GENERATED_ASM="$BUILD_ROOT/Kernel.${STAGE_LABEL}.generated.S"
 BOOT_SOURCE="$BUILD_ROOT/Boot.S"
@@ -47,8 +68,9 @@ KERNEL_ELF="$BUILD_ROOT/OrynKernel.elf"
 ISO_ROOT="$BUILD_ROOT/IsoRoot"
 GRUB_CFG="$ISO_ROOT/boot/grub/grub.cfg"
 KERNEL_ISO="$BUILD_ROOT/OrynKernel.iso"
+SERIAL_LOG="$BUILD_ROOT/Qemu.serial.log"
 QEMU_TIMEOUT="${ORYN_QEMU_TIMEOUT:-8}"
-QEMU_DISPLAY_MODE="${ORYN_QEMU_DISPLAY:-headed}"
+QEMU_DISPLAY_MODE="${ORYN_QEMU_DISPLAY:-headless}"
 QEMU_BOOT_MODE="${ORYN_QEMU_BOOT:-iso}"
 if [ "${ORYN_QEMU_HEADLESS:-0}" = "1" ]; then
     QEMU_DISPLAY_MODE="headless"
@@ -85,8 +107,13 @@ rm -rf "$BUILD_ROOT"
 mkdir -p "$BUILD_ROOT"
 
 info "Running Oryn.Compiler backend for ${STAGE_NAME}"
-info "The first dotnet run after an update may build the compiler before Oryn.Compiler prints its own lines."
-dotnet run --project "$COMPILER_PROJECT" -- compile "$SOURCE_FILE" --target x64-elf --output "$KERNEL_OBJECT_PLACEHOLDER"
+if [ "${ORYN_COMPILER_PREBUILT:-0}" != "1" ] || [ ! -f "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" ]; then
+    info "Building Oryn.Compiler once before running backend"
+    dotnet build "$COMPILER_PROJECT" -c "$COMPILER_CONFIGURATION" >/dev/null
+    ORYN_COMPILER_DLL="$COMPILER_DLL"
+fi
+[ -f "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" ] || fail "Compiler DLL not found: ${ORYN_COMPILER_DLL:-$COMPILER_DLL}"
+dotnet "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" compile "$SOURCE_FILE" --target x64-elf --output "$KERNEL_OBJECT_PLACEHOLDER"
 info "Oryn.Compiler backend completed for ${STAGE_NAME}"
 
 [ -f "$GENERATED_ASM" ] || fail "Compiler did not produce expected backend assembly: $GENERATED_ASM"
@@ -129,6 +156,9 @@ Multiboot2HeaderEnd:
 _start:
     cli
     mov $BootStackTop32, %esp
+    call BootSerialInitialize32
+    mov $Boot32SerialMessage, %esi
+    call BootSerialWriteString32
 
     lgdt GdtDescriptor
 
@@ -149,6 +179,61 @@ _start:
     mov %eax, %cr0
 
     ljmp $0x08, $LongModeEntry
+
+BootSerialInitialize32:
+    mov $0x3F9, %dx
+    xor %al, %al
+    outb %al, %dx
+    mov $0x3FB, %dx
+    mov $0x80, %al
+    outb %al, %dx
+    mov $0x3F8, %dx
+    mov $0x03, %al
+    outb %al, %dx
+    mov $0x3F9, %dx
+    xor %al, %al
+    outb %al, %dx
+    mov $0x3FB, %dx
+    mov $0x03, %al
+    outb %al, %dx
+    mov $0x3FA, %dx
+    mov $0xC7, %al
+    outb %al, %dx
+    mov $0x3FC, %dx
+    mov $0x0B, %al
+    outb %al, %dx
+    ret
+
+BootSerialWait32:
+    mov $0x3FD, %dx
+4:
+    inb %dx, %al
+    test $0x20, %al
+    jz 4b
+    ret
+
+BootSerialWriteChar32:
+    push %eax
+    call BootSerialWait32
+    pop %eax
+    mov $0x3F8, %dx
+    outb %al, %dx
+    ret
+
+BootSerialWriteString32:
+    lodsb
+    test %al, %al
+    jz 5f
+    cmp $10, %al
+    jne 6f
+    mov $13, %al
+    call BootSerialWriteChar32
+    mov $10, %al
+6:
+    call BootSerialWriteChar32
+    jmp BootSerialWriteString32
+5:
+    ret
 
 .code64
 LongModeEntry:
@@ -222,6 +307,8 @@ BootSerialWriteString:
     ret
 
 .section .rodata
+Boot32SerialMessage:
+    .asciz "[ OK ] [ BOOT32   ] Multiboot entry reached; preparing long mode\n"
 BootSerialMessage:
     .asciz "[ OK ] [ BOOT     ] Long mode entered; calling Kernel_Main\n"
 .align 8
@@ -350,7 +437,7 @@ if [ "$QEMU_BOOT_MODE" = "iso" ]; then
     QEMU_ARGS=(
         -cdrom "$KERNEL_ISO"
         -boot d
-        -serial stdio
+        -serial "file:$SERIAL_LOG"
         -monitor none
         -no-reboot
         -no-shutdown
@@ -360,7 +447,7 @@ if [ "$QEMU_BOOT_MODE" = "iso" ]; then
 else
     QEMU_ARGS=(
         -kernel "$KERNEL_ELF"
-        -serial stdio
+        -serial "file:$SERIAL_LOG"
         -monitor none
         -no-reboot
         -no-shutdown
@@ -374,12 +461,24 @@ if timeout --help 2>/dev/null | grep -q -- '--foreground'; then
     TIMEOUT_ARGS+=(--foreground)
 fi
 TIMEOUT_ARGS+=("$QEMU_TIMEOUT")
+rm -f "$SERIAL_LOG"
 
 info "Starting QEMU in ${QEMU_DISPLAY_MODE} mode using ${QEMU_BOOT_MODE} boot. The kernel intentionally halts forever; timeout is treated as success."
 set +e
 timeout "${TIMEOUT_ARGS[@]}" qemu-system-x86_64 "${QEMU_ARGS[@]}"
 QEMU_STATUS=$?
 set -e
+
+if [ -s "$SERIAL_LOG" ]; then
+    info "QEMU serial output follows from: $SERIAL_LOG"
+    sed 's/^/[SERIAL] /' "$SERIAL_LOG"
+else
+    fail "QEMU serial log was empty: $SERIAL_LOG"
+fi
+
+if ! grep -q '\[ OK \] \[ BOOT32   \]' "$SERIAL_LOG"; then
+    fail "Expected BOOT32 serial proof was not found in: $SERIAL_LOG"
+fi
 
 if [ "$QEMU_STATUS" -eq 124 ]; then
     info "QEMU timeout reached after ${QEMU_TIMEOUT}s; x86_64 freestanding kernel remained running as expected."

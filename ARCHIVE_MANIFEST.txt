@@ -1,88 +1,107 @@
-.gitignore
-ARCHIVE_MANIFEST.txt
-Docs/.gitkeep
-Documents/Design/.gitkeep
-Documents/Design/OrynFilesystem.md
-Documents/ReleaseNotes/.gitkeep
-Documents/ReleaseNotes/0.0.0.md
-Documents/ReleaseNotes/0.0.1.md
-Documents/ReleaseNotes/0.0.2.md
-Documents/ReleaseNotes/0.0.3.md
-Documents/ReleaseNotes/0.0.4.md
-Documents/ReleaseNotes/0.0.5.md
-Documents/ReleaseNotes/0.1.0.md
-Documents/ReleaseNotes/0.1.1.md
-Documents/ReleaseNotes/0.1.2.md
-Documents/ReleaseNotes/0.1.3.md
-Documents/ReleaseNotes/0.1.4.md
-Documents/ReleaseNotes/0.1.5.md
-Documents/ReleaseNotes/0.1.6.md
-Documents/ReleaseNotes/0.2.0.md
-Documents/ReleaseNotes/0.2.1.md
-LICENSE
-Manual/.gitkeep
-Modules/Cpu/.gitkeep
-Modules/Cpu/README.md
-Modules/Diagnostics/.gitkeep
-Modules/Diagnostics/README.md
-Modules/Memory/.gitkeep
-Modules/Memory/README.md
-OSes/Stage1/README.md
-OSes/Stage1/Source/Kernel.cs
-OSes/Stage2/README.md
-OSes/Stage2/Source/Kernel.cs
-README.md
-Runqemu.sh
-Scripts/.gitkeep
-Source/Core/Oryn.Compiler/Backends/Native/Object/.gitkeep
-Source/Core/Oryn.Compiler/Backends/Native/X64/.gitkeep
-Source/Core/Oryn.Compiler/Frontend/CSharpParser/.gitkeep
-Source/Core/Oryn.Compiler/Frontend/SafeSubsetValidator/.gitkeep
-Source/Core/Oryn.Compiler/Frontend/SemanticModel/.gitkeep
-Source/Core/Oryn.Compiler/IR/ControlFlowGraph/.gitkeep
-Source/Core/Oryn.Compiler/IR/OrynIr/.gitkeep
-Source/Core/Oryn.Compiler/IR/TypeLowering/.gitkeep
-Source/Core/Oryn.Compiler/KernelModel/CapabilityTable/.gitkeep
-Source/Core/Oryn.Compiler/KernelModel/KernelAst/.gitkeep
-Source/Core/Oryn.Compiler/KernelModel/ModuleAst/.gitkeep
-Source/Core/Oryn.Compiler/KernelModel/SymbolTable/.gitkeep
-Source/Core/Oryn.Compiler/Oryn.Compiler.csproj
-Source/Core/Oryn.Compiler/Program.cs
-Source/Core/Oryn.Compiler/Runtime/ArrayModel/.gitkeep
-Source/Core/Oryn.Compiler/Runtime/ObjectModel/.gitkeep
-Source/Core/Oryn.Compiler/Runtime/Panic/.gitkeep
-Source/Core/Oryn.Compiler/Runtime/Startup/.gitkeep
-Source/Core/Oryn.Compiler/Runtime/StringModel/.gitkeep
-Source/Core/Oryn.Compiler/Tests/Stage0/.gitkeep
-Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs
-Source/Native/Modules/Cpu/.gitkeep
-Source/Native/Modules/Cpu/Cpu.Native.c
-Source/Native/Modules/Cpu/Cpu.Native.h
-Source/Native/Modules/Diagnostics/.gitkeep
-Source/Native/Modules/Diagnostics/Diagnostics.Native.c
-Source/Native/Modules/Diagnostics/Diagnostics.Native.h
-Source/Native/Modules/Memory/.gitkeep
-Source/Native/Modules/Memory/Memory.Native.c
-Source/Native/Modules/Memory/Memory.Native.h
-Source/Native/Runtime/.gitkeep
-Source/Native/Runtime/OrynRuntime.h
-Source/Sdk/Apis/Oryn.Kernel.Cpu/.gitkeep
-Source/Sdk/Apis/Oryn.Kernel.Cpu/Cpu.cs
-Source/Sdk/Apis/Oryn.Kernel.Cpu/Oryn.Kernel.Cpu.csproj
-Source/Sdk/Apis/Oryn.Kernel.Diagnostics/.gitkeep
-Source/Sdk/Apis/Oryn.Kernel.Diagnostics/Diagnostics.cs
-Source/Sdk/Apis/Oryn.Kernel.Diagnostics/Oryn.Kernel.Diagnostics.csproj
-Source/Sdk/Apis/Oryn.Kernel.Memory/.gitkeep
-Source/Sdk/Apis/Oryn.Kernel.Memory/Memory.cs
-Source/Sdk/Apis/Oryn.Kernel.Memory/Oryn.Kernel.Memory.csproj
-Source/Sdk/Bindings/.gitkeep
-Source/Sdk/Bindings/Cpu.binding.json
-Source/Sdk/Bindings/Diagnostics.binding.json
-Source/Sdk/Bindings/Memory.binding.json
-Tests/Compiler/Stage0/.gitkeep
-Tests/Compiler/Stage0/README.md
-Tests/Compiler/Stage1/README.md
-Tests/Compiler/Stage1/run.sh
-Tests/Compiler/Stage2/README.md
-VERSION
-update.sh
+# Oryn 0.2.2 Archive Manifest
+
+This archive contains:
+
+- FullSource/ complete source tree for Oryn 0.2.2
+- ChangedFiles/ files changed in this iteration
+
+## Changed in 0.2.2
+
+- VERSION
+- README.md
+- Runqemu.sh
+- update.sh
+- Source/Core/Oryn.Compiler/Program.cs
+- Documents/ReleaseNotes/0.2.2.md
+- ARCHIVE_MANIFEST.txt
+
+## FullSource files
+
+- `.gitignore` (161 bytes)
+- `Docs/.gitkeep` (0 bytes)
+- `Documents/Design/.gitkeep` (0 bytes)
+- `Documents/Design/OrynFilesystem.md` (2062 bytes)
+- `Documents/ReleaseNotes/.gitkeep` (0 bytes)
+- `Documents/ReleaseNotes/0.0.0.md` (431 bytes)
+- `Documents/ReleaseNotes/0.0.1.md` (732 bytes)
+- `Documents/ReleaseNotes/0.0.2.md` (471 bytes)
+- `Documents/ReleaseNotes/0.0.3.md` (425 bytes)
+- `Documents/ReleaseNotes/0.0.4.md` (475 bytes)
+- `Documents/ReleaseNotes/0.0.5.md` (537 bytes)
+- `Documents/ReleaseNotes/0.1.0.md` (1146 bytes)
+- `Documents/ReleaseNotes/0.1.1.md` (1075 bytes)
+- `Documents/ReleaseNotes/0.1.2.md` (1031 bytes)
+- `Documents/ReleaseNotes/0.1.3.md` (719 bytes)
+- `Documents/ReleaseNotes/0.1.4.md` (757 bytes)
+- `Documents/ReleaseNotes/0.1.5.md` (852 bytes)
+- `Documents/ReleaseNotes/0.1.6.md` (719 bytes)
+- `Documents/ReleaseNotes/0.2.0.md` (737 bytes)
+- `Documents/ReleaseNotes/0.2.1.md` (886 bytes)
+- `Documents/ReleaseNotes/0.2.2.md` (816 bytes)
+- `LICENSE` (1069 bytes)
+- `Manual/.gitkeep` (0 bytes)
+- `Modules/Cpu/.gitkeep` (0 bytes)
+- `Modules/Cpu/README.md` (187 bytes)
+- `Modules/Diagnostics/.gitkeep` (0 bytes)
+- `Modules/Diagnostics/README.md` (311 bytes)
+- `Modules/Memory/.gitkeep` (0 bytes)
+- `Modules/Memory/README.md` (193 bytes)
+- `OSes/Stage1/README.md` (1276 bytes)
+- `OSes/Stage1/Source/Kernel.cs` (394 bytes)
+- `OSes/Stage2/README.md` (1548 bytes)
+- `OSes/Stage2/Source/Kernel.cs` (619 bytes)
+- `README.md` (12897 bytes)
+- `Runqemu.sh` (13276 bytes)
+- `Scripts/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Backends/Native/Object/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Backends/Native/X64/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Frontend/CSharpParser/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Frontend/SafeSubsetValidator/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Frontend/SemanticModel/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/IR/ControlFlowGraph/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/IR/OrynIr/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/IR/TypeLowering/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/KernelModel/CapabilityTable/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/KernelModel/KernelAst/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/KernelModel/ModuleAst/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/KernelModel/SymbolTable/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Oryn.Compiler.csproj` (443 bytes)
+- `Source/Core/Oryn.Compiler/Program.cs` (20974 bytes)
+- `Source/Core/Oryn.Compiler/Runtime/ArrayModel/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Runtime/ObjectModel/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Runtime/Panic/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Runtime/Startup/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Runtime/StringModel/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Tests/Stage0/.gitkeep` (0 bytes)
+- `Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs` (202 bytes)
+- `Source/Native/Modules/Cpu/.gitkeep` (0 bytes)
+- `Source/Native/Modules/Cpu/Cpu.Native.c` (167 bytes)
+- `Source/Native/Modules/Cpu/Cpu.Native.h` (42 bytes)
+- `Source/Native/Modules/Diagnostics/.gitkeep` (0 bytes)
+- `Source/Native/Modules/Diagnostics/Diagnostics.Native.c` (2552 bytes)
+- `Source/Native/Modules/Diagnostics/Diagnostics.Native.h` (159 bytes)
+- `Source/Native/Modules/Memory/.gitkeep` (0 bytes)
+- `Source/Native/Modules/Memory/Memory.Native.c` (61 bytes)
+- `Source/Native/Modules/Memory/Memory.Native.h` (44 bytes)
+- `Source/Native/Runtime/.gitkeep` (0 bytes)
+- `Source/Native/Runtime/OrynRuntime.h` (153 bytes)
+- `Source/Sdk/Apis/Oryn.Kernel.Cpu/.gitkeep` (0 bytes)
+- `Source/Sdk/Apis/Oryn.Kernel.Cpu/Cpu.cs` (198 bytes)
+- `Source/Sdk/Apis/Oryn.Kernel.Cpu/Oryn.Kernel.Cpu.csproj` (239 bytes)
+- `Source/Sdk/Apis/Oryn.Kernel.Diagnostics/.gitkeep` (0 bytes)
+- `Source/Sdk/Apis/Oryn.Kernel.Diagnostics/Diagnostics.cs` (534 bytes)
+- `Source/Sdk/Apis/Oryn.Kernel.Diagnostics/Oryn.Kernel.Diagnostics.csproj` (239 bytes)
+- `Source/Sdk/Apis/Oryn.Kernel.Memory/.gitkeep` (0 bytes)
+- `Source/Sdk/Apis/Oryn.Kernel.Memory/Memory.cs` (203 bytes)
+- `Source/Sdk/Apis/Oryn.Kernel.Memory/Oryn.Kernel.Memory.csproj` (239 bytes)
+- `Source/Sdk/Bindings/.gitkeep` (0 bytes)
+- `Source/Sdk/Bindings/Cpu.binding.json` (310 bytes)
+- `Source/Sdk/Bindings/Diagnostics.binding.json` (852 bytes)
+- `Source/Sdk/Bindings/Memory.binding.json` (323 bytes)
+- `Tests/Compiler/Stage0/.gitkeep` (0 bytes)
+- `Tests/Compiler/Stage0/README.md` (533 bytes)
+- `Tests/Compiler/Stage1/README.md` (493 bytes)
+- `Tests/Compiler/Stage1/run.sh` (579 bytes)
+- `Tests/Compiler/Stage2/README.md` (591 bytes)
+- `VERSION` (6 bytes)
+- `update.sh` (8146 bytes)
