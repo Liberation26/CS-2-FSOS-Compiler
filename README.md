@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.0.5`
+Current version: `0.1.0`
 
 ## Core idea
 
@@ -183,6 +183,36 @@ Source/Native/Modules/
 Source/Native/Runtime/
 ```
 
+## Stage 1 compiler and backend
+
+Version `0.1.0` provides the first working compiler proof. The `compile` command now:
+
+```text
+1. Reads an Oryn-safe C# kernel source file.
+2. Validates that unsupported runtime-heavy constructs are not present.
+3. Finds `public static void Main()`.
+4. Lowers approved SDK calls such as `Diagnostics.WriteOk`, `Memory.Initialize`, and `Cpu.HaltForever` into Oryn IR records.
+5. Emits a backend manifest, a freestanding C backend snippet, and an x64 assembly backend sketch.
+```
+
+Example:
+
+```bash
+cd Source/Core/Oryn.Compiler
+dotnet run -- compile Tests/Stage0/Kernel.stage0.cs --target x64-elf --output ../../../../Build/Kernel.o
+```
+
+This writes:
+
+```text
+Build/Kernel.stage1.json
+Build/Kernel.generated.c
+Build/Kernel.generated.S
+Build/Kernel.o
+```
+
+`Kernel.o` is intentionally a text placeholder in Stage 1. The real ELF64 relocatable writer is the next backend milestone. The generated `.c` and `.S` files are the first backend proof outputs.
+
 ## Native backend target
 
 The first native backend target is:
@@ -194,7 +224,7 @@ Object format: ELF64 relocatable object
 Kernel mode: freestanding
 ```
 
-The first compiler proof should generate an object with:
+The first full native object writer should generate an object with:
 
 ```text
 .text
@@ -214,6 +244,10 @@ Cpu_HaltForever
 ```
 
 
+## Stage 1 limitations
+
+Stage 1 does not yet compile arbitrary C#. It intentionally accepts a narrow proof subset: `public static void Main()` containing approved static module API calls. It does not yet lower variables, branches, loops, structs, fields, arithmetic, or user-defined methods. Those belong to later compiler stages.
+
 ## Update workflow
 
 Run `./update.sh` from anywhere after downloading an `Oryn-*.zip` archive. The updater extracts the latest archive from `~/Downloads` into a temporary directory, copies `ChangedFiles/` into `~/Dev/OrynFoundry`, stages the result, commits it, and then attempts to push to GitHub.
@@ -228,6 +262,10 @@ The updater does not expect `ChangedFiles/` to already exist inside `~/Dev/OrynF
 Existing non-Git target folders are no longer treated as fatal errors.
 
 
+## Stage 1 limitations
+
+Stage 1 does not yet compile arbitrary C#. It intentionally accepts a narrow proof subset: `public static void Main()` containing approved static module API calls. It does not yet lower variables, branches, loops, structs, fields, arithmetic, or user-defined methods. Those belong to later compiler stages.
+
 ## Update workflow 0.0.4
 
 `update.sh` prints its own version at startup, extracts the selected `Oryn-*.zip` archive into `/tmp`, copies `ChangedFiles/` into `~/Dev/OrynFoundry`, initialises Git in place when needed, commits the update, and attempts to push to the configured GitHub remote.
@@ -235,6 +273,10 @@ Existing non-Git target folders are no longer treated as fatal errors.
 ### 0.0.4 updater behaviour
 
 `update.sh` selects the highest versioned `Oryn-x.y.z.zip` from `~/Downloads` when no path is supplied and self-resets from the selected archive if that archive contains a different updater.
+
+## Stage 1 limitations
+
+Stage 1 does not yet compile arbitrary C#. It intentionally accepts a narrow proof subset: `public static void Main()` containing approved static module API calls. It does not yet lower variables, branches, loops, structs, fields, arithmetic, or user-defined methods. Those belong to later compiler stages.
 
 ## Update workflow 0.0.5
 

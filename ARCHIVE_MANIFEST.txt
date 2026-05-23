@@ -1,15 +1,19 @@
 Oryn archive manifest
-Version: 0.0.5
+Version: 0.1.0
 
 Files:
 - .gitignore
-- ARCHIVE_MANIFEST.txt
 - Docs/.gitkeep
 - Documents/Design/.gitkeep
 - Documents/Design/OrynFilesystem.md
 - Documents/ReleaseNotes/.gitkeep
 - Documents/ReleaseNotes/0.0.0.md
+- Documents/ReleaseNotes/0.0.1.md
+- Documents/ReleaseNotes/0.0.2.md
+- Documents/ReleaseNotes/0.0.3.md
 - Documents/ReleaseNotes/0.0.4.md
+- Documents/ReleaseNotes/0.0.5.md
+- Documents/ReleaseNotes/0.1.0.md
 - LICENSE
 - Manual/.gitkeep
 - Modules/Cpu/.gitkeep
@@ -67,12 +71,12 @@ Files:
 - Source/Sdk/Bindings/Memory.binding.json
 - Tests/Compiler/Stage0/.gitkeep
 - Tests/Compiler/Stage0/README.md
+- Tests/Compiler/Stage1/README.md
+- Tests/Compiler/Stage1/run.sh
 - VERSION
 - update.sh
+- ARCHIVE_MANIFEST.txt
 
-0.0.4 update.sh: initialises existing non-Git target folders before commit.
-
-Oryn 0.0.4: updater version display and non-git target initialisation fix.
-- Documents/ReleaseNotes/0.0.5.md
-
-Oryn 0.0.5: updated GitHub remote to https://github.com/Liberation26/CS-2-FSOS-Compiler.git.
+Oryn 0.1.0: first working compiler and backend proof.
+- Implements Stage 1 compile command.
+- Emits Oryn IR manifest, freestanding C backend snippet, x64 assembly backend sketch, and object placeholder.
