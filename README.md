@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.2.2`
+Current version: `0.2.3`
 
 ## Core idea
 
@@ -215,7 +215,7 @@ Build/Kernel.o
 
 
 
-### Runqemu default behaviour in 0.2.2
+### Runqemu default behaviour in 0.2.3
 
 `./Runqemu.sh` now runs headless by default and captures serial output to each stage build folder as `Qemu.serial.log`. After QEMU exits or times out, the script prints the captured serial log back to the terminal with `[SERIAL]` prefixes.
 
@@ -242,6 +242,32 @@ Version `0.2.1` starts the Stage 2 line. Stage 2 part 1 adds a separate Stage 2 
 `Stage2` is now the default when no argument is supplied. Stage 2 part 1 intentionally keeps the known-good Stage 1 native call backend so the new stage starts from a bootable baseline before locals, arithmetic, branches, loops, and helper methods are added.
 
 A C# literal such as `0` may be represented as `ConstInt32 0` in the IR because C# `int` is a 32-bit language type. The backend can still choose a compact x64 encoding for the value.
+
+
+## Stage 2 phase 2 compiler separation
+
+Version `0.2.3` moves compiler logic out of `Program.cs` and into the first real compiler component layout:
+
+```text
+Source/Core/Oryn.Compiler/
+  Frontend/
+    CSharpParser/
+    SafeSubsetValidator/
+    SemanticModel/
+  KernelModel/
+    KernelAst/
+    SymbolTable/
+  IR/
+    OrynIr/
+    ControlFlowGraph/
+    TypeLowering/
+  Backends/
+    Native/
+      X64/
+      Object/
+```
+
+`Program.cs` is now only the small process entry point. The command line, source loading, validation, parsing, semantic binding, IR lowering, CFG creation, backend emission, and output writing are handled by separate components.
 
 ## RunQEMU handoff
 
@@ -443,3 +469,8 @@ Run a single stage explicitly:
 The default is now `All`, so Stage1 remains a regression proof and Stage2 runs after it.
 
 Stage2 0.2.1 also adds a boot-level serial proof before `Kernel_Main` and waits for COM1 transmitter readiness before writing diagnostics bytes.
+
+
+## 0.2.3 compiler structure
+
+Stage 2 phase 2 separates `Oryn.Compiler` into frontend parsing, safe-subset validation, semantic binding, kernel model, IR lowering, CFG construction, and native x64 backend emission. `Program.cs` is now only the small CLI entry point.

@@ -15,6 +15,12 @@ Cpu.HaltForever lowers to the native CPU halt module
 Runqemu.sh can select and build OSes/Stage2 instead of only OSes/Stage1
 ```
 
+## Stage 2 phase 2 in version 0.2.3
+
+Stage 2 phase 2 creates proper compiler separation. `Program.cs` no longer contains the compiler implementation. It now delegates to a CLI and pipeline, while parser, validator, semantic model, kernel AST, symbol table, IR, CFG, and native backend code live in their own folders.
+
+The backend proof remains intentionally conservative: the generated x64 assembly is still used to build the freestanding kernel, and the `.o` file is still a placeholder until the ELF64 object writer lands.
+
 ## Run it
 
 From the repository root:
