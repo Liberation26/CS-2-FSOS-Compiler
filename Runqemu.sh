@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.2.3"
+RUNQEMU_VERSION="0.2.4"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -17,11 +17,45 @@ RequireTool() {
     command -v "$1" >/dev/null 2>&1 || fail "Required tool not found: $1"
 }
 
+RunDotnetBuild() {
+    local BuildLog="$PROJECT_ROOT/Build/Oryn.Compiler.build.log"
+    local BuildTimeout="${ORYN_COMPILER_BUILD_TIMEOUT:-240}"
+    mkdir -p "$(dirname "$BuildLog")"
+
+    export DOTNET_CLI_TELEMETRY_OPTOUT=1
+    export DOTNET_NOLOGO=1
+    export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+
+    info "Building Oryn.Compiler: $COMPILER_PROJECT"
+    info "Compiler build log: $BuildLog"
+    info "Compiler build timeout: ${BuildTimeout}s"
+
+    set +e
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$BuildTimeout" dotnet build "$COMPILER_PROJECT" -c "$COMPILER_CONFIGURATION" --nologo --disable-build-servers -v:minimal 2>&1 | tee "$BuildLog"
+        local BuildStatus=${PIPESTATUS[0]}
+    else
+        dotnet build "$COMPILER_PROJECT" -c "$COMPILER_CONFIGURATION" --nologo --disable-build-servers -v:minimal 2>&1 | tee "$BuildLog"
+        local BuildStatus=${PIPESTATUS[0]}
+    fi
+    set -e
+
+    if [ "$BuildStatus" -eq 124 ]; then
+        fail "Oryn.Compiler build timed out after ${BuildTimeout}s. See: $BuildLog"
+    fi
+
+    if [ "$BuildStatus" -ne 0 ]; then
+        fail "Oryn.Compiler build failed with status $BuildStatus. See: $BuildLog"
+    fi
+
+    info "Oryn.Compiler build completed."
+}
+
 BuildCompilerOnce() {
     RequireTool dotnet
+    RequireTool tee
     [ -f "$COMPILER_PROJECT" ] || fail "Compiler project not found: $COMPILER_PROJECT"
-    info "Building Oryn.Compiler once for all requested stages"
-    dotnet build "$COMPILER_PROJECT" -c "$COMPILER_CONFIGURATION" >/dev/null
+    RunDotnetBuild
     [ -f "$COMPILER_DLL" ] || fail "Compiler DLL was not produced: $COMPILER_DLL"
     export ORYN_COMPILER_PREBUILT=1
     export ORYN_COMPILER_DLL="$COMPILER_DLL"
@@ -91,6 +125,7 @@ info "Build root: ${BUILD_ROOT}"
 info "Kernel source: ${SOURCE_FILE}"
 
 RequireTool dotnet
+RequireTool tee
 RequireTool clang
 RequireTool ld
 RequireTool qemu-system-x86_64
@@ -108,8 +143,8 @@ mkdir -p "$BUILD_ROOT"
 
 info "Running Oryn.Compiler backend for ${STAGE_NAME}"
 if [ "${ORYN_COMPILER_PREBUILT:-0}" != "1" ] || [ ! -f "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" ]; then
-    info "Building Oryn.Compiler once before running backend"
-    dotnet build "$COMPILER_PROJECT" -c "$COMPILER_CONFIGURATION" >/dev/null
+    info "Compiler was not prebuilt for this stage; building it now."
+    RunDotnetBuild
     ORYN_COMPILER_DLL="$COMPILER_DLL"
 fi
 [ -f "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" ] || fail "Compiler DLL not found: ${ORYN_COMPILER_DLL:-$COMPILER_DLL}"

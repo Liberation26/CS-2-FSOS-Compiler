@@ -1,7 +1,10 @@
-Oryn archive manifest
-Version: 0.2.3
-Layout:
-- FullSource/ contains the complete source tree.
-- ChangedFiles/ contains only files changed for this delivery.
+Oryn archive version: 0.2.4
 
-Stage 2 phase 2 implements proper frontend/compiler separation for Oryn.Compiler.
+This archive contains:
+
+- FullSource/  complete source tree snapshot for Oryn 0.2.4
+- ChangedFiles/ files changed since Oryn 0.2.3
+
+Primary change:
+
+- Runqemu.sh compiler build step now shows live dotnet build output, writes Build/Oryn.Compiler.build.log, uses --disable-build-servers, and fails clearly on timeout/failure instead of appearing to stop silently.
