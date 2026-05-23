@@ -6,7 +6,7 @@ namespace Oryn.Compiler;
 
 internal static class Program
 {
-    private const string Version = "0.1.4";
+    private const string Version = "0.1.5";
 
     private static readonly IReadOnlyDictionary<string, BindingRecord> Bindings = new Dictionary<string, BindingRecord>(StringComparer.Ordinal)
     {
@@ -133,6 +133,7 @@ internal static class Program
         Console.WriteLine($"[ OK ] Wrote IR manifest: {BackendResult.ManifestPath}");
         Console.WriteLine($"[ OK ] Wrote C backend: {BackendResult.CPath}");
         Console.WriteLine($"[ OK ] Wrote x64 backend sketch: {BackendResult.AssemblyPath}");
+        Console.WriteLine($"[ OK ] Wrote compiler diagnostics: {BackendResult.DiagnosticsPath}");
         Console.WriteLine($"[ OK ] Wrote object placeholder: {BackendResult.ObjectPath}");
         return 0;
     }
@@ -345,6 +346,7 @@ internal static class Program
         string ManifestPath = Path.Combine(OutputDirectory, BaseName + ".stage1.json");
         string CPath = Path.Combine(OutputDirectory, BaseName + ".generated.c");
         string AssemblyPath = Path.Combine(OutputDirectory, BaseName + ".generated.S");
+        string DiagnosticsPath = Path.Combine(OutputDirectory, BaseName + ".diagnostics.log");
 
         CompilerManifest Manifest = new(
             Version,
@@ -358,8 +360,9 @@ internal static class Program
         string CSource = EmitCSource(Instructions);
         string AssemblySource = EmitAssemblySource(Instructions);
         string ObjectPlaceholder = EmitObjectPlaceholder(Manifest);
+        string DiagnosticsText = EmitCompilerDiagnostics(Manifest, Instructions, CPath, AssemblyPath);
 
-        return new BackendResult(ManifestPath, CPath, AssemblyPath, FullOutputPath, Manifest, CSource, AssemblySource, ObjectPlaceholder);
+        return new BackendResult(ManifestPath, CPath, AssemblyPath, DiagnosticsPath, FullOutputPath, Manifest, CSource, AssemblySource, ObjectPlaceholder, DiagnosticsText);
     }
 
     private static string EmitCSource(IReadOnlyList<IrInstruction> Instructions)
@@ -452,12 +455,41 @@ internal static class Program
         return Builder.ToString();
     }
 
+    private static string EmitCompilerDiagnostics(CompilerManifest Manifest, IReadOnlyList<IrInstruction> Instructions, string CPath, string AssemblyPath)
+    {
+        StringBuilder Builder = new();
+        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 1 diagnostics");
+        Builder.AppendLine($"[ OK ] [ COMPILER ] Version: {Manifest.CompilerVersion}");
+        Builder.AppendLine($"[ OK ] [ COMPILER ] Source: {Manifest.SourcePath}");
+        Builder.AppendLine($"[ OK ] [ COMPILER ] Target: {Manifest.Target}");
+        Builder.AppendLine($"[ OK ] [ COMPILER ] Entry symbol: {Manifest.EntrySymbol}");
+        Builder.AppendLine($"[ OK ] [ COMPILER ] Lowered calls: {Instructions.Count}");
+
+        foreach (IrInstruction Instruction in Instructions)
+        {
+            Builder.AppendLine($"[ OK ] [ LOWERING ] #{Instruction.Index} {Instruction.ManagedName} -> {Instruction.NativeSymbol}");
+
+            if (Instruction.ManagedName.StartsWith("Diagnostics.", StringComparison.Ordinal))
+            {
+                string Message = Instruction.Arguments.Count == 1 ? Instruction.Arguments[0] : string.Empty;
+                Builder.AppendLine($"[ OK ] [ RUNTIME  ] Kernel diagnostic will be emitted: {Message}");
+            }
+        }
+
+        Builder.AppendLine($"[ OK ] [ BACKEND  ] C output: {CPath}");
+        Builder.AppendLine($"[ OK ] [ BACKEND  ] x64 assembly output: {AssemblyPath}");
+        Builder.AppendLine("[ OK ] [ BACKEND  ] Diagnostics.Write* calls lower to runtime Diagnostics_Write* symbols.");
+        Builder.AppendLine("[ OK ] [ BACKEND  ] Runtime diagnostics write to QEMU serial and VGA when built with DEBUG=1.");
+        return Builder.ToString();
+    }
+
     private static void WriteBackendFiles(BackendResult BackendResult)
     {
         JsonSerializerOptions Options = new() { WriteIndented = true };
         File.WriteAllText(BackendResult.ManifestPath, JsonSerializer.Serialize(BackendResult.Manifest, Options));
         File.WriteAllText(BackendResult.CPath, BackendResult.CSource);
         File.WriteAllText(BackendResult.AssemblyPath, BackendResult.AssemblySource);
+        File.WriteAllText(BackendResult.DiagnosticsPath, BackendResult.DiagnosticsText);
         File.WriteAllText(BackendResult.ObjectPath, BackendResult.ObjectPlaceholder);
     }
 
@@ -493,11 +525,13 @@ internal sealed record BackendResult(
     string ManifestPath,
     string CPath,
     string AssemblyPath,
+    string DiagnosticsPath,
     string ObjectPath,
     CompilerManifest Manifest,
     string CSource,
     string AssemblySource,
-    string ObjectPlaceholder);
+    string ObjectPlaceholder,
+    string DiagnosticsText);
 
 internal sealed class OrynCompileException : Exception
 {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.1.4"
+RUNQEMU_VERSION="0.1.5"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/OSes/Stage1/Build/Runqemu}"
 SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/OSes/Stage1/Source/Kernel.cs}"
@@ -9,7 +9,8 @@ COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 KERNEL_OBJECT_PLACEHOLDER="$BUILD_ROOT/Kernel.stage1.o"
 GENERATED_ASM="$BUILD_ROOT/Kernel.stage1.generated.S"
 BOOT_SOURCE="$BUILD_ROOT/Boot.S"
-DIAGNOSTICS_SOURCE="$BUILD_ROOT/Diagnostics.Runtime.c"
+DIAGNOSTICS_SOURCE="$PROJECT_ROOT/Source/Native/Modules/Diagnostics/Diagnostics.Native.c"
+COMPILER_DIAGNOSTICS_LOG="$BUILD_ROOT/Kernel.stage1.diagnostics.log"
 LINKER_SCRIPT="$BUILD_ROOT/Linker.ld"
 KERNEL_ELF="$BUILD_ROOT/OrynKernel.elf"
 QEMU_TIMEOUT="${ORYN_QEMU_TIMEOUT:-8}"
@@ -47,6 +48,8 @@ info "Running Oryn.Compiler Stage 1 backend"
 dotnet run --project "$COMPILER_PROJECT" -- compile "$SOURCE_FILE" --target x64-elf --output "$KERNEL_OBJECT_PLACEHOLDER"
 
 [ -f "$GENERATED_ASM" ] || fail "Compiler did not produce expected backend assembly: $GENERATED_ASM"
+[ -f "$COMPILER_DIAGNOSTICS_LOG" ] || fail "Compiler did not produce expected diagnostics log: $COMPILER_DIAGNOSTICS_LOG"
+info "Compiler diagnostics log: $COMPILER_DIAGNOSTICS_LOG"
 
 cat > "$BOOT_SOURCE" <<'EOF_BOOT'
 .set MB_MAGIC, 0x1BADB002
@@ -138,99 +141,6 @@ BootStack64:
     .skip 16384
 BootStackTop64:
 EOF_BOOT
-
-cat > "$DIAGNOSTICS_SOURCE" <<'EOF_DIAG'
-#include <stdint.h>
-
-#if DEBUG
-static uint16_t* const VgaBuffer = (uint16_t*)0xB8000;
-static uint32_t VgaOffset = 0;
-
-static void OutByte(uint16_t Port, uint8_t Value)
-{
-    __asm__ volatile ("outb %0, %1" : : "a"(Value), "Nd"(Port));
-}
-
-static void SerialWriteChar(char Character)
-{
-    if (Character == '\n')
-    {
-        OutByte(0x3F8, '\r');
-    }
-    OutByte(0x3F8, (uint8_t)Character);
-}
-
-static void SerialWriteString(const char* Text)
-{
-    while (*Text != 0)
-    {
-        SerialWriteChar(*Text++);
-    }
-}
-
-static void VgaWriteChar(char Character, uint8_t Attribute)
-{
-    if (Character == '\n')
-    {
-        VgaOffset = ((VgaOffset / 80) + 1) * 80;
-        return;
-    }
-
-    if (VgaOffset >= (80 * 25))
-    {
-        VgaOffset = 0;
-    }
-
-    VgaBuffer[VgaOffset++] = ((uint16_t)Attribute << 8) | (uint8_t)Character;
-}
-
-static void VgaWriteString(const char* Text, uint8_t Attribute)
-{
-    while (*Text != 0)
-    {
-        VgaWriteChar(*Text++, Attribute);
-    }
-}
-
-static void WriteLine(const char* Prefix, const char* Message, uint8_t Attribute)
-{
-    SerialWriteString(Prefix);
-    SerialWriteString(Message);
-    SerialWriteString("\n");
-
-    VgaWriteString(Prefix, Attribute);
-    VgaWriteString(Message, Attribute);
-    VgaWriteString("\n", Attribute);
-}
-#endif
-
-void Diagnostics_WriteOk(const char* Message)
-{
-#if DEBUG
-    WriteLine("[ OK ] [ KERNEL   ] ", Message, 0x0A);
-#else
-    (void)Message;
-#endif
-}
-
-void Diagnostics_WriteWarn(const char* Message)
-{
-#if DEBUG
-    WriteLine("[WARN] [ KERNEL   ] ", Message, 0x0E);
-#else
-    (void)Message;
-#endif
-}
-
-void Diagnostics_WriteFail(const char* Message)
-{
-#if DEBUG
-    WriteLine("[FAIL] [ KERNEL   ] ", Message, 0x0C);
-#else
-    (void)Message;
-#endif
-}
-EOF_DIAG
 
 cat > "$LINKER_SCRIPT" <<'EOF_LINK'
 ENTRY(_start)

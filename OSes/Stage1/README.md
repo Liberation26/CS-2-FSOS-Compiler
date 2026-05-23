@@ -25,3 +25,7 @@ OSes/Stage1/Build/Runqemu/
 ```
 
 That output includes the Stage 1 manifest, generated assembly, generated C backend proof, object files, and the linked freestanding ELF kernel.
+
+## Diagnostics output
+
+The compiler writes `Build/Runqemu/Kernel.stage1.diagnostics.log` during `Runqemu.sh`. Runtime `Diagnostics.Write*` calls are emitted to QEMU serial and VGA text output in DEBUG builds.

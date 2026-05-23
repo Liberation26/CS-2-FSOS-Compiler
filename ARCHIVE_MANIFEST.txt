@@ -1,17 +1,93 @@
-Oryn Archive Manifest
-Version: 0.1.4
+Oryn archive manifest
+Version: 0.1.5
 
-Top-level archive layout:
-- FullSource/ contains the full Oryn source tree for this release.
-- ChangedFiles/ contains only files changed in this release, laid out relative to the repository root.
-- update.sh is provided at archive root for convenience.
-
-0.1.4 changed files:
-- VERSION
-- update.sh
-- Runqemu.sh
-- README.md
-- Source/Core/Oryn.Compiler/Program.cs
-- Documents/ReleaseNotes/0.1.4.md
-- OSes/Stage1/README.md
-- OSes/Stage1/Source/Kernel.cs
+FullSource/.gitignore
+FullSource/ARCHIVE_MANIFEST.txt
+FullSource/Docs/.gitkeep
+FullSource/Documents/Design/.gitkeep
+FullSource/Documents/Design/OrynFilesystem.md
+FullSource/Documents/ReleaseNotes/.gitkeep
+FullSource/Documents/ReleaseNotes/0.0.0.md
+FullSource/Documents/ReleaseNotes/0.0.1.md
+FullSource/Documents/ReleaseNotes/0.0.2.md
+FullSource/Documents/ReleaseNotes/0.0.3.md
+FullSource/Documents/ReleaseNotes/0.0.4.md
+FullSource/Documents/ReleaseNotes/0.0.5.md
+FullSource/Documents/ReleaseNotes/0.1.0.md
+FullSource/Documents/ReleaseNotes/0.1.1.md
+FullSource/Documents/ReleaseNotes/0.1.2.md
+FullSource/Documents/ReleaseNotes/0.1.3.md
+FullSource/Documents/ReleaseNotes/0.1.4.md
+FullSource/Documents/ReleaseNotes/0.1.5.md
+FullSource/LICENSE
+FullSource/Manual/.gitkeep
+FullSource/Modules/Cpu/.gitkeep
+FullSource/Modules/Cpu/README.md
+FullSource/Modules/Diagnostics/.gitkeep
+FullSource/Modules/Diagnostics/README.md
+FullSource/Modules/Memory/.gitkeep
+FullSource/Modules/Memory/README.md
+FullSource/OSes/Stage1/README.md
+FullSource/OSes/Stage1/Source/Kernel.cs
+FullSource/README.md
+FullSource/Runqemu.sh
+FullSource/Scripts/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Backends/Native/Object/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Backends/Native/X64/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Frontend/CSharpParser/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Frontend/SafeSubsetValidator/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Frontend/SemanticModel/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/IR/ControlFlowGraph/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/IR/OrynIr/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/IR/TypeLowering/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/KernelModel/CapabilityTable/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/KernelModel/KernelAst/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/KernelModel/ModuleAst/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/KernelModel/SymbolTable/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj
+FullSource/Source/Core/Oryn.Compiler/Program.cs
+FullSource/Source/Core/Oryn.Compiler/Runtime/ArrayModel/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Runtime/ObjectModel/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Runtime/Panic/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Runtime/Startup/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Runtime/StringModel/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Tests/Stage0/.gitkeep
+FullSource/Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs
+FullSource/Source/Native/Modules/Cpu/.gitkeep
+FullSource/Source/Native/Modules/Cpu/Cpu.Native.c
+FullSource/Source/Native/Modules/Cpu/Cpu.Native.h
+FullSource/Source/Native/Modules/Diagnostics/.gitkeep
+FullSource/Source/Native/Modules/Diagnostics/Diagnostics.Native.c
+FullSource/Source/Native/Modules/Diagnostics/Diagnostics.Native.h
+FullSource/Source/Native/Modules/Memory/.gitkeep
+FullSource/Source/Native/Modules/Memory/Memory.Native.c
+FullSource/Source/Native/Modules/Memory/Memory.Native.h
+FullSource/Source/Native/Runtime/.gitkeep
+FullSource/Source/Native/Runtime/OrynRuntime.h
+FullSource/Source/Sdk/Apis/Oryn.Kernel.Cpu/.gitkeep
+FullSource/Source/Sdk/Apis/Oryn.Kernel.Cpu/Cpu.cs
+FullSource/Source/Sdk/Apis/Oryn.Kernel.Cpu/Oryn.Kernel.Cpu.csproj
+FullSource/Source/Sdk/Apis/Oryn.Kernel.Diagnostics/.gitkeep
+FullSource/Source/Sdk/Apis/Oryn.Kernel.Diagnostics/Diagnostics.cs
+FullSource/Source/Sdk/Apis/Oryn.Kernel.Diagnostics/Oryn.Kernel.Diagnostics.csproj
+FullSource/Source/Sdk/Apis/Oryn.Kernel.Memory/.gitkeep
+FullSource/Source/Sdk/Apis/Oryn.Kernel.Memory/Memory.cs
+FullSource/Source/Sdk/Apis/Oryn.Kernel.Memory/Oryn.Kernel.Memory.csproj
+FullSource/Source/Sdk/Bindings/.gitkeep
+FullSource/Source/Sdk/Bindings/Cpu.binding.json
+FullSource/Source/Sdk/Bindings/Diagnostics.binding.json
+FullSource/Source/Sdk/Bindings/Memory.binding.json
+FullSource/Tests/Compiler/Stage0/.gitkeep
+FullSource/Tests/Compiler/Stage0/README.md
+FullSource/Tests/Compiler/Stage1/README.md
+FullSource/Tests/Compiler/Stage1/run.sh
+FullSource/VERSION
+FullSource/update.sh
+ChangedFiles/Documents/ReleaseNotes/0.1.5.md
+ChangedFiles/OSes/Stage1/README.md
+ChangedFiles/README.md
+ChangedFiles/Runqemu.sh
+ChangedFiles/Source/Core/Oryn.Compiler/Program.cs
+ChangedFiles/Source/Native/Modules/Diagnostics/Diagnostics.Native.c
+ChangedFiles/VERSION
+ChangedFiles/update.sh

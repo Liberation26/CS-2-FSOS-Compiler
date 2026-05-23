@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.1.3`
+Current version: `0.1.5`
 
 ## Core idea
 
@@ -327,3 +327,21 @@ OSes/Stage1/Source/Kernel.cs
 `Runqemu.sh` uses that file by default, emits backend/build output under `OSes/Stage1/Build/Runqemu/`, links the freestanding kernel, and then runs it in QEMU.
 
 The compiler test file under `Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs` is only a compiler test fixture.
+
+## Version 0.1.5 compiler and runtime diagnostics
+
+`Oryn.Compiler compile` now writes an explicit compiler diagnostics log next to the Stage 1 backend outputs:
+
+```text
+OSes/Stage1/Build/Runqemu/Kernel.stage1.diagnostics.log
+```
+
+The log records each lowered call and states which `Diagnostics.Write*` calls will become runtime kernel diagnostics. The native Diagnostics module now writes DEBUG builds to both QEMU serial and VGA text memory, so the generated Stage 1 kernel should visibly emit lines such as:
+
+```text
+[ OK ] [ KERNEL   ] Stage1 kernel entered
+[ OK ] [ KERNEL   ] Stage1 memory module initialized
+[ OK ] [ KERNEL   ] Stage1 kernel is halting forever
+```
+
+`Runqemu.sh` fails early if the compiler diagnostics log is not produced.
