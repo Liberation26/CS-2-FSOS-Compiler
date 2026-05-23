@@ -1,16 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.1.6"
+RUNQEMU_VERSION="0.2.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/OSes/Stage1/Build/Runqemu}"
-SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/OSes/Stage1/Source/Kernel.cs}"
+REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage2}}"
+case "$REQUESTED_STAGE" in
+    1|stage1|Stage1|STAGE1)
+        STAGE_NAME="Stage1"
+        STAGE_LABEL="stage1"
+        ;;
+    2|stage2|Stage2|STAGE2)
+        STAGE_NAME="Stage2"
+        STAGE_LABEL="stage2"
+        ;;
+    *)
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use Stage1 or Stage2.\n' "$REQUESTED_STAGE"
+        exit 1
+        ;;
+esac
+BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/OSes/$STAGE_NAME/Build/Runqemu}"
+SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/OSes/$STAGE_NAME/Source/Kernel.cs}"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
-KERNEL_OBJECT_PLACEHOLDER="$BUILD_ROOT/Kernel.stage1.o"
-GENERATED_ASM="$BUILD_ROOT/Kernel.stage1.generated.S"
+KERNEL_OBJECT_PLACEHOLDER="$BUILD_ROOT/Kernel.${STAGE_LABEL}.o"
+GENERATED_ASM="$BUILD_ROOT/Kernel.${STAGE_LABEL}.generated.S"
 BOOT_SOURCE="$BUILD_ROOT/Boot.S"
 DIAGNOSTICS_SOURCE="$PROJECT_ROOT/Source/Native/Modules/Diagnostics/Diagnostics.Native.c"
-COMPILER_DIAGNOSTICS_LOG="$BUILD_ROOT/Kernel.stage1.diagnostics.log"
+COMPILER_DIAGNOSTICS_LOG="$BUILD_ROOT/Kernel.${STAGE_LABEL}.diagnostics.log"
 LINKER_SCRIPT="$BUILD_ROOT/Linker.ld"
 KERNEL_ELF="$BUILD_ROOT/OrynKernel.elf"
 ISO_ROOT="$BUILD_ROOT/IsoRoot"
@@ -33,6 +48,7 @@ RequireTool() {
 
 info "Runqemu.sh version ${RUNQEMU_VERSION}"
 info "Project root: ${PROJECT_ROOT}"
+info "Selected stage: ${STAGE_NAME}"
 info "Build root: ${BUILD_ROOT}"
 info "Kernel source: ${SOURCE_FILE}"
 
@@ -52,10 +68,10 @@ fi
 rm -rf "$BUILD_ROOT"
 mkdir -p "$BUILD_ROOT"
 
-info "Running Oryn.Compiler Stage 1 backend"
+info "Running Oryn.Compiler backend for ${STAGE_NAME}"
 info "The first dotnet run after an update may build the compiler before Oryn.Compiler prints its own lines."
 dotnet run --project "$COMPILER_PROJECT" -- compile "$SOURCE_FILE" --target x64-elf --output "$KERNEL_OBJECT_PLACEHOLDER"
-info "Oryn.Compiler Stage 1 backend completed"
+info "Oryn.Compiler backend completed for ${STAGE_NAME}"
 
 [ -f "$GENERATED_ASM" ] || fail "Compiler did not produce expected backend assembly: $GENERATED_ASM"
 [ -f "$COMPILER_DIAGNOSTICS_LOG" ] || fail "Compiler did not produce expected diagnostics log: $COMPILER_DIAGNOSTICS_LOG"
@@ -186,7 +202,7 @@ EOF_LINK
 
 info "Compiling freestanding x86_64 kernel objects"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$BOOT_SOURCE" -o "$BUILD_ROOT/Boot.o"
-clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$GENERATED_ASM" -o "$BUILD_ROOT/Kernel.stage1.o.real"
+clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$GENERATED_ASM" -o "$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$DIAGNOSTICS_SOURCE" -o "$BUILD_ROOT/Diagnostics.Runtime.o"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Cpu/Cpu.Native.c" -o "$BUILD_ROOT/Cpu.Native.o"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Memory/Memory.Native.c" -o "$BUILD_ROOT/Memory.Native.o"
@@ -194,7 +210,7 @@ clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -
 info "Linking x86_64 freestanding ELF kernel: $KERNEL_ELF"
 ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
     "$BUILD_ROOT/Boot.o" \
-    "$BUILD_ROOT/Kernel.stage1.o.real" \
+    "$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real" \
     "$BUILD_ROOT/Diagnostics.Runtime.o" \
     "$BUILD_ROOT/Cpu.Native.o" \
     "$BUILD_ROOT/Memory.Native.o"
@@ -210,11 +226,11 @@ BuildIso() {
     rm -rf "$ISO_ROOT"
     mkdir -p "$ISO_ROOT/boot/grub"
     cp "$KERNEL_ELF" "$ISO_ROOT/boot/OrynKernel.elf"
-    cat > "$GRUB_CFG" <<'EOF_GRUB'
+    cat > "$GRUB_CFG" <<EOF_GRUB
 set timeout=0
 set default=0
 
-menuentry "Oryn Stage1 x86_64 Kernel" {
+menuentry "Oryn ${STAGE_NAME} x86_64 Kernel" {
     multiboot2 /boot/OrynKernel.elf
     boot
 }

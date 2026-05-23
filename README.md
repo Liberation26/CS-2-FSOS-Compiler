@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.1.6`
+Current version: `0.2.0`
 
 ## Core idea
 
@@ -213,6 +213,20 @@ Build/Kernel.o
 
 `Kernel.o` is intentionally a text placeholder in Stage 1. The real ELF64 relocatable writer is the next backend milestone. The generated `.c` and `.S` files are the first backend proof outputs.
 
+
+## Stage 2 part 1
+
+Version `0.2.0` starts the Stage 2 line. Stage 2 part 1 adds a separate Stage 2 OS source tree and lets the root run script select which stage to build.
+
+```bash
+./Runqemu.sh Stage2
+./Runqemu.sh Stage1
+```
+
+`Stage2` is now the default when no argument is supplied. Stage 2 part 1 intentionally keeps the known-good Stage 1 native call backend so the new stage starts from a bootable baseline before locals, arithmetic, branches, loops, and helper methods are added.
+
+A C# literal such as `0` may be represented as `ConstInt32 0` in the IR because C# `int` is a 32-bit language type. The backend can still choose a compact x64 encoding for the value.
+
 ## RunQEMU handoff
 
 Version `0.1.1` adds `Runqemu.sh` at the repository root. After `update.sh` copies `ChangedFiles/`, commits, and attempts to push, it now launches:
@@ -371,3 +385,24 @@ grub-mkrescue
 ```
 
 `xorriso` may also be required by the host `grub-mkrescue` installation.
+
+## Version 0.2.0 Stage 2 part 1
+
+`Runqemu.sh` now accepts a stage selector:
+
+```bash
+./Runqemu.sh Stage1
+./Runqemu.sh Stage2
+```
+
+When no stage is supplied, the script defaults to `Stage2`.
+
+Stage 2 part 1 adds:
+
+```text
+OSes/Stage2/Source/Kernel.cs
+OSes/Stage2/README.md
+Tests/Compiler/Stage2/README.md
+```
+
+This first Stage 2 delivery deliberately keeps the known-good Stage 1 native call backend while establishing the Stage 2 source tree and build path. The next Stage 2 compiler work is to add real IR records for locals/constants, then assignments, arithmetic, branches, loops, and helper methods.

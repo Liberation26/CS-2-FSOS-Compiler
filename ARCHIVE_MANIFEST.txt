@@ -1,5 +1,5 @@
 Oryn Archive Manifest
-Version: 0.1.6
+Version: 0.2.0
 Generated: 2026-05-23
 
 FullSource files:
@@ -22,6 +22,7 @@ FullSource/Documents/ReleaseNotes/0.1.3.md
 FullSource/Documents/ReleaseNotes/0.1.4.md
 FullSource/Documents/ReleaseNotes/0.1.5.md
 FullSource/Documents/ReleaseNotes/0.1.6.md
+FullSource/Documents/ReleaseNotes/0.2.0.md
 FullSource/LICENSE
 FullSource/Manual/.gitkeep
 FullSource/Modules/Cpu/.gitkeep
@@ -32,6 +33,8 @@ FullSource/Modules/Memory/.gitkeep
 FullSource/Modules/Memory/README.md
 FullSource/OSes/Stage1/README.md
 FullSource/OSes/Stage1/Source/Kernel.cs
+FullSource/OSes/Stage2/README.md
+FullSource/OSes/Stage2/Source/Kernel.cs
 FullSource/README.md
 FullSource/Runqemu.sh
 FullSource/Scripts/.gitkeep
@@ -84,14 +87,17 @@ FullSource/Tests/Compiler/Stage0/.gitkeep
 FullSource/Tests/Compiler/Stage0/README.md
 FullSource/Tests/Compiler/Stage1/README.md
 FullSource/Tests/Compiler/Stage1/run.sh
+FullSource/Tests/Compiler/Stage2/README.md
 FullSource/VERSION
 FullSource/update.sh
 
 ChangedFiles files:
-ChangedFiles/Documents/ReleaseNotes/0.1.6.md
-ChangedFiles/OSes/Stage1/README.md
+ChangedFiles/Documents/ReleaseNotes/0.2.0.md
+ChangedFiles/OSes/Stage2/README.md
+ChangedFiles/OSes/Stage2/Source/Kernel.cs
 ChangedFiles/README.md
 ChangedFiles/Runqemu.sh
 ChangedFiles/Source/Core/Oryn.Compiler/Program.cs
+ChangedFiles/Tests/Compiler/Stage2/README.md
 ChangedFiles/VERSION
 ChangedFiles/update.sh

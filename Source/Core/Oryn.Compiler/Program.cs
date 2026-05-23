@@ -6,7 +6,7 @@ namespace Oryn.Compiler;
 
 internal static class Program
 {
-    private const string Version = "0.1.6";
+    private const string Version = "0.2.0";
 
     private static readonly IReadOnlyDictionary<string, BindingRecord> Bindings = new Dictionary<string, BindingRecord>(StringComparer.Ordinal)
     {
@@ -52,7 +52,7 @@ internal static class Program
         Console.WriteLine("  oryn compiler modules");
         Console.WriteLine("  oryn compiler compile <source.cs> --target x64-elf --output <output.o>");
         Console.WriteLine();
-        Console.WriteLine("Stage 1 compile output:");
+        Console.WriteLine("Stage 1 / Stage 2 part 1 compile output:");
         Console.WriteLine("  <output>.stage1.json    lowered Oryn IR and backend manifest");
         Console.WriteLine("  <output>.generated.c     freestanding C backend snippet");
         Console.WriteLine("  <output>.generated.S     x64 assembly backend sketch");
@@ -355,7 +355,7 @@ internal static class Program
             FullOutputPath,
             "Kernel_Main",
             Instructions,
-            "Stage 1 emits C and x64 assembly backend text. The .o file is a placeholder until the ELF64 object writer lands.");
+            "Stage 2 part 1 keeps the Stage 1 native assembly backend while adding the Stage2 OS source tree and run selection. The .o file is a placeholder until the ELF64 object writer lands.");
 
         string CSource = EmitCSource(Instructions);
         string AssemblySource = EmitAssemblySource(Instructions);
@@ -458,7 +458,7 @@ internal static class Program
     private static string EmitCompilerDiagnostics(CompilerManifest Manifest, IReadOnlyList<IrInstruction> Instructions, string CPath, string AssemblyPath)
     {
         StringBuilder Builder = new();
-        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 1 diagnostics");
+        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 1 / Stage 2 part 1 diagnostics");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Version: {Manifest.CompilerVersion}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Source: {Manifest.SourcePath}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Target: {Manifest.Target}");
