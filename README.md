@@ -315,3 +315,15 @@ The updater continues to display its own version number, choose the highest sema
 
 The QEMU launch remains bounded by `ORYN_QEMU_TIMEOUT` because the generated proof kernel intentionally reaches `Cpu.HaltForever()`. A timeout is therefore treated as a successful boot-and-halt proof, not as a failed run.
 
+
+## Stage 1 OS source location
+
+As of `0.1.4`, the visible Stage 1 kernel source is written under:
+
+```text
+OSes/Stage1/Source/Kernel.cs
+```
+
+`Runqemu.sh` uses that file by default, emits backend/build output under `OSes/Stage1/Build/Runqemu/`, links the freestanding kernel, and then runs it in QEMU.
+
+The compiler test file under `Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs` is only a compiler test fixture.

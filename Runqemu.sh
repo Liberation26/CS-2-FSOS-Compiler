@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.1.3"
+RUNQEMU_VERSION="0.1.4"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/Build/Runqemu}"
-SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs}"
+BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/OSes/Stage1/Build/Runqemu}"
+SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/OSes/Stage1/Source/Kernel.cs}"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 KERNEL_OBJECT_PLACEHOLDER="$BUILD_ROOT/Kernel.stage1.o"
 GENERATED_ASM="$BUILD_ROOT/Kernel.stage1.generated.S"
@@ -29,6 +29,7 @@ RequireTool() {
 info "Runqemu.sh version ${RUNQEMU_VERSION}"
 info "Project root: ${PROJECT_ROOT}"
 info "Build root: ${BUILD_ROOT}"
+info "Kernel source: ${SOURCE_FILE}"
 
 RequireTool dotnet
 RequireTool clang
