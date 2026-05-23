@@ -19,7 +19,7 @@ internal sealed class X64NativeBackend
         string BaseName = Path.GetFileNameWithoutExtension(FullOutputPath);
         Directory.CreateDirectory(OutputDirectory);
 
-        string ManifestPath = Path.Combine(OutputDirectory, BaseName + ".stage1.json");
+        string ManifestPath = Path.Combine(OutputDirectory, BaseName + ".stage2.ir.json");
         string CPath = Path.Combine(OutputDirectory, BaseName + ".generated.c");
         string AssemblyPath = Path.Combine(OutputDirectory, BaseName + ".generated.S");
         string DiagnosticsPath = Path.Combine(OutputDirectory, BaseName + ".diagnostics.log");
@@ -32,7 +32,7 @@ internal sealed class X64NativeBackend
             IrModule.EntrySymbol,
             IrModule.Instructions,
             ControlFlowGraph.Blocks.Count,
-            "Stage 2 phase 2 separates frontend parsing, safe subset validation, semantic binding, kernel model, IR lowering, CFG construction, and native x64 backend emission. The .o file remains a placeholder until the ELF64 object writer lands.");
+            "Stage 2 phase 3 adds real Oryn IR: explicit labels, jumps, returns, calls, local declarations, local loads/stores, Int32 and string constants, Int32 arithmetic, and Int32 comparisons. The .o file remains a placeholder until the ELF64 object writer lands.");
 
         return new BackendResult(
             ManifestPath,

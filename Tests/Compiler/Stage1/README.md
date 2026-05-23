@@ -12,7 +12,7 @@ dotnet run -- compile Tests/Stage0/Kernel.stage0.cs --target x64-elf --output ..
 Expected outputs:
 
 ```text
-Build/Kernel.stage1.json
+Build/Kernel.stage2.ir.json
 Build/Kernel.generated.c
 Build/Kernel.generated.S
 Build/Kernel.o

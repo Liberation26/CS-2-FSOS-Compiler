@@ -44,7 +44,7 @@ internal sealed class CompilerCli
         Output.WriteLine("  oryn compiler compile <source.cs> --target x64-elf --output <output.o>");
         Output.WriteLine();
         Output.WriteLine("Stage 2 compile output:");
-        Output.WriteLine("  <output>.stage1.json    lowered Oryn IR and backend manifest");
+        Output.WriteLine("  <output>.stage2.ir.json lowered Oryn IR and backend manifest");
         Output.WriteLine("  <output>.generated.c     freestanding C backend snippet");
         Output.WriteLine("  <output>.generated.S     x64 assembly backend sketch");
         Output.WriteLine("  <output>                 text placeholder for the future ELF64 object");

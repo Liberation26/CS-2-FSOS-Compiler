@@ -81,7 +81,7 @@ internal sealed class CompilerPipeline
 
             Messages.Add($"[ OK ] Parsed source: {Command.SourcePath}");
             Messages.Add("[ OK ] Safe-subset validation passed.");
-            Messages.Add($"[ OK ] Lowered calls: {IrModule.Instructions.Count}");
+            Messages.Add($"[ OK ] Lowered IR instructions: {IrModule.Instructions.Count}");
             Messages.Add($"[ OK ] Backend target: {Command.Target}");
             Messages.Add($"[ OK ] Wrote IR manifest: {BackendResult.ManifestPath}");
             Messages.Add($"[ OK ] Wrote C backend: {BackendResult.CPath}");

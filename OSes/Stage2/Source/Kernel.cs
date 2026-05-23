@@ -6,12 +6,25 @@ public static class Kernel
 {
     public static void Main()
     {
-        Diagnostics.WriteOk("Stage2 part1 kernel entered");
-        Diagnostics.WriteOk("Stage2 part1 uses the Stage1 native call backend as its baseline");
+        Diagnostics.WriteOk("Stage2 phase3 kernel entered");
         Memory.Initialize();
-        Diagnostics.WriteOk("Stage2 part1 memory module initialized");
-        Diagnostics.WriteOk("Stage2 part1 is ready for variables, branches, loops, and helper methods next");
-        Diagnostics.WriteOk("Stage2 part1 kernel is halting forever");
+
+        int Counter = 0;
+        while (Counter < 2)
+        {
+            Counter = Counter + 1;
+        }
+
+        if (Counter == 2)
+        {
+            Diagnostics.WriteOk("Stage2 phase3 real Oryn IR loop completed");
+        }
+        else
+        {
+            Diagnostics.WriteFail("Stage2 phase3 real Oryn IR loop failed");
+        }
+
+        Diagnostics.WriteOk("Stage2 phase3 kernel is halting forever");
         Cpu.HaltForever();
     }
 }

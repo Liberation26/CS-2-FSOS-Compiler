@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.2.5`
+Current version: `0.2.6`
 
 ## Core idea
 
@@ -205,7 +205,7 @@ dotnet run -- compile Tests/Stage0/Kernel.stage0.cs --target x64-elf --output ..
 This writes:
 
 ```text
-Build/Kernel.stage1.json
+Build/Kernel.stage2.ir.json
 Build/Kernel.generated.c
 Build/Kernel.generated.S
 Build/Kernel.o
@@ -215,7 +215,7 @@ Build/Kernel.o
 
 
 
-### Runqemu default behaviour in 0.2.5
+### Runqemu default behaviour in 0.2.6
 
 `./Runqemu.sh` now runs headless by default and captures serial output to each stage build folder as `Qemu.serial.log`. After QEMU exits or times out, the script prints the captured serial log back to the terminal with `[SERIAL]` prefixes.
 
@@ -244,9 +244,9 @@ Version `0.2.1` starts the Stage 2 line. Stage 2 part 1 adds a separate Stage 2 
 A C# literal such as `0` may be represented as `ConstInt32 0` in the IR because C# `int` is a 32-bit language type. The backend can still choose a compact x64 encoding for the value.
 
 
-## Stage 2 phase 2 compiler separation
+## Stage 2 phase 3 compiler separation
 
-Version `0.2.5` moves compiler logic out of `Program.cs` and into the first real compiler component layout:
+Version `0.2.6` moves compiler logic out of `Program.cs` and into the first real compiler component layout:
 
 ```text
 Source/Core/Oryn.Compiler/
@@ -471,10 +471,62 @@ The default is now `All`, so Stage1 remains a regression proof and Stage2 runs a
 Stage2 0.2.1 also adds a boot-level serial proof before `Kernel_Main` and waits for COM1 transmitter readiness before writing diagnostics bytes.
 
 
-## 0.2.5 compiler structure
+## 0.2.6 compiler structure
 
-Stage 2 phase 2 separates `Oryn.Compiler` into frontend parsing, safe-subset validation, semantic binding, kernel model, IR lowering, CFG construction, and native x64 backend emission. `Program.cs` is now only the small CLI entry point.
+Stage 2 phase 3 separates `Oryn.Compiler` into frontend parsing, safe-subset validation, semantic binding, kernel model, IR lowering, CFG construction, and native x64 backend emission. `Program.cs` is now only the small CLI entry point.
 
-### 0.2.5 Runqemu compiler build visibility
+### 0.2.6 Runqemu compiler build visibility
 
 If `update.sh` launches `Runqemu.sh`, the compiler build now prints live `dotnet build` output instead of hiding it. The same log is written to `Build/Oryn.Compiler.build.log`. Set `ORYN_COMPILER_BUILD_TIMEOUT=<seconds>` to change the default 240 second compiler build timeout.
+
+## 0.2.6 Stage 2 Phase 3 real Oryn IR
+
+Version `0.2.6` adds the first real Stage 2 Oryn intermediate representation.
+
+The compiler now lowers safe kernel C# statements into explicit IR instructions instead of preserving only call records. The minimum IR set is:
+
+```text
+Label
+Jump
+JumpIfFalse
+Return
+Call
+DeclareLocal
+LoadLocal
+StoreLocal
+ConstInt32
+ConstString
+AddInt32
+SubInt32
+CompareEqualInt32
+CompareLessThanInt32
+```
+
+Example lowering shape:
+
+```csharp
+int Counter = 0;
+Counter = Counter + 1;
+Diagnostics.WriteOk("Done");
+```
+
+```text
+DeclareLocal Counter
+ConstInt32 0
+StoreLocal Counter
+LoadLocal Counter
+ConstInt32 1
+AddInt32
+StoreLocal Counter
+ConstString "Done"
+Call Diagnostics.WriteOk -> Diagnostics_WriteOk
+Return
+```
+
+The Stage 2 compiler now accepts simple Int32 locals, assignments, `if` / `else`, `while`, `return;`, Int32 arithmetic, Int32 comparisons, and approved module calls.
+
+The generated manifest is now named:
+
+```text
+<output>.stage2.ir.json
+```

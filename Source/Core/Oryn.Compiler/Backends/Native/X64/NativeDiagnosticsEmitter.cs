@@ -8,29 +8,51 @@ internal sealed class NativeDiagnosticsEmitter
     public string Emit(CompilerManifest Manifest, IReadOnlyList<IrInstruction> Instructions, string CPath, string AssemblyPath)
     {
         StringBuilder Builder = new();
-        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 2 phase 2 diagnostics");
+        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 2 phase 3 diagnostics");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Version: {Manifest.CompilerVersion}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Source: {Manifest.SourcePath}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Target: {Manifest.Target}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Entry symbol: {Manifest.EntrySymbol}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Basic blocks: {Manifest.BasicBlockCount}");
-        Builder.AppendLine($"[ OK ] [ COMPILER ] Lowered calls: {Instructions.Count}");
+        Builder.AppendLine($"[ OK ] [ COMPILER ] IR instructions: {Instructions.Count}");
+        Builder.AppendLine("[ OK ] [ IR       ] Real Oryn IR is stack-style and explicit: locals, constants, arithmetic, comparisons, calls, labels, jumps, conditional jumps, and returns.");
 
         foreach (IrInstruction Instruction in Instructions)
         {
-            Builder.AppendLine($"[ OK ] [ LOWERING ] #{Instruction.Index} {Instruction.ManagedName} -> {Instruction.NativeSymbol}");
-
-            if (Instruction.ManagedName.StartsWith("Diagnostics.", StringComparison.Ordinal))
-            {
-                string Message = Instruction.Arguments.Count == 1 ? Instruction.Arguments[0] : string.Empty;
-                Builder.AppendLine($"[ OK ] [ RUNTIME  ] Kernel diagnostic will be emitted: {Message}");
-            }
+            Builder.AppendLine(FormatInstruction(Instruction));
         }
 
         Builder.AppendLine($"[ OK ] [ BACKEND  ] C output: {CPath}");
         Builder.AppendLine($"[ OK ] [ BACKEND  ] x64 assembly output: {AssemblyPath}");
-        Builder.AppendLine("[ OK ] [ BACKEND  ] Diagnostics.Write* calls lower to runtime Diagnostics_Write* symbols.");
+        Builder.AppendLine("[ OK ] [ BACKEND  ] Diagnostics.Write* calls lower through ConstString plus Call instructions.");
         Builder.AppendLine("[ OK ] [ BACKEND  ] Runtime diagnostics write to QEMU serial and VGA when built with DEBUG=1.");
+        return Builder.ToString();
+    }
+
+    private static string FormatInstruction(IrInstruction Instruction)
+    {
+        StringBuilder Builder = new();
+        Builder.Append($"[ OK ] [ IR       ] #{Instruction.Index:D3} {Instruction.OpCode}");
+        if (!string.IsNullOrWhiteSpace(Instruction.Operand))
+        {
+            Builder.Append($" {Instruction.Operand}");
+        }
+
+        if (Instruction.Int32Value is not null)
+        {
+            Builder.Append($" {Instruction.Int32Value}");
+        }
+
+        if (Instruction.StringValue is not null)
+        {
+            Builder.Append($" \"{Instruction.StringValue}\"");
+        }
+
+        if (!string.IsNullOrWhiteSpace(Instruction.NativeSymbol))
+        {
+            Builder.Append($" -> {Instruction.NativeSymbol}");
+        }
+
         return Builder.ToString();
     }
 }
