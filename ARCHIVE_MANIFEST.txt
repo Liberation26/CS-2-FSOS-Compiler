@@ -1,5 +1,5 @@
 Oryn archive manifest
-Version: 0.0.2
+Version: 0.0.4
 
 Files:
 - .gitignore
@@ -9,7 +9,7 @@ Files:
 - Documents/Design/OrynFilesystem.md
 - Documents/ReleaseNotes/.gitkeep
 - Documents/ReleaseNotes/0.0.0.md
-- Documents/ReleaseNotes/0.0.2.md
+- Documents/ReleaseNotes/0.0.4.md
 - LICENSE
 - Manual/.gitkeep
 - Modules/Cpu/.gitkeep
@@ -70,4 +70,6 @@ Files:
 - VERSION
 - update.sh
 
-0.0.2 update.sh: initialises existing non-Git target folders before commit.
+0.0.4 update.sh: initialises existing non-Git target folders before commit.
+
+Oryn 0.0.4: updater version display and non-git target initialisation fix.

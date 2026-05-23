@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.0.1`
+Current version: `0.0.4`
 
 ## Core idea
 
@@ -226,3 +226,12 @@ The updater does not expect `ChangedFiles/` to already exist inside `~/Dev/OrynF
 `update.sh` extracts the selected `Oryn-*.zip` archive into `/tmp`, finds `ChangedFiles/`, copies those files into `~/Dev/OrynFoundry`, initialises Git there when the folder exists but has no `.git/`, sets the origin remote to `https://github.com/Liberation26/C--2-FSOS-Compiler.git`, commits the copied files, and then attempts to push.
 
 Existing non-Git target folders are no longer treated as fatal errors.
+
+
+## Update workflow 0.0.4
+
+`update.sh` prints its own version at startup, extracts the selected `Oryn-*.zip` archive into `/tmp`, copies `ChangedFiles/` into `~/Dev/OrynFoundry`, initialises Git in place when needed, commits the update, and attempts to push to the configured GitHub remote.
+
+### 0.0.4 updater behaviour
+
+`update.sh` selects the highest versioned `Oryn-x.y.z.zip` from `~/Downloads` when no path is supplied and self-resets from the selected archive if that archive contains a different updater.
