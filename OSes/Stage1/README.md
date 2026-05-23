@@ -29,3 +29,13 @@ That output includes the Stage 1 manifest, generated assembly, generated C backe
 ## Diagnostics output
 
 The compiler writes `Build/Runqemu/Kernel.stage1.diagnostics.log` during `Runqemu.sh`. Runtime `Diagnostics.Write*` calls are emitted to QEMU serial and VGA text output in DEBUG builds.
+
+## 0.1.6 boot output
+
+Stage 1 now builds a GRUB ISO for QEMU instead of asking QEMU to load the ELF64 kernel directly. The important output files are:
+
+```text
+OSes/Stage1/Build/Runqemu/OrynKernel.elf
+OSes/Stage1/Build/Runqemu/OrynKernel.iso
+OSes/Stage1/Build/Runqemu/Kernel.stage1.diagnostics.log
+```

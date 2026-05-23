@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.1.5`
+Current version: `0.1.6`
 
 ## Core idea
 
@@ -328,7 +328,7 @@ OSes/Stage1/Source/Kernel.cs
 
 The compiler test file under `Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs` is only a compiler test fixture.
 
-## Version 0.1.5 compiler and runtime diagnostics
+## Version 0.1.6 compiler and runtime diagnostics
 
 `Oryn.Compiler compile` now writes an explicit compiler diagnostics log next to the Stage 1 backend outputs:
 
@@ -345,3 +345,29 @@ The log records each lowered call and states which `Diagnostics.Write*` calls wi
 ```
 
 `Runqemu.sh` fails early if the compiler diagnostics log is not produced.
+
+## Version 0.1.6 x86_64 QEMU boot path
+
+`Runqemu.sh` now boots the generated x86_64 freestanding kernel through a GRUB ISO.
+
+The generated kernel remains an ELF64 image:
+
+```text
+OSes/Stage1/Build/Runqemu/OrynKernel.elf
+```
+
+The script now creates and boots:
+
+```text
+OSes/Stage1/Build/Runqemu/OrynKernel.iso
+```
+
+This avoids QEMU's direct `-kernel` ELF loader rejecting the 64-bit image.
+
+Required extra host tool for the ISO path:
+
+```text
+grub-mkrescue
+```
+
+`xorriso` may also be required by the host `grub-mkrescue` installation.

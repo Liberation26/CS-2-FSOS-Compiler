@@ -6,7 +6,7 @@ namespace Oryn.Compiler;
 
 internal static class Program
 {
-    private const string Version = "0.1.5";
+    private const string Version = "0.1.6";
 
     private static readonly IReadOnlyDictionary<string, BindingRecord> Bindings = new Dictionary<string, BindingRecord>(StringComparer.Ordinal)
     {

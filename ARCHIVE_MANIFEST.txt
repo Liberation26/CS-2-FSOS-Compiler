@@ -1,6 +1,8 @@
-Oryn archive manifest
-Version: 0.1.5
+Oryn Archive Manifest
+Version: 0.1.6
+Generated: 2026-05-23
 
+FullSource files:
 FullSource/.gitignore
 FullSource/ARCHIVE_MANIFEST.txt
 FullSource/Docs/.gitkeep
@@ -19,6 +21,7 @@ FullSource/Documents/ReleaseNotes/0.1.2.md
 FullSource/Documents/ReleaseNotes/0.1.3.md
 FullSource/Documents/ReleaseNotes/0.1.4.md
 FullSource/Documents/ReleaseNotes/0.1.5.md
+FullSource/Documents/ReleaseNotes/0.1.6.md
 FullSource/LICENSE
 FullSource/Manual/.gitkeep
 FullSource/Modules/Cpu/.gitkeep
@@ -83,11 +86,12 @@ FullSource/Tests/Compiler/Stage1/README.md
 FullSource/Tests/Compiler/Stage1/run.sh
 FullSource/VERSION
 FullSource/update.sh
-ChangedFiles/Documents/ReleaseNotes/0.1.5.md
+
+ChangedFiles files:
+ChangedFiles/Documents/ReleaseNotes/0.1.6.md
 ChangedFiles/OSes/Stage1/README.md
 ChangedFiles/README.md
 ChangedFiles/Runqemu.sh
 ChangedFiles/Source/Core/Oryn.Compiler/Program.cs
-ChangedFiles/Source/Native/Modules/Diagnostics/Diagnostics.Native.c
 ChangedFiles/VERSION
 ChangedFiles/update.sh
