@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.1.2"
+RUNQEMU_VERSION="0.1.3"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/Build/Runqemu}"
 SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs}"
@@ -13,6 +13,10 @@ DIAGNOSTICS_SOURCE="$BUILD_ROOT/Diagnostics.Runtime.c"
 LINKER_SCRIPT="$BUILD_ROOT/Linker.ld"
 KERNEL_ELF="$BUILD_ROOT/OrynKernel.elf"
 QEMU_TIMEOUT="${ORYN_QEMU_TIMEOUT:-8}"
+QEMU_DISPLAY_MODE="${ORYN_QEMU_DISPLAY:-headed}"
+if [ "${ORYN_QEMU_HEADLESS:-0}" = "1" ]; then
+    QEMU_DISPLAY_MODE="headless"
+fi
 
 info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
 warn() { printf '[WARN] [ RUNQEMU  ] %s\n' "$1"; }
@@ -263,15 +267,40 @@ if [ "${ORYN_SKIP_QEMU:-0}" = "1" ]; then
     exit 0
 fi
 
-info "Starting QEMU. The kernel intentionally halts forever; timeout is treated as success."
+case "$QEMU_DISPLAY_MODE" in
+    headed|head|gui)
+        QEMU_DISPLAY_MODE="headed"
+        QEMU_DISPLAY_ARGS=()
+        ;;
+    headless|none|off)
+        QEMU_DISPLAY_MODE="headless"
+        QEMU_DISPLAY_ARGS=(-display none)
+        ;;
+    *)
+        fail "Unsupported ORYN_QEMU_DISPLAY value: $QEMU_DISPLAY_MODE. Use headed or headless."
+        ;;
+esac
+
+read -r -a QEMU_EXTRA_ARGS <<< "${ORYN_QEMU_EXTRA_FLAGS:-}"
+QEMU_ARGS=(
+    -kernel "$KERNEL_ELF"
+    -serial stdio
+    -monitor none
+    -no-reboot
+    -no-shutdown
+    "${QEMU_DISPLAY_ARGS[@]}"
+    "${QEMU_EXTRA_ARGS[@]}"
+)
+
+TIMEOUT_ARGS=()
+if timeout --help 2>/dev/null | grep -q -- '--foreground'; then
+    TIMEOUT_ARGS+=(--foreground)
+fi
+TIMEOUT_ARGS+=("$QEMU_TIMEOUT")
+
+info "Starting QEMU in ${QEMU_DISPLAY_MODE} mode. The kernel intentionally halts forever; timeout is treated as success."
 set +e
-timeout "$QEMU_TIMEOUT" qemu-system-x86_64 \
-    -kernel "$KERNEL_ELF" \
-    -serial stdio \
-    -display none \
-    -monitor none \
-    -no-reboot \
-    -no-shutdown ${ORYN_QEMU_EXTRA_FLAGS:-}
+timeout "${TIMEOUT_ARGS[@]}" qemu-system-x86_64 "${QEMU_ARGS[@]}"
 QEMU_STATUS=$?
 set -e
 

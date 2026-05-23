@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.1.2`
+Current version: `0.1.3`
 
 ## Core idea
 
@@ -308,3 +308,10 @@ The updater continues to display its own version number, choose the highest sema
 ## Version 0.1.2 build fix
 
 `Source/Core/Oryn.Compiler/Tests/**/*.cs` files are compiler input samples, not part of the .NET compiler application. The compiler project excludes those files from normal SDK compilation so `Runqemu.sh` can pass them to `Oryn.Compiler compile` without `.NET` trying to resolve `Oryn.Kernel.*` namespaces as project references.
+
+## Version 0.1.3 QEMU launch fix
+
+`Runqemu.sh` now starts QEMU in headed mode by default so the freestanding kernel run has a visible QEMU window. Set `ORYN_QEMU_DISPLAY=headless` or `ORYN_QEMU_HEADLESS=1` to restore the previous non-graphical mode.
+
+The QEMU launch remains bounded by `ORYN_QEMU_TIMEOUT` because the generated proof kernel intentionally reaches `Cpu.HaltForever()`. A timeout is therefore treated as a successful boot-and-halt proof, not as a failed run.
+
