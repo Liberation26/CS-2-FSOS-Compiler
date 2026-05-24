@@ -183,3 +183,39 @@ call Diagnostics_WriteOk
 ```
 
 This keeps Stage 2 freestanding: generated kernels do not depend on hosted string storage, and native module calls receive explicit pointers to immutable kernel text data.
+
+
+## Static helper methods
+
+Stage 2 now supports simple static helper methods on the `Kernel` class. This lets user-facing kernel code remain readable instead of forcing every statement into `Main()`.
+
+Example source:
+
+```csharp
+public static class Kernel
+{
+    public static void Main()
+    {
+        WriteBanner();
+        Cpu.HaltForever();
+    }
+
+    private static void WriteBanner()
+    {
+        Diagnostics.WriteOk("Hello from helper method");
+    }
+}
+```
+
+Generated method symbols use the kernel class prefix:
+
+```asm
+Kernel_Main:
+    call Kernel_WriteBanner
+
+Kernel_WriteBanner:
+    lea .Lstr0(%rip), %rdi
+    call Diagnostics_WriteOk
+```
+
+Each helper method is emitted as its own function and gets the same rbp prologue/epilogue shape as `Kernel_Main`.

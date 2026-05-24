@@ -8,17 +8,26 @@ internal sealed class CSharpKernelParser
 {
     public KernelAst Parse(string SourcePath, string SourceText)
     {
-        Match MainMatch = Regex.Match(SourceText, @"public\s+static\s+void\s+Main\s*\(\s*\)\s*\{");
-        if (!MainMatch.Success)
+        string CleanSource = StripComments(SourceText);
+        List<KernelMethodAst> Methods = new();
+        Regex MethodRegex = new(@"(?<Visibility>public|private)\s+static\s+void\s+(?<Name>[A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*\{", RegexOptions.Singleline);
+
+        foreach (Match MethodMatch in MethodRegex.Matches(CleanSource))
+        {
+            string Name = MethodMatch.Groups["Name"].Value;
+            int BodyStart = MethodMatch.Index + MethodMatch.Length - 1;
+            int BodyEnd = FindMatchingBrace(CleanSource, BodyStart);
+            string BodyText = CleanSource.Substring(BodyStart + 1, BodyEnd - BodyStart - 1);
+            StatementParser Parser = new(BodyText);
+            Methods.Add(new KernelMethodAst(Name, "Kernel_" + Name, MethodMatch.Groups["Visibility"].Value == "public", Parser.ParseStatements()));
+        }
+
+        if (!Methods.Any(Method => Method.Name == "Main" && Method.IsPublic))
         {
             throw new OrynCompileException("Could not find public static void Main().");
         }
 
-        int BodyStart = MainMatch.Index + MainMatch.Length - 1;
-        int BodyEnd = FindMatchingBrace(SourceText, BodyStart);
-        string BodyText = StripComments(SourceText.Substring(BodyStart + 1, BodyEnd - BodyStart - 1));
-        StatementParser Parser = new(BodyText);
-        return new KernelAst(SourcePath, Parser.ParseStatements());
+        return new KernelAst(SourcePath, Methods);
     }
 
     private static int FindMatchingBrace(string Text, int OpenBraceIndex)
@@ -66,7 +75,7 @@ internal sealed class CSharpKernelParser
             }
         }
 
-        throw new OrynCompileException("Could not find the closing brace for Kernel.Main().");
+        throw new OrynCompileException("Could not find the closing brace for a Stage 2 method.");
     }
 
     private static string StripComments(string Text)
@@ -278,11 +287,18 @@ internal sealed class CSharpKernelParser
                 return new KernelAssignmentAst(Assignment.Groups["Name"].Value, ExpressionParser.Parse(Assignment.Groups["Value"].Value));
             }
 
-            Match Call = Regex.Match(WithoutSemicolon, @"^(?<Class>[A-Za-z_][A-Za-z0-9_]*)\.(?<Method>[A-Za-z_][A-Za-z0-9_]*)\s*\((?<Args>.*)\)$", RegexOptions.Singleline);
-            if (Call.Success)
+            Match QualifiedCall = Regex.Match(WithoutSemicolon, @"^(?<Class>[A-Za-z_][A-Za-z0-9_]*)\.(?<Method>[A-Za-z_][A-Za-z0-9_]*)\s*\((?<Args>.*)\)$", RegexOptions.Singleline);
+            if (QualifiedCall.Success)
             {
-                string ManagedName = Call.Groups["Class"].Value + "." + Call.Groups["Method"].Value;
-                return new KernelCallStatementAst(ManagedName, ParseArguments(Call.Groups["Args"].Value));
+                string ManagedName = QualifiedCall.Groups["Class"].Value + "." + QualifiedCall.Groups["Method"].Value;
+                return new KernelCallStatementAst(ManagedName, ParseArguments(QualifiedCall.Groups["Args"].Value));
+            }
+
+            Match LocalStaticCall = Regex.Match(WithoutSemicolon, @"^(?<Method>[A-Za-z_][A-Za-z0-9_]*)\s*\((?<Args>.*)\)$", RegexOptions.Singleline);
+            if (LocalStaticCall.Success)
+            {
+                string ManagedName = "Kernel." + LocalStaticCall.Groups["Method"].Value;
+                return new KernelCallStatementAst(ManagedName, ParseArguments(LocalStaticCall.Groups["Args"].Value));
             }
 
             throw new OrynCompileException($"Unsupported Stage 2 statement: {StatementText}");
@@ -591,7 +607,6 @@ internal sealed class CSharpKernelParser
                 }
 
                 throw new OrynCompileException($"Unsupported token in Stage 2 expression: {Character}");
-
             }
         }
 

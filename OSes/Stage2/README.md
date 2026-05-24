@@ -66,3 +66,8 @@ Stage 2 now emits a simple x64 stack-frame model for generated kernels. Integer 
 ## Stage 2 string literal proof
 
 Stage 2 generated assembly now contains a real `.rodata` string literal table. Diagnostics message arguments are emitted as `.asciz` records under `.LstrN` labels and loaded with RIP-relative addressing before the approved native diagnostics calls.
+
+
+## Stage 2 static helper method proof
+
+The Stage 2 sample kernel now calls `WriteBanner();` from `Main()`. The compiler emits a separate `Kernel_WriteBanner` x64 function and a `call Kernel_WriteBanner` instruction from `Kernel_Main`, proving that user kernel code is no longer forced to keep every statement inside `Main()`.

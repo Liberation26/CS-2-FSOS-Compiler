@@ -8,13 +8,14 @@ internal sealed class NativeDiagnosticsEmitter
     public string Emit(CompilerManifest Manifest, IReadOnlyList<IrInstruction> Instructions, string CPath, string AssemblyPath)
     {
         StringBuilder Builder = new();
-        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 2 phase 6 diagnostics");
+        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 2 static helper method diagnostics");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Version: {Manifest.CompilerVersion}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Source: {Manifest.SourcePath}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Target: {Manifest.Target}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Entry symbol: {Manifest.EntrySymbol}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Basic blocks: {Manifest.BasicBlockCount}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] IR instructions: {Instructions.Count}");
+        Builder.AppendLine($"[ OK ] [ COMPILER ] Methods: {Manifest.Methods.Count}");
         Builder.AppendLine("[ OK ] [ IR       ] Real Oryn IR is stack-style and explicit: locals, constants, arithmetic, comparisons, calls, labels, jumps, conditional jumps, and returns.");
         Builder.AppendLine("[ OK ] [ CFG      ] Basic blocks and successor edges are generated from labels, jumps, conditional jumps, and fallthroughs.");
 
@@ -31,7 +32,7 @@ internal sealed class NativeDiagnosticsEmitter
 
         Builder.AppendLine($"[ OK ] [ BACKEND  ] C output: {CPath}");
         Builder.AppendLine($"[ OK ] [ BACKEND  ] real x64 assembly output: {AssemblyPath}");
-        Builder.AppendLine("[ OK ] [ BACKEND  ] Stage 2 Phase 6 lowers Oryn IR directly to clang/as-compatible x64 assembly.");
+        Builder.AppendLine("[ OK ] [ BACKEND  ] Stage 2 lowers Oryn IR directly to clang/as-compatible x64 assembly, including static helper method calls lowered to Kernel_* symbols.");
         Builder.AppendLine("[ OK ] [ BACKEND  ] Runtime diagnostics write to QEMU serial and VGA when built with DEBUG=1; ELF64 object writing is deferred to Stage 3.");
         return Builder.ToString();
     }

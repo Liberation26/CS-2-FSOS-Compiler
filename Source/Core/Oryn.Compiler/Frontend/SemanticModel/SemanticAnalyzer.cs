@@ -11,44 +11,64 @@ internal sealed class SemanticAnalyzer
 
     public BoundKernelModel Bind(KernelAst KernelAst)
     {
-        Dictionary<string, BoundLocal> Locals = new(StringComparer.Ordinal);
-        List<BoundStatement> Statements = BindStatements(KernelAst.Statements, Locals);
+        Dictionary<string, KernelMethodAst> KernelMethods = KernelAst.Methods.ToDictionary(Method => "Kernel." + Method.Name, Method => Method, StringComparer.Ordinal);
+        List<BoundKernelMethod> Methods = new();
 
-        if (Statements.Count == 0)
+        foreach (KernelMethodAst Method in KernelAst.Methods)
+        {
+            Methods.Add(BindMethod(Method, KernelMethods));
+        }
+
+        BoundKernelMethod? MainMethod = Methods.FirstOrDefault(Method => Method.Name == "Main" && Method.IsPublic);
+        if (MainMethod is null)
         {
             throw new OrynCompileException("Kernel Main does not contain any Stage 2 statements.");
         }
 
-        return new BoundKernelModel(KernelAst.SourcePath, Statements, Locals.Values.ToList());
+        return new BoundKernelModel(KernelAst.SourcePath, MainMethod, Methods);
     }
 
-    private List<BoundStatement> BindStatements(IEnumerable<KernelStatementAst> Statements, Dictionary<string, BoundLocal> Locals)
+    private BoundKernelMethod BindMethod(KernelMethodAst Method, IReadOnlyDictionary<string, KernelMethodAst> KernelMethods)
+    {
+        Dictionary<string, BoundLocal> Locals = new(StringComparer.Ordinal);
+        List<BoundStatement> Statements = BindStatements(Method.Statements, Locals, KernelMethods);
+
+        if (Statements.Count == 0)
+        {
+            throw new OrynCompileException($"Kernel method {Method.Name} does not contain any Stage 2 statements.");
+        }
+
+        return new BoundKernelMethod(Method.Name, Method.NativeSymbol, Method.IsPublic, Statements, Locals.Values.ToList());
+    }
+
+    private List<BoundStatement> BindStatements(IEnumerable<KernelStatementAst> Statements, Dictionary<string, BoundLocal> Locals, IReadOnlyDictionary<string, KernelMethodAst> KernelMethods)
     {
         List<BoundStatement> BoundStatements = new();
         foreach (KernelStatementAst Statement in Statements)
         {
-            BoundStatements.Add(BindStatement(Statement, Locals));
+            BoundStatements.Add(BindStatement(Statement, Locals, KernelMethods));
         }
 
         return BoundStatements;
     }
 
-    private BoundStatement BindStatement(KernelStatementAst Statement, Dictionary<string, BoundLocal> Locals)
+    private BoundStatement BindStatement(KernelStatementAst Statement, Dictionary<string, BoundLocal> Locals, IReadOnlyDictionary<string, KernelMethodAst> KernelMethods)
     {
         return Statement switch
         {
-            KernelLocalDeclarationAst Declaration => BindLocalDeclaration(Declaration, Locals),
-            KernelAssignmentAst Assignment => BindAssignment(Assignment, Locals),
-            KernelCallStatementAst Call => BindCall(Call, Locals),
-            KernelIfAst If => new BoundIf(BindExpression(If.Condition, Locals), BindStatements(If.ThenStatements, Locals), BindStatements(If.ElseStatements, Locals)),
-            KernelWhileAst While => new BoundWhile(BindExpression(While.Condition, Locals), BindStatements(While.BodyStatements, Locals)),
+            KernelLocalDeclarationAst Declaration => BindLocalDeclaration(Declaration, Locals, KernelMethods),
+            KernelAssignmentAst Assignment => BindAssignment(Assignment, Locals, KernelMethods),
+            KernelCallStatementAst Call => BindCall(Call, Locals, KernelMethods),
+            KernelIfAst If => new BoundIf(BindExpression(If.Condition, Locals), BindStatements(If.ThenStatements, Locals, KernelMethods), BindStatements(If.ElseStatements, Locals, KernelMethods)),
+            KernelWhileAst While => new BoundWhile(BindExpression(While.Condition, Locals), BindStatements(While.BodyStatements, Locals, KernelMethods)),
             KernelReturnAst => new BoundReturn(),
             _ => throw new OrynCompileException($"Unsupported Stage 2 statement node: {Statement.GetType().Name}")
         };
     }
 
-    private BoundStatement BindLocalDeclaration(KernelLocalDeclarationAst Declaration, Dictionary<string, BoundLocal> Locals)
+    private BoundStatement BindLocalDeclaration(KernelLocalDeclarationAst Declaration, Dictionary<string, BoundLocal> Locals, IReadOnlyDictionary<string, KernelMethodAst> KernelMethods)
     {
+        _ = KernelMethods;
         if (Declaration.TypeName != "Int32")
         {
             throw new OrynCompileException($"Unsupported Stage 2 local type: {Declaration.TypeName}");
@@ -70,8 +90,9 @@ internal sealed class SemanticAnalyzer
         return new BoundLocalDeclaration(Local, Initializer);
     }
 
-    private BoundStatement BindAssignment(KernelAssignmentAst Assignment, Dictionary<string, BoundLocal> Locals)
+    private BoundStatement BindAssignment(KernelAssignmentAst Assignment, Dictionary<string, BoundLocal> Locals, IReadOnlyDictionary<string, KernelMethodAst> KernelMethods)
     {
+        _ = KernelMethods;
         if (!Locals.TryGetValue(Assignment.Name, out BoundLocal? Local))
         {
             throw new OrynCompileException($"Assignment targets undeclared Stage 2 local: {Assignment.Name}");
@@ -86,33 +107,43 @@ internal sealed class SemanticAnalyzer
         return new BoundAssignment(Local, Value);
     }
 
-    private BoundStatement BindCall(KernelCallStatementAst Call, Dictionary<string, BoundLocal> Locals)
+    private BoundStatement BindCall(KernelCallStatementAst Call, Dictionary<string, BoundLocal> Locals, IReadOnlyDictionary<string, KernelMethodAst> KernelMethods)
     {
-        if (!BindingCatalog.TryResolve(Call.ManagedName, out BindingRecord? Binding) || Binding is null)
+        if (BindingCatalog.TryResolve(Call.ManagedName, out BindingRecord? Binding) && Binding is not null)
         {
-            throw new OrynCompileException($"No approved Stage 2 binding for call: {Call.ManagedName}");
-        }
-
-        if (!Binding.AllowedInKernel)
-        {
-            throw new OrynCompileException($"Binding is not allowed in kernel code: {Call.ManagedName}");
-        }
-
-        if (Call.Arguments.Count != Binding.ArgumentCount)
-        {
-            throw new OrynCompileException($"Call {Call.ManagedName} expected {Binding.ArgumentCount} argument(s) but received {Call.Arguments.Count}.");
-        }
-
-        List<BoundExpression> Arguments = Call.Arguments.Select(Argument => BindExpression(Argument, Locals)).ToList();
-        foreach (BoundExpression Argument in Arguments)
-        {
-            if (Binding.ArgumentCount > 0 && Argument.TypeName != "String")
+            if (!Binding.AllowedInKernel)
             {
-                throw new OrynCompileException($"Call {Call.ManagedName} currently accepts string arguments only.");
+                throw new OrynCompileException($"Binding is not allowed in kernel code: {Call.ManagedName}");
             }
+
+            if (Call.Arguments.Count != Binding.ArgumentCount)
+            {
+                throw new OrynCompileException($"Call {Call.ManagedName} expected {Binding.ArgumentCount} argument(s) but received {Call.Arguments.Count}.");
+            }
+
+            List<BoundExpression> Arguments = Call.Arguments.Select(Argument => BindExpression(Argument, Locals)).ToList();
+            foreach (BoundExpression Argument in Arguments)
+            {
+                if (Binding.ArgumentCount > 0 && Argument.TypeName != "String")
+                {
+                    throw new OrynCompileException($"Call {Call.ManagedName} currently accepts string arguments only.");
+                }
+            }
+
+            return new BoundCall(Call.ManagedName, Binding.NativeSymbol, Arguments, false);
         }
 
-        return new BoundCall(Call.ManagedName, Binding.NativeSymbol, Arguments);
+        if (KernelMethods.TryGetValue(Call.ManagedName, out KernelMethodAst? Method))
+        {
+            if (Call.Arguments.Count != 0)
+            {
+                throw new OrynCompileException($"Static helper method calls currently require zero arguments: {Call.ManagedName}");
+            }
+
+            return new BoundCall(Call.ManagedName, Method.NativeSymbol, Array.Empty<BoundExpression>(), true);
+        }
+
+        throw new OrynCompileException($"No approved Stage 2 binding or static helper method for call: {Call.ManagedName}");
     }
 
     private BoundExpression BindExpression(KernelExpressionAst Expression, Dictionary<string, BoundLocal> Locals)
@@ -157,7 +188,13 @@ internal sealed class SemanticAnalyzer
     }
 }
 
-internal sealed record BoundKernelModel(string SourcePath, IReadOnlyList<BoundStatement> Statements, IReadOnlyList<BoundLocal> Locals);
+internal sealed record BoundKernelModel(string SourcePath, BoundKernelMethod MainMethod, IReadOnlyList<BoundKernelMethod> Methods)
+{
+    public IReadOnlyList<BoundStatement> Statements => MainMethod.Statements;
+    public IReadOnlyList<BoundLocal> Locals => MainMethod.Locals;
+}
+
+internal sealed record BoundKernelMethod(string Name, string NativeSymbol, bool IsPublic, IReadOnlyList<BoundStatement> Statements, IReadOnlyList<BoundLocal> Locals);
 
 internal sealed record BoundLocal(string Name, string TypeName);
 
@@ -167,7 +204,7 @@ internal sealed record BoundLocalDeclaration(BoundLocal Local, BoundExpression? 
 
 internal sealed record BoundAssignment(BoundLocal Local, BoundExpression Value) : BoundStatement;
 
-internal sealed record BoundCall(string ManagedName, string NativeSymbol, IReadOnlyList<BoundExpression> Arguments) : BoundStatement;
+internal sealed record BoundCall(string ManagedName, string NativeSymbol, IReadOnlyList<BoundExpression> Arguments, bool IsStaticHelperCall) : BoundStatement;
 
 internal sealed record BoundIf(BoundExpression Condition, IReadOnlyList<BoundStatement> ThenStatements, IReadOnlyList<BoundStatement> ElseStatements) : BoundStatement;
 

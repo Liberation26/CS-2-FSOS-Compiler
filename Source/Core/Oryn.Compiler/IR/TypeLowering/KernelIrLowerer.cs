@@ -8,10 +8,23 @@ internal sealed class KernelIrLowerer
 
     public OrynIrModule Lower(BoundKernelModel BoundModel)
     {
-        Instructions.Clear();
         LabelIndex = 0;
+        List<OrynIrMethod> Methods = new();
 
-        foreach (BoundStatement Statement in BoundModel.Statements)
+        foreach (BoundKernelMethod Method in BoundModel.Methods)
+        {
+            Methods.Add(LowerMethod(Method));
+        }
+
+        OrynIrMethod MainMethod = Methods.First(Method => Method.NativeSymbol == BoundModel.MainMethod.NativeSymbol);
+        return new OrynIrModule(BoundModel.MainMethod.NativeSymbol, MainMethod.Instructions, Methods);
+    }
+
+    private OrynIrMethod LowerMethod(BoundKernelMethod Method)
+    {
+        Instructions.Clear();
+
+        foreach (BoundStatement Statement in Method.Statements)
         {
             LowerStatement(Statement);
         }
@@ -21,7 +34,7 @@ internal sealed class KernelIrLowerer
             Emit("Return");
         }
 
-        return new OrynIrModule("Kernel_Main", Instructions.ToList());
+        return new OrynIrMethod("Kernel." + Method.Name, Method.NativeSymbol, Instructions.ToList());
     }
 
     private void LowerStatement(BoundStatement Statement)

@@ -1,6 +1,14 @@
 namespace Oryn.Compiler;
 
-internal sealed record OrynIrModule(string EntrySymbol, IReadOnlyList<IrInstruction> Instructions);
+internal sealed record OrynIrModule(string EntrySymbol, IReadOnlyList<IrInstruction> Instructions, IReadOnlyList<OrynIrMethod> Methods)
+{
+    public OrynIrModule(string EntrySymbol, IReadOnlyList<IrInstruction> Instructions)
+        : this(EntrySymbol, Instructions, new[] { new OrynIrMethod(EntrySymbol, EntrySymbol, Instructions) })
+    {
+    }
+}
+
+internal sealed record OrynIrMethod(string ManagedName, string NativeSymbol, IReadOnlyList<IrInstruction> Instructions);
 
 internal sealed record IrInstruction(
     int Index,

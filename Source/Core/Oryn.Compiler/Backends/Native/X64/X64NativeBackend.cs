@@ -31,9 +31,10 @@ internal sealed class X64NativeBackend
             FullOutputPath,
             IrModule.EntrySymbol,
             IrModule.Instructions,
+            IrModule.Methods,
             ControlFlowGraph,
             ControlFlowGraph.Blocks.Count,
-            "Stage 2 phase 6 emits real clang/as-compatible x64 assembly from Oryn IR with a simple rbp-based 64-bit local stack-slot model, while keeping the generated C file as a readable reference artifact. Direct ELF64 object writing remains a Stage 3 task.");
+            "Stage 2 supports real clang/as-compatible x64 assembly from Oryn IR, rbp-based 64-bit local stack slots, .rodata string literal tables, and private static helper methods lowered to Kernel_* symbols. Direct ELF64 object writing remains a Stage 3 task.");
 
         return new BackendResult(
             ManifestPath,
@@ -42,8 +43,8 @@ internal sealed class X64NativeBackend
             DiagnosticsPath,
             FullOutputPath,
             Manifest,
-            CSourceEmitter.Emit(IrModule.Instructions),
-            AssemblyEmitter.Emit(IrModule.Instructions),
+            CSourceEmitter.Emit(IrModule),
+            AssemblyEmitter.Emit(IrModule),
             ObjectEmitter.Emit(Manifest),
             DiagnosticsEmitter.Emit(Manifest, IrModule.Instructions, CPath, AssemblyPath));
     }

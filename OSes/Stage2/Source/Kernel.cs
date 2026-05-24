@@ -6,7 +6,7 @@ public static class Kernel
 {
     public static void Main()
     {
-        Diagnostics.WriteOk("Stage2 phase6 kernel entered");
+        WriteBanner();
         Memory.Initialize();
 
         int Counter = 0;
@@ -17,14 +17,19 @@ public static class Kernel
 
         if (Counter == 3)
         {
-            Diagnostics.WriteOk("Stage2 phase6 control flow graph loop completed");
+            Diagnostics.WriteOk("Stage2 helper method control flow graph loop completed");
         }
         else
         {
-            Diagnostics.WriteFail("Stage2 phase6 control flow graph loop failed");
+            Diagnostics.WriteFail("Stage2 helper method control flow graph loop failed");
         }
 
-        Diagnostics.WriteOk("Stage2 phase6 kernel is halting forever");
+        Diagnostics.WriteOk("Stage2 helper method kernel is halting forever");
         Cpu.HaltForever();
+    }
+
+    private static void WriteBanner()
+    {
+        Diagnostics.WriteOk("Hello from helper method");
     }
 }

@@ -10,14 +10,11 @@ internal sealed class X64AssemblyEmitter
 
     private readonly Dictionary<string, string> LabelNames = new(StringComparer.Ordinal);
 
-    public string Emit(IReadOnlyList<IrInstruction> Instructions)
+    public string Emit(OrynIrModule Module)
     {
         LabelNames.Clear();
-        Dictionary<string, LocalSlot> LocalSlots = AllocateLocals(Instructions);
-        IReadOnlyList<StringLiteral> StringLiterals = BuildStringLiteralTable(Instructions);
+        IReadOnlyList<StringLiteral> StringLiterals = BuildStringLiteralTable(Module.Methods.SelectMany(Method => Method.Instructions).ToList());
         Dictionary<string, string> StringSymbols = StringLiterals.ToDictionary(Literal => Literal.Value, Literal => Literal.Symbol, StringComparer.Ordinal);
-        int LocalFrameSize = AlignTo(LocalSlots.Count * 8, 16);
-        int EvaluationStackDepth = 0;
 
         StringBuilder Builder = new();
         Builder.AppendLine("# Oryn Stage 2 string-literal-table x64 backend output.");
@@ -25,9 +22,33 @@ internal sealed class X64AssemblyEmitter
         Builder.AppendLine("# Locals use 64-bit stack slots addressed from rbp, for example Counter -> -8(%rbp).");
         Builder.AppendLine("# String literals are emitted once into .rodata as .LstrN labels.");
         Builder.AppendLine(".section .text");
-        Builder.AppendLine(".global Kernel_Main");
-        Builder.AppendLine(".type Kernel_Main, @function");
-        Builder.AppendLine("Kernel_Main:");
+        foreach (OrynIrMethod Method in Module.Methods)
+        {
+            EmitMethod(Builder, Method, StringSymbols);
+        }
+
+        Builder.AppendLine(".section .rodata");
+        foreach (StringLiteral Literal in StringLiterals)
+        {
+            Builder.AppendLine($"{Literal.Symbol}:");
+            Builder.AppendLine($"    .asciz \"{NativeTextEscaper.EscapeCString(Literal.Value)}\"");
+        }
+
+        Builder.AppendLine();
+        Builder.AppendLine(".section .note.GNU-stack,\"\",@progbits");
+        return Builder.ToString();
+    }
+
+    private void EmitMethod(StringBuilder Builder, OrynIrMethod Method, IReadOnlyDictionary<string, string> StringSymbols)
+    {
+        IReadOnlyList<IrInstruction> Instructions = Method.Instructions;
+        Dictionary<string, LocalSlot> LocalSlots = AllocateLocals(Instructions);
+        int LocalFrameSize = AlignTo(LocalSlots.Count * 8, 16);
+        int EvaluationStackDepth = 0;
+
+        Builder.AppendLine($".global {Method.NativeSymbol}");
+        Builder.AppendLine($".type {Method.NativeSymbol}, @function");
+        Builder.AppendLine($"{Method.NativeSymbol}:");
         Builder.AppendLine("    push %rbp");
         Builder.AppendLine("    mov %rsp, %rbp");
         if (LocalFrameSize > 0)
@@ -149,18 +170,8 @@ internal sealed class X64AssemblyEmitter
             }
         }
 
-        Builder.AppendLine(".size Kernel_Main, .-Kernel_Main");
+        Builder.AppendLine($".size {Method.NativeSymbol}, .-{Method.NativeSymbol}");
         Builder.AppendLine();
-        Builder.AppendLine(".section .rodata");
-        foreach (StringLiteral Literal in StringLiterals)
-        {
-            Builder.AppendLine($"{Literal.Symbol}:");
-            Builder.AppendLine($"    .asciz \"{NativeTextEscaper.EscapeCString(Literal.Value)}\"");
-        }
-
-        Builder.AppendLine();
-        Builder.AppendLine(".section .note.GNU-stack,\"\",@progbits");
-        return Builder.ToString();
     }
 
     private static Dictionary<string, LocalSlot> AllocateLocals(IReadOnlyList<IrInstruction> Instructions)

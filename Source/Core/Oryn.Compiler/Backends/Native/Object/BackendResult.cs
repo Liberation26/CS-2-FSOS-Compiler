@@ -9,6 +9,7 @@ internal sealed record CompilerManifest(
     string OutputPath,
     string EntrySymbol,
     IReadOnlyList<IrInstruction> Instructions,
+    IReadOnlyList<OrynIrMethod> Methods,
     OrynControlFlowGraph ControlFlowGraph,
     int BasicBlockCount,
     string Notes);

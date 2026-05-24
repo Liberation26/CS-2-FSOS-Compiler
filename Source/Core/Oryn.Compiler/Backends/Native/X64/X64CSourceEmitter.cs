@@ -5,7 +5,7 @@ namespace Oryn.Compiler.Backends.Native.X64;
 
 internal sealed class X64CSourceEmitter
 {
-    public string Emit(IReadOnlyList<IrInstruction> Instructions)
+    public string Emit(OrynIrModule Module)
     {
         StringBuilder Builder = new();
         Builder.AppendLine("#include <stdint.h>");
@@ -15,18 +15,33 @@ internal sealed class X64CSourceEmitter
         Builder.AppendLine("extern void Diagnostics_WriteFail(const char* Message);");
         Builder.AppendLine("extern void Memory_Initialize(void);");
         Builder.AppendLine("extern void Cpu_HaltForever(void);");
+        foreach (OrynIrMethod Method in Module.Methods)
+        {
+            Builder.AppendLine($"void {Method.NativeSymbol}(void);");
+        }
+
         Builder.AppendLine();
-        Builder.AppendLine("void Kernel_Main(void)");
+        foreach (OrynIrMethod Method in Module.Methods)
+        {
+            EmitMethod(Builder, Method);
+        }
+
+        return Builder.ToString();
+    }
+
+    private static void EmitMethod(StringBuilder Builder, OrynIrMethod Method)
+    {
+        Builder.AppendLine($"void {Method.NativeSymbol}(void)");
         Builder.AppendLine("{");
 
         Stack<string> ExpressionStack = new();
         int TemporaryIndex = 0;
-        foreach (IrInstruction Instruction in Instructions)
+        foreach (IrInstruction Instruction in Method.Instructions)
         {
             switch (Instruction.OpCode)
             {
                 case "DeclareLocal":
-                    Builder.AppendLine($"    int32_t {Instruction.Operand} = 0;");
+                    Builder.AppendLine($"    int64_t {Instruction.Operand} = 0;");
                     break;
 
                 case "ConstInt32":
@@ -90,7 +105,7 @@ internal sealed class X64CSourceEmitter
         }
 
         Builder.AppendLine("}");
-        return Builder.ToString();
+        Builder.AppendLine();
     }
 
     private static void EmitCall(StringBuilder Builder, Stack<string> ExpressionStack, IrInstruction Instruction)

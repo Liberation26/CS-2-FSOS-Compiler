@@ -582,3 +582,10 @@ The Stage 2 x64 backend now has a simple stack/local variable model. Integer loc
 Version `0.2.12` adds the Stage 2 x64 string literal table. The backend now emits distinct source string literals once into `.section .rodata` as `.LstrN` labels and lowers approved string module calls to RIP-relative argument loads such as `lea .Lstr0(%rip), %rdi` before `call Diagnostics_WriteOk`.
 
 The Phase 6 stack/local model remains in place: integer locals still use 64-bit rbp-relative slots, and the generated method keeps the conventional prologue and epilogue.
+
+
+## Version 0.2.13 Stage 2 static helper methods
+
+Version `0.2.13` adds static helper method support to the Stage 2 compiler. A kernel can now call helper methods such as `WriteBanner();` from `Main()` and the compiler lowers those methods to generated x64 symbols such as `Kernel_WriteBanner`.
+
+Each generated method receives its own conventional rbp stack frame and local-slot table. The existing `.rodata` string literal table and approved native module bindings remain in place, so helper methods can call diagnostics safely with immutable freestanding string data.

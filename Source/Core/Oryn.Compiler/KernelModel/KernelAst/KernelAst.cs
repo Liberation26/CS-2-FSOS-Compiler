@@ -1,6 +1,11 @@
 namespace Oryn.Compiler;
 
-internal sealed record KernelAst(string SourcePath, IReadOnlyList<KernelStatementAst> Statements);
+internal sealed record KernelAst(string SourcePath, IReadOnlyList<KernelMethodAst> Methods)
+{
+    public KernelMethodAst MainMethod => Methods.First(Method => Method.Name == "Main");
+}
+
+internal sealed record KernelMethodAst(string Name, string NativeSymbol, bool IsPublic, IReadOnlyList<KernelStatementAst> Statements);
 
 internal abstract record KernelStatementAst;
 
