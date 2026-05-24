@@ -1,5 +1,5 @@
 {
-  "OrynVersion": "1.0.5",
+  "OrynVersion": "1.0.6",
   "OsName": "DSOOS",
   "KernelName": "DSOOSKernel",
   "Target": "x64-elf",
@@ -15,7 +15,5 @@
   ],
   "DiagnosticsAlwaysEnabled": true,
   "PanicAlwaysEnabled": true,
-  "UserSelectedModules": [
-    "Memory"
-  ]
+  "UserSelectedModules": []
 }

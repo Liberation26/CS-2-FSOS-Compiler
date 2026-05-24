@@ -31,3 +31,7 @@ Expected serial proof includes:
 [ OK ] [ KERNEL   ] MyOrynOS user-selected modules: <none>
 [ OK ] [ KERNEL   ] MyOrynOS generated kernel is halting forever
 ```
+
+## 1.0.7 generated OS proof
+
+Generated kernels now print `Hello from <OsName>` during boot. The generation questions also ask whether QEMU should run in `Headless` mode or `Visual` mode, and the generated manifest records that choice as `VmDisplayMode`.

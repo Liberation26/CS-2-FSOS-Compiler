@@ -6,7 +6,7 @@ namespace Oryn.Generator;
 
 internal static class Program
 {
-    private const string Version = "1.0.6";
+    private const string Version = "1.0.7";
     private static readonly string[] MandatoryKernelModules = { "Runtime", "Diagnostics", "Panic", "Cpu", "ManifestLoader" };
     private static readonly string[] DefaultUserSelectedModules = Array.Empty<string>();
     private static readonly string[] AvailableUserSelectableModules = { "Memory" };
@@ -54,7 +54,7 @@ internal static class Program
     {
         Console.WriteLine("Usage:");
         Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate");
-        Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate --os-name <name> [--kernel-name <name>] [--modules None|Memory]");
+        Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate --os-name <name> [--kernel-name <name>] [--modules None|Memory] [--vm-display-mode Headless|Visual]");
         Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- modules");
         Console.WriteLine();
         Console.WriteLine("Diagnostics and Panic are always enabled. Mandatory kernel modules are not user-selected modules.");
@@ -68,7 +68,7 @@ internal static class Program
             Console.WriteLine($"  [mandatory] {Module}");
         }
 
-        Console.WriteLine("[ OK ] User-selectable modules for 1.0.6:");
+        Console.WriteLine("[ OK ] User-selectable modules for 1.0.7:");
         Console.WriteLine("  [available] None");
         foreach (string Module in AvailableUserSelectableModules)
         {
@@ -87,12 +87,14 @@ internal static class Program
         string KernelName = ReadOption(Args, "--kernel-name") ?? Prompt("Kernel name", SanitizeIdentifier(OsName) + "Kernel", NonInteractive);
         string Target = ReadOption(Args, "--target") ?? Prompt("Target architecture", "x64-elf", NonInteractive);
         string VmProfile = ReadOption(Args, "--vm-profile") ?? Prompt("Virtual machine profile", "RunQemu", NonInteractive);
+        string VmDisplayMode = ReadOption(Args, "--vm-display-mode") ?? ReadOption(Args, "--display-mode") ?? ReadOption(Args, "--qemu-display") ?? Prompt("VM display mode", "Headless", NonInteractive);
+        VmDisplayMode = NormalizeVmDisplayMode(VmDisplayMode);
         string BuildMode = ReadOption(Args, "--build-mode") ?? Prompt("Build mode", "Debug", NonInteractive);
 
         Console.WriteLine("[ OK ] [GENERATOR] Mandatory kernel modules are always linked and hidden from user selection:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", MandatoryKernelModules));
         Console.WriteLine("[ OK ] [GENERATOR] Diagnostics and Panic are always enabled.");
-        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.6:");
+        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.7:");
         Console.WriteLine("[ OK ] [GENERATOR]   None, " + string.Join(", ", AvailableUserSelectableModules));
 
         string ModulesText = ReadOption(Args, "--modules") ?? Prompt("User-selected modules, comma-separated", FormatModuleDefault(DefaultUserSelectedModules), NonInteractive);
@@ -126,13 +128,14 @@ internal static class Program
 
         File.WriteAllText(TemplatePath, BuildKernelTemplate(), Utf8NoBom);
         File.WriteAllText(SourcePath, BuildUncomposedKernelSource(OsName, SafeKernelName), Utf8NoBom);
-        File.WriteAllText(AnswersPath, BuildAnswersJson(OsName, SafeKernelName, Target, VmProfile, BuildMode, UserSelectedModules), Utf8NoBom);
-        File.WriteAllText(ManifestPath, BuildManifestJson(SafeOsName, SafeKernelName, Target, VmProfile, BuildMode, UserSelectedModules), Utf8NoBom);
+        File.WriteAllText(AnswersPath, BuildAnswersJson(OsName, SafeKernelName, Target, VmProfile, VmDisplayMode, BuildMode, UserSelectedModules), Utf8NoBom);
+        File.WriteAllText(ManifestPath, BuildManifestJson(SafeOsName, SafeKernelName, Target, VmProfile, VmDisplayMode, BuildMode, UserSelectedModules), Utf8NoBom);
         File.WriteAllText(ReadmePath, BuildOsReadme(SafeOsName, SafeKernelName), Utf8NoBom);
 
         Console.WriteLine($"[ OK ] [GENERATOR] OS folder created: {OsRoot}");
         Console.WriteLine($"[ OK ] [GENERATOR] Answers saved: {AnswersPath}");
         Console.WriteLine($"[ OK ] [GENERATOR] Manifest saved: {ManifestPath}");
+        Console.WriteLine($"[ OK ] [GENERATOR] VM display mode: {VmDisplayMode}");
         Console.WriteLine($"[ OK ] [GENERATOR] Mandatory kernel modules: {string.Join(", ", MandatoryKernelModules)}");
         Console.WriteLine($"[ OK ] [GENERATOR] User-selected modules: {(UserSelectedModules.Length == 0 ? "<none>" : string.Join(", ", UserSelectedModules))}");
     }
@@ -182,6 +185,27 @@ internal static class Program
         Console.WriteLine($"[ OK ] [GENERATOR] Loaded JSON question files: {QuestionFiles.Length}");
     }
 
+    private static string NormalizeVmDisplayMode(string Value)
+    {
+        string Normalized = Value.Trim();
+        if (Normalized.Equals("Headless", StringComparison.OrdinalIgnoreCase) ||
+            Normalized.Equals("None", StringComparison.OrdinalIgnoreCase) ||
+            Normalized.Equals("Off", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Headless";
+        }
+
+        if (Normalized.Equals("Visual", StringComparison.OrdinalIgnoreCase) ||
+            Normalized.Equals("Visible", StringComparison.OrdinalIgnoreCase) ||
+            Normalized.Equals("Headed", StringComparison.OrdinalIgnoreCase) ||
+            Normalized.Equals("Gui", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Visual";
+        }
+
+        throw new InvalidOperationException("Unsupported VM display mode: " + Value + ". Use Headless or Visual.");
+    }
+
     private static string FormatModuleDefault(string[] Modules)
     {
         return Modules.Length == 0 ? "None" : string.Join(',', Modules);
@@ -222,7 +246,7 @@ internal static class Program
 
             if (!Available.Contains(Module))
             {
-                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.6: {Module}");
+                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.7: {Module}");
             }
         }
     }
@@ -235,6 +259,7 @@ public static class Kernel
     public static void Main()
     {
         Diagnostics.WriteOk("__ORYN_OS_NAME__ generated kernel entered");
+        Diagnostics.WriteOk("Hello from __ORYN_OS_NAME__");
         Diagnostics.WriteOk("__ORYN_OS_NAME__ kernel name __ORYN_KERNEL_NAME__");
         Diagnostics.WriteOk("__ORYN_OS_NAME__ compiler version __ORYN_COMPILER_VERSION__");
 __ORYN_KERNEL_BOOT_PROOF_LINES__
@@ -266,7 +291,7 @@ __ORYN_MODULE_INITIALIZATION_CALLS__
         return string.Join(Environment.NewLine, Lines) + Environment.NewLine;
     }
 
-    private static string BuildAnswersJson(string OsName, string KernelName, string Target, string VmProfile, string BuildMode, string[] UserSelectedModules)
+    private static string BuildAnswersJson(string OsName, string KernelName, string Target, string VmProfile, string VmDisplayMode, string BuildMode, string[] UserSelectedModules)
     {
         object Model = new
         {
@@ -276,6 +301,7 @@ __ORYN_MODULE_INITIALIZATION_CALLS__
             Target,
             DefaultBootMode = "long-mode",
             VmProfile,
+            VmDisplayMode,
             BuildMode,
             MandatoryKernelModules,
             DiagnosticsAlwaysEnabled = true,
@@ -285,7 +311,7 @@ __ORYN_MODULE_INITIALIZATION_CALLS__
         return JsonSerializer.Serialize(Model, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine;
     }
 
-    private static string BuildManifestJson(string OsName, string KernelName, string Target, string VmProfile, string BuildMode, string[] UserSelectedModules)
+    private static string BuildManifestJson(string OsName, string KernelName, string Target, string VmProfile, string VmDisplayMode, string BuildMode, string[] UserSelectedModules)
     {
         object Model = new
         {
@@ -295,6 +321,7 @@ __ORYN_MODULE_INITIALIZATION_CALLS__
             Target,
             DefaultBootMode = "long-mode",
             VmProfile,
+            VmDisplayMode,
             BuildMode,
             MandatoryKernelModules,
             UserSelectedModules,
@@ -319,7 +346,7 @@ From the Oryn repository root:
 ./Oryn.sh run {OsName}
 ```
 
-The generated manifest records mandatory kernel modules separately from user-selected modules. Runtime, Diagnostics, Panic, Cpu, and ManifestLoader are linked automatically. Diagnostics and Panic are always enabled.
+The generated manifest records mandatory kernel modules separately from user-selected modules. Runtime, Diagnostics, Panic, Cpu, and ManifestLoader are linked automatically. Diagnostics and Panic are always enabled. The generated kernel prints `Hello from {OsName}` during boot. The VM display mode is chosen during generation and can be Headless or Visual.
 """;
 
     private static string LocateProjectRoot()

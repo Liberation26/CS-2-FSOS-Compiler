@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UPDATE_VERSION="1.0.6"
+UPDATE_VERSION="1.0.7"
 REMOTE_URL="https://github.com/Liberation26/CS-2-FSOS-Compiler.git"
 REPO_DIR="${ORYN_REPO_DIR:-$HOME/Dev/OrynFoundry}"
 DOWNLOADS_DIR="${ORYN_DOWNLOADS_DIR:-$HOME/Downloads}"
@@ -215,7 +215,7 @@ LaunchGeneratedWorkflow() {
         return 0
     fi
 
-    info "Launching Oryn end-user OS generation. You will be asked the 1.0.6 generation questions."
+    info "Launching Oryn end-user OS generation. You will be asked the 1.0.7 generation questions."
     "$OrynScript" generate
 
     local OsName
@@ -259,6 +259,9 @@ EnsureGitIdentity
 
 CURRENT_BRANCH="$(CurrentBranch)"
 info "Git branch: $CURRENT_BRANCH"
+
+info "Cleaning obsolete 1.0.6 question files before applying ChangedFiles"
+rm -f "$REPO_DIR/Questions/005-modules.question.json" "$REPO_DIR/Questions/006-build-mode.question.json"
 
 info "Copying ChangedFiles into repository root: $REPO_DIR"
 mkdir -p "$REPO_DIR"

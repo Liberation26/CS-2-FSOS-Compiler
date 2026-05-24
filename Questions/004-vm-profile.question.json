@@ -6,5 +6,7 @@
   "Type": "choice",
   "Required": true,
   "Default": "RunQemu",
-  "Choices": ["RunQemu"]
+  "Choices": [
+    "RunQemu"
+  ]
 }

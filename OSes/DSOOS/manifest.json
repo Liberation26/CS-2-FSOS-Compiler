@@ -1,5 +1,5 @@
 {
-  "OrynVersion": "1.0.5",
+  "OrynVersion": "1.0.6",
   "OsName": "DSOOS",
   "KernelName": "DSOOSKernel",
   "Target": "x64-elf",
@@ -13,8 +13,6 @@
     "Cpu",
     "ManifestLoader"
   ],
-  "UserSelectedModules": [
-    "Memory"
-  ],
+  "UserSelectedModules": [],
   "LinkedModulePolicy": "Mandatory kernel modules are linked automatically. User-selected modules exclude modules needed to get the kernel running. Diagnostics and Panic are always enabled."
 }

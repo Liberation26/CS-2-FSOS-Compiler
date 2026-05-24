@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="1.0.6"
+RUNQEMU_VERSION="1.0.7"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -858,8 +858,8 @@ if [ "${ORYN_SKIP_QEMU:-0}" = "1" ]; then
 fi
 
 case "$QEMU_DISPLAY_MODE" in
-    headed|head|gui)
-        QEMU_DISPLAY_MODE="headed"
+    visual|visible|headed|head|gui)
+        QEMU_DISPLAY_MODE="visual"
         QEMU_DISPLAY_ARGS=()
         ;;
     headless|none|off)
@@ -867,7 +867,7 @@ case "$QEMU_DISPLAY_MODE" in
         QEMU_DISPLAY_ARGS=(-display none)
         ;;
     *)
-        fail "Unsupported ORYN_QEMU_DISPLAY value: $QEMU_DISPLAY_MODE. Use headed or headless."
+        fail "Unsupported ORYN_QEMU_DISPLAY value: $QEMU_DISPLAY_MODE. Use visual or headless."
         ;;
 esac
 
@@ -968,6 +968,10 @@ else
     if [ "$ORYN_USER_OS_MODE" = "1" ]; then
         if ! grep -q "${STAGE_NAME} generated kernel entered" "$PROOF_LOG"; then
             fail "Expected generated OS kernel entry proof was not found for ${STAGE_NAME} in: $PROOF_LOG"
+        fi
+
+        if ! grep -q "Hello from ${STAGE_NAME}" "$PROOF_LOG"; then
+            fail "Expected generated OS hello proof was not found for ${STAGE_NAME} in: $PROOF_LOG"
         fi
 
         if ! grep -q "${STAGE_NAME} generated kernel is halting forever" "$PROOF_LOG"; then

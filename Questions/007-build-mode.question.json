@@ -1,10 +1,12 @@
 {
   "Id": "build-mode",
-  "Order": 6,
+  "Order": 7,
   "Prompt": "Which build mode should be used?",
   "AnswerKey": "BuildMode",
   "Type": "choice",
   "Required": true,
   "Default": "Debug",
-  "Choices": ["Debug", "Release"]
+  "Choices": [
+    "Debug"
+  ]
 }
