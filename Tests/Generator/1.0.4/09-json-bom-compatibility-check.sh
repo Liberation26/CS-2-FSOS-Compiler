@@ -10,4 +10,4 @@ grep -q 'new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)' "$PROGRAM"
 grep -q "utf-8-sig" "$ORYN_SH"
 grep -q "utf-8-sig" "$RUNQEMU_SH"
 
-echo "[ OK ] 1.0.4 generator writes no-BOM JSON and script readers tolerate BOM JSON."
+echo "[ OK ] 1.0.5 generator writes no-BOM JSON and script readers tolerate BOM JSON."

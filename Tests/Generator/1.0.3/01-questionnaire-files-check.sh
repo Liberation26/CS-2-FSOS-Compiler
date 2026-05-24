@@ -10,4 +10,4 @@ for File in \
   "$ROOT/Questions/006-build-mode.question.json"; do
   [ -f "$File" ] || { echo "[FAIL] Missing question file: $File"; exit 1; }
 done
-echo "[ OK ] 1.0.4 questionnaire JSON files exist."
+echo "[ OK ] 1.0.5 questionnaire JSON files exist."

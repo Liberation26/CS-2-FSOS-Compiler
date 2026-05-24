@@ -11,4 +11,4 @@ if [ "$STATUS" -eq 0 ]; then
   exit 1
 fi
 grep -Fq 'mandatory kernel module' /tmp/oryn-invalid-selection.log || { cat /tmp/oryn-invalid-selection.log; echo "[FAIL] Expected mandatory module failure message."; exit 1; }
-echo "[ OK ] 1.0.4 rejects mandatory modules in user-selected module list."
+echo "[ OK ] 1.0.5 rejects mandatory modules in user-selected module list."

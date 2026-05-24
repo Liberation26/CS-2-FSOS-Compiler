@@ -6,7 +6,7 @@ namespace Oryn.Generator;
 
 internal static class Program
 {
-    private const string Version = "1.0.4";
+    private const string Version = "1.0.5";
     private static readonly string[] MandatoryKernelModules = { "Runtime", "Diagnostics", "Panic", "Cpu", "ManifestLoader" };
     private static readonly string[] DefaultUserSelectedModules = { "Memory" };
     private static readonly string[] AvailableUserSelectableModules = { "Memory" };
@@ -67,7 +67,7 @@ internal static class Program
             Console.WriteLine($"  [mandatory] {Module}");
         }
 
-        Console.WriteLine("[ OK ] User-selectable modules for 1.0.4:");
+        Console.WriteLine("[ OK ] User-selectable modules for 1.0.5:");
         foreach (string Module in AvailableUserSelectableModules)
         {
             Console.WriteLine($"  [available] {Module}");
@@ -90,7 +90,7 @@ internal static class Program
         Console.WriteLine("[ OK ] [GENERATOR] Mandatory kernel modules are always linked and hidden from user selection:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", MandatoryKernelModules));
         Console.WriteLine("[ OK ] [GENERATOR] Diagnostics and Panic are always enabled.");
-        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.4:");
+        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.5:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", AvailableUserSelectableModules));
 
         string ModulesText = ReadOption(Args, "--modules") ?? Prompt("User-selected modules, comma-separated", string.Join(',', DefaultUserSelectedModules), NonInteractive);
@@ -193,7 +193,7 @@ internal static class Program
 
             if (!Available.Contains(Module))
             {
-                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.4: {Module}");
+                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.5: {Module}");
             }
         }
     }

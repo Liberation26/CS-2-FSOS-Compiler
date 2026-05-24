@@ -17,4 +17,4 @@ intersection = mandatory & selected
 if intersection:
     raise SystemExit('[FAIL] Mandatory modules leaked into user-selected modules: ' + ', '.join(sorted(intersection)))
 PY
-echo "[ OK ] 1.0.4 mandatory modules are separated from user-selected modules."
+echo "[ OK ] 1.0.5 mandatory modules are separated from user-selected modules."

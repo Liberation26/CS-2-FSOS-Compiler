@@ -19,4 +19,4 @@ if ! grep -q 'System.IO.Directory.Exists' "$PROGRAM"; then
     exit 1
 fi
 
-echo "[ OK ] 1.0.4 generator project-root lookup avoids Directory shadowing."
+echo "[ OK ] 1.0.5 generator project-root lookup avoids Directory shadowing."

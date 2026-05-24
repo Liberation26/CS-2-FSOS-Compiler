@@ -2,4 +2,4 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 (cd "$ROOT" && ./Oryn.sh build GeneratedTestOS)
-echo "[ OK ] 1.0.4 generated OS builds through Oryn.sh."
+echo "[ OK ] 1.0.5 generated OS builds through Oryn.sh."
