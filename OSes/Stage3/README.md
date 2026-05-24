@@ -26,6 +26,12 @@ or explicitly:
 ./Runqemu.sh Stage3
 ```
 
+`Runqemu.sh` does not build the compiler unless requested. It uses the existing compiler DLL by default. To force a compiler rebuild for this run:
+
+```bash
+ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage3
+```
+
 For a compile/link/ISO proof without launching QEMU:
 
 ```bash
@@ -86,6 +92,30 @@ Qemu.debugcon.log
 ```
 
 `Kernel.stage3.o` is the direct ELF64 relocatable object written by Oryn. The generated `.S` file is retained as a readable reference artifact.
+
+
+## Stage 3 object inspection
+
+Oryn 0.3.3 adds structural verification for the direct ELF64 object writer. The Stage 3 test suite now checks the generated `Kernel.stage3.o` directly.
+
+The object inspection tests prove:
+
+- the object is ELF64, little-endian, x86-64, and relocatable,
+- the section header table is present,
+- `.text`, `.rodata`, `.rela.text`, `.symtab`, `.strtab`, `.shstrtab`, and `.note.GNU-stack` exist,
+- `Kernel_Main` and `Kernel_WriteBanner` are defined function symbols,
+- approved module calls remain unresolved external symbols until link time,
+- string literals are emitted as local `.rodata` object symbols,
+- relocations target valid symbols and use the currently supported x86-64 relocation kinds.
+
+Run the object inspection tests with:
+
+```bash
+Tests/Compiler/Stage3/04-elf64-header-check.sh
+Tests/Compiler/Stage3/05-elf64-section-check.sh
+Tests/Compiler/Stage3/06-elf64-symbol-check.sh
+Tests/Compiler/Stage3/07-elf64-relocation-check.sh
+```
 
 ## Tests
 

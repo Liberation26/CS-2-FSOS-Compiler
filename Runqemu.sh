@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.3.1"
+RUNQEMU_VERSION="0.3.3"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -51,14 +51,28 @@ RunDotnetBuild() {
     info "Oryn.Compiler build completed."
 }
 
-BuildCompilerOnce() {
+EnsureCompilerAvailable() {
     RequireTool dotnet
     RequireTool tee
-    [ -f "$COMPILER_PROJECT" ] || fail "Compiler project not found: $COMPILER_PROJECT"
-    RunDotnetBuild
-    [ -f "$COMPILER_DLL" ] || fail "Compiler DLL was not produced: $COMPILER_DLL"
-    export ORYN_COMPILER_PREBUILT=1
-    export ORYN_COMPILER_DLL="$COMPILER_DLL"
+
+    local SelectedCompilerDll="${ORYN_COMPILER_DLL:-$COMPILER_DLL}"
+    local BuildRequested="${ORYN_BUILD_COMPILER:-0}"
+
+    case "$BuildRequested" in
+        1|true|TRUE|yes|YES|on|ON)
+            [ -f "$COMPILER_PROJECT" ] || fail "Compiler project not found: $COMPILER_PROJECT"
+            RunDotnetBuild
+            SelectedCompilerDll="$COMPILER_DLL"
+            ;;
+        0|false|FALSE|no|NO|off|OFF)
+            ;;
+        *)
+            fail "Unsupported ORYN_BUILD_COMPILER value: $BuildRequested. Use 1 to build or 0 to use the existing compiler."
+            ;;
+    esac
+
+    [ -f "$SelectedCompilerDll" ] || fail "Compiler DLL not found: $SelectedCompilerDll. Build it explicitly with: ORYN_BUILD_COMPILER=1 ./Runqemu.sh $STAGE_NAME"
+    export ORYN_COMPILER_DLL="$SelectedCompilerDll"
 }
 
 RunOneStage() {
@@ -71,7 +85,6 @@ case "$REQUESTED_STAGE" in
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
         info "Selected stage set: All"
         info "Stage 3 development mode is active; running the direct ELF64 object writer kernel."
-        BuildCompilerOnce
         RunOneStage Stage3
         info "Requested Stage 3 kernel completed."
         exit 0
@@ -141,20 +154,14 @@ if [ "$QEMU_BOOT_MODE" = "iso" ]; then
     RequireTool grub-mkrescue
 fi
 
-[ -f "$COMPILER_PROJECT" ] || fail "Compiler project not found: $COMPILER_PROJECT"
 [ -f "$SOURCE_FILE" ] || fail "Kernel source not found: $SOURCE_FILE"
 
 rm -rf "$BUILD_ROOT"
 mkdir -p "$BUILD_ROOT"
 
 info "Running Oryn.Compiler backend for ${STAGE_NAME}"
-if [ "${ORYN_COMPILER_PREBUILT:-0}" != "1" ] || [ ! -f "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" ]; then
-    info "Compiler was not prebuilt for this stage; building it now."
-    RunDotnetBuild
-    ORYN_COMPILER_DLL="$COMPILER_DLL"
-fi
-[ -f "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" ] || fail "Compiler DLL not found: ${ORYN_COMPILER_DLL:-$COMPILER_DLL}"
-dotnet "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" compile "$SOURCE_FILE" --target x64-elf --output "$KERNEL_OBJECT"
+EnsureCompilerAvailable
+dotnet "$ORYN_COMPILER_DLL" compile "$SOURCE_FILE" --target x64-elf --output "$KERNEL_OBJECT"
 info "Oryn.Compiler backend completed for ${STAGE_NAME}"
 
 [ -f "$KERNEL_OBJECT" ] || fail "Compiler did not produce expected direct ELF64 object: $KERNEL_OBJECT"

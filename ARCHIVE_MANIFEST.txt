@@ -1,13 +1,11 @@
 Oryn archive manifest
-Version: 0.3.1
-Archive: Oryn-0.3.1.zip
+Version: 0.3.3
+Archive: Oryn-0.3.3.zip
 
-Stage 3 delivery:
-- Direct ELF64 relocatable object writer added.
-- Stage 3 OS proof tree added under OSes/Stage3/.
-- Stage 3 tests added under Tests/Compiler/Stage3/.
-- Runqemu.sh defaults to Stage3 and links the direct Oryn-generated object for Stage3.
-
-Top-level archive layout:
+Top-level layout:
 - FullSource/ contains the complete source tree.
-- ChangedFiles/ contains only files changed by this delivery.
+- ChangedFiles/ contains only files changed for this delivery, rooted exactly as they should land in the repository.
+
+Delivery focus:
+- Stage 3 verification and ELF64 object inspection tests.
+- No automatic compiler rebuild guard for Stage 3 tests.

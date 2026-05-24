@@ -37,3 +37,35 @@ Tests/Compiler/Stage3/run.sh
 ```
 
 The tests check compiler output, IR output, readable assembly reference output, direct ELF64 relocatable object creation, ELF and ISO creation, QEMU diagnostics, and the expected timeout success after the kernel halts forever.
+
+## Stage 3 object inspection
+
+Oryn 0.3.3 adds direct inspection tests for `OSes/Stage3/Build/Runqemu/Kernel.stage3.o`.
+
+The object inspection tests check that the generated kernel object is a little-endian ELF64 x86-64 relocatable object and that it contains the expected sections, symbols, and relocations.
+
+The checks include:
+
+- `.text`
+- `.rodata`
+- `.rela.text`
+- `.symtab`
+- `.strtab`
+- `.shstrtab`
+- `.note.GNU-stack`
+- `Kernel_Main`
+- `Kernel_WriteBanner`
+- unresolved external symbols for approved module calls
+- `R_X86_64_PC32` and `R_X86_64_PLT32` relocation records
+
+These tests help prove that Stage 3 is not merely producing a file that happens to link. It is producing a structurally valid object file that the linker can consume in the expected way.
+
+## Compiler build policy
+
+The Stage 3 tests do not rebuild the compiler by default. They use the existing compiler DLL.
+
+To rebuild the compiler deliberately:
+
+```bash
+ORYN_BUILD_COMPILER=1 Tests/Compiler/Stage3/run.sh
+```

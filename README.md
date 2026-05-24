@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.3.1`
+Current version: `0.3.3`
 
 
 
@@ -543,9 +543,22 @@ Stage2 0.2.1 also adds a boot-level serial proof before `Kernel_Main` and waits 
 
 Stage 2 phase 3 separates `Oryn.Compiler` into frontend parsing, safe-subset validation, semantic binding, kernel model, IR lowering, CFG construction, and native x64 backend emission. `Program.cs` is now only the small CLI entry point.
 
-### 0.2.6 Runqemu compiler build visibility
 
-If `update.sh` launches `Runqemu.sh`, the compiler build now prints live `dotnet build` output instead of hiding it. The same log is written to `Build/Oryn.Compiler.build.log`. Set `ORYN_COMPILER_BUILD_TIMEOUT=<seconds>` to change the default 240 second compiler build timeout.
+### 0.3.3 Stage 3 verification and ELF64 object inspection
+
+Version `0.3.3` adds the Stage 3 verification pack. The Stage 3 tests now inspect the generated `Kernel.stage3.o` directly rather than only checking that the kernel boots. The checks cover the ELF64 header, x86-64 relocatable object type, required sections, symbols, relocation records, and the no-automatic-compiler-rebuild policy.
+
+### 0.3.2 Runqemu compiler build policy
+
+`Runqemu.sh` no longer builds `Oryn.Compiler` automatically. It uses the existing compiler DLL from `Source/Core/Oryn.Compiler/bin/<Configuration>/<Framework>/Oryn.Compiler.dll` or the path supplied in `ORYN_COMPILER_DLL`.
+
+Build the compiler only when that is explicitly required:
+
+```bash
+ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage3
+```
+
+The build log is still written to `Build/Oryn.Compiler.build.log` when an explicit compiler build is requested. Set `ORYN_COMPILER_BUILD_TIMEOUT=<seconds>` to change the default 240 second compiler build timeout.
 
 ## 0.2.6 Stage 2 Phase 3 real Oryn IR
 
