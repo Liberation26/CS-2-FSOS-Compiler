@@ -1,7 +1,7 @@
-Oryn 0.8.0 archive
+Oryn 0.9.0 archive
 
 FullSource contains the complete source tree for this delivery.
-ChangedFiles contains only files changed for the 0.8.0 Stage 8 module API contract proof.
+ChangedFiles contains only files changed for the 0.9.0 Stage 9 generated kernel template composition proof.
 
-Version: 0.8.0
-Stage: 8 - module API contracts / approved calls from C#
+Version: 0.9.0
+Stage: 9 - generated kernel template composition from selected modules

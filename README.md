@@ -6,96 +6,71 @@ The goal is to let developers write an Oryn-safe subset of C# and compile it int
 
 ## Version
 
-Current version: **0.8.0**
+Current version: **0.9.0**
 
-## Stage 8 status
+## Stage 9 status
 
-Stage 8 is complete. Oryn now proves **module API contracts and approved calls from C#**.
+Stage 9 is complete. Oryn now proves **generated kernel template composition from selected modules**.
 
-Stage 7 proved that selected modules can be resolved in dependency-safe order. Stage 8 keeps that dependency graph and adds a stricter API-contract layer. A C# call is no longer approved merely because a native symbol exists or because a binding file lists it. The compiler now requires an explicit module API contract that agrees with the binding metadata.
+Stage 8 proved that C# calls must match explicit API contracts before they can bind to native module symbols. Stage 9 keeps that rule and adds a generator step before compilation: selected module manifests are resolved, a kernel template is filled in, the generated C# source is validated, and only then is it lowered to IR and native output.
 
-## The Stage 8 rule
+## The Stage 9 rule
 
-An Oryn-safe C# module call is approved only when all of these agree:
+A generated Oryn kernel is accepted only when all of these pass before backend/native compilation:
 
-1. the safe-subset validator accepts the source,
-2. the namespace is an approved `Oryn.Kernel.*` namespace,
-3. the binding exists under `Source/Sdk/Bindings/`,
-4. the matching API contract exists under `Source/Sdk/ApiContracts/`,
-5. the contract says the method is allowed from C# kernel code,
-6. the binding and contract agree on namespace, type, method, native symbol, argument count, and argument types,
-7. the selected module manifests can still be resolved through the Stage 7 dependency graph.
+1. selected module manifests exist and are approved for kernel use,
+2. dependencies are included and resolved in dependency-safe order,
+3. the kernel template placeholders are expanded into C# source,
+4. generated `using` statements refer only to approved `Oryn.Kernel.*` namespaces,
+5. generated module calls pass safe-subset validation,
+6. generated module calls match approved bindings and API contracts,
+7. invalid calls fail without creating generated C, generated assembly, or ELF64 object artifacts.
 
-## API contract files
-
-API contracts live under:
+## Template composition flow
 
 ```text
-Source/Sdk/ApiContracts/
+selected module manifests
+    ↓
+dependency-resolved module set
+    ↓
+OSes/Stage9/Templates/Kernel.template.cs
+    ↓
+OSes/Stage9/Build/Runqemu/Generated/Kernel.Generated.cs
+    ↓
+safe-subset validation
+    ↓
+approved-call/API-contract validation
+    ↓
+Oryn IR and CFG
+    ↓
+direct ELF64 relocatable object writer
+    ↓
+resolved native module linking
+    ↓
+freestanding bootable kernel
 ```
 
-Example contract shape:
+## Template placeholders
 
-```json
-{
-  "contractVersion": "0.8.0",
-  "module": "Diagnostics",
-  "namespace": "Oryn.Kernel.Diagnostics",
-  "minimumStage": 4,
-  "allowedInKernel": true,
-  "summary": "Stage 8 approved C# API contract for Diagnostics.",
-  "methods": [
-    {
-      "managedName": "Diagnostics.WriteOk",
-      "typeName": "Diagnostics",
-      "methodName": "WriteOk",
-      "signature": "void WriteOk(string Message)",
-      "nativeSymbol": "Diagnostics_WriteOk",
-      "allowedFromCSharpKernel": true,
-      "argumentTypes": [
-        "String"
-      ],
-      "summary": "Writes a successful diagnostic status line."
-    }
-  ]
-}
-```
-
-The contract is deliberately separate from the native C implementation. It is the user-facing API promise that says what Oryn-safe C# may call.
-
-## Compiler flow
-
-The intended compiler flow is now:
+Stage 9 templates use these placeholders:
 
 ```text
-Oryn-safe C# source
-    ↓
-Safe-subset validation
-    ↓
-Approved namespace validation
-    ↓
-Binding catalogue lookup
-    ↓
-Stage 8 module API contract validation
-    ↓
-Manifest-backed module exposure
-    ↓
-Manifest dependency graph validation
-    ↓
-Dependency-safe module order resolution
-    ↓
-Oryn IR
-    ↓
-Control-flow graph
-    ↓
-Direct ELF64 relocatable object writer
-    ↓
-Resolved native module linking
-    ↓
-Generated dependency-resolved manifest glue
-    ↓
-Freestanding bootable kernel
+__ORYN_GENERATED_USINGS__
+__ORYN_KERNEL_BOOT_PROOF_LINES__
+__ORYN_MODULE_INITIALIZATION_CALLS__
+__ORYN_COMPILER_VERSION__
 ```
+
+The compiler command is:
+
+```bash
+dotnet Source/Core/Oryn.Compiler/bin/Debug/net8.0/Oryn.Compiler.dll compose-kernel \
+  --stage Stage9 \
+  --template OSes/Stage9/Templates/Kernel.template.cs \
+  --output OSes/Stage9/Build/Runqemu/Generated/Kernel.Generated.cs
+```
+
+`Runqemu.sh Stage9` runs this composition step automatically before invoking the normal compiler backend.
 
 ## What each stage proves
 
@@ -109,36 +84,27 @@ Freestanding bootable kernel
 | Stage 6 | Service/module manifests drive module exposure, native linking, and manifest glue initialization. |
 | Stage 7 | Module dependencies are validated, missing dependencies and cycles are rejected, and modules initialize in dependency-safe order. |
 | Stage 8 | Module API contracts approve exactly which C# calls may bind to native module symbols. |
+| Stage 9 | A kernel source file is generated from a selected module template and validated before backend/native compilation. |
 
-## Running Stage 8
+## Running Stage 9
 
 From the repository root:
 
 ```bash
-ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage8
+ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage9
 ```
 
 Expected proof lines include:
 
 ```text
-[SERIAL] [ OK ] [ BOOT32   ] Multiboot entry reached; preparing long mode
-[SERIAL] [ OK ] [ BOOT     ] Long mode entered; calling Kernel_Main
-[SERIAL] [ OK ] [ KERNEL   ] Stage8 native pre-kernel handoff reached
-[SERIAL] [ OK ] [ KERNEL   ] Stage8 kernel entered
-[SERIAL] [ OK ] [ CONTRACT ] Stage8 module API contract runtime proof started
-[SERIAL] [ OK ] [ CONTRACT ] approved C# call Diagnostics.WriteOk -> Diagnostics_WriteOk
-[SERIAL] [ OK ] [ CONTRACT ] approved C# call Runtime.MarkKernelReady -> Runtime_MarkKernelReady
-[SERIAL] [ OK ] [ CONTRACT ] approved C# call Cpu.HaltForever -> Cpu_HaltForever
-[SERIAL] [ OK ] [ MANIFEST ] Stage8 dependency graph loading started
-[SERIAL] [ OK ] [ MANIFEST ] dependency Runtime -> <none>
-[SERIAL] [ OK ] [ MANIFEST ] dependency Diagnostics -> Runtime
-[SERIAL] [ OK ] [ MANIFEST ] dependency Memory -> Runtime, Diagnostics
-[SERIAL] [ OK ] [ MANIFEST ] dependency Panic -> Runtime, Diagnostics
-[SERIAL] [ OK ] [ MANIFEST ] dependency Cpu -> Runtime, Diagnostics
-[SERIAL] [ OK ] [ MANIFEST ] resolved initialization order: Runtime, Diagnostics, Memory, Panic, Cpu
-[SERIAL] [ OK ] [ CONTRACT ] Stage8 module API contract runtime proof completed
-[SERIAL] [ OK ] [ KERNEL   ] Stage8 approved module API contracts initialized
-[SERIAL] [ OK ] [ KERNEL   ] Stage8 kernel is halting forever
+[ OK ] [ COMPOSE  ] Oryn kernel template composer version 0.9.0
+[ OK ] [ COMPOSE  ] Selected modules: Runtime, Diagnostics, Memory, Panic, Cpu, ManifestLoader
+[SERIAL] [ OK ] [ KERNEL   ] Stage9 native pre-kernel handoff reached
+[SERIAL] [ OK ] [ KERNEL   ] Stage9 generated kernel entered
+[SERIAL] [ OK ] [ KERNEL   ] Stage9 generated kernel template composition reached kernel code
+[SERIAL] [ OK ] [ MANIFEST ] Stage9 dependency graph loading started
+[SERIAL] [ OK ] [ COMPOSE ] Stage9 generated template composition runtime proof completed
+[SERIAL] [ OK ] [ KERNEL   ] Stage9 generated kernel is halting forever
 ```
 
 The kernel intentionally halts forever after proving the stage. The QEMU timeout is treated as success.
@@ -146,37 +112,25 @@ The kernel intentionally halts forever after proving the stage. The QEMU timeout
 ## Running tests
 
 ```bash
-./Tests/Compiler/Stage8/run.sh
+./Tests/Compiler/Stage9/run.sh
 ```
 
-The Stage 8 tests check compiler output, contract diagnostics, API contract files, rejection of an uncontracted call, and QEMU boot proof output.
+The Stage 9 tests check template composition, generated-kernel compilation, invalid-call rejection before backend/native compilation, and QEMU boot proof output.
 
 ## Important directories
 
 ```text
-Source/Core/Oryn.Compiler/        Compiler implementation
+Source/Core/Oryn.Compiler/KernelComposition/
+                                      Stage 9 kernel template composer
 Source/Core/Oryn.Compiler/Frontend/ApiContracts/
-                                      Stage 8 API contract catalogue loader
+                                      API contract catalogue loader
 Source/Core/Oryn.Compiler/Manifests/
                                       Manifest dependency resolver
 Source/Sdk/Bindings/              Safe C# API to native symbol bindings
-Source/Sdk/ApiContracts/          Stage 8 approved C# API contracts
+Source/Sdk/ApiContracts/          Approved C# API contracts
 Source/Sdk/ModuleManifests/       Module metadata and dependency declarations
 Source/Native/Modules/            Freestanding native module implementations
-OSes/Stage8/                      Stage 8 proof kernel
-Tests/Compiler/Stage8/            Stage 8 automated tests
-Documents/ReleaseNotes/0.8.0.md   Stage 8 release notes
+OSes/Stage9/                      Stage 9 generated-template proof kernel
+Tests/Compiler/Stage9/            Stage 9 automated tests
+Documents/ReleaseNotes/0.9.0.md   Stage 9 release notes
 ```
-
-## Why Stage 8 comes before larger OS features
-
-After Stage 8, Oryn knows:
-
-- what modules exist,
-- what each module needs,
-- what order modules must start in,
-- what native source must be linked,
-- what API surface is exposed to kernel code,
-- which C# calls are approved by explicit contract.
-
-That is the base needed before adding larger OS pieces such as filesystem support, scheduler support, userland services, PolicyManager, ELF loading, driver selection, and target profiles.

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.8.0"
+RUNQEMU_VERSION="0.9.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
 COMPILER_FRAMEWORK="${ORYN_COMPILER_FRAMEWORK:-net8.0}"
 COMPILER_DLL="$PROJECT_ROOT/Source/Core/Oryn.Compiler/bin/${COMPILER_CONFIGURATION}/${COMPILER_FRAMEWORK}/Oryn.Compiler.dll"
-REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage8}}"
+REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage9}}"
 
 info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
 warn() { printf '[WARN] [ RUNQEMU  ] %s\n' "$1"; }
@@ -84,9 +84,9 @@ case "$REQUESTED_STAGE" in
     all|All|ALL)
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
         info "Selected stage set: All"
-        info "Stage 8 development mode is active; running the module API contract proof kernel."
-        RunOneStage Stage8
-        info "Requested Stage 8 kernel completed."
+        info "Stage 9 development mode is active; running the generated template-composition proof kernel."
+        RunOneStage Stage9
+        info "Requested Stage 9 kernel completed."
         exit 0
         ;;
     1|stage1|Stage1|STAGE1)
@@ -135,6 +135,10 @@ case "$REQUESTED_STAGE" in
 esac
 BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/OSes/$STAGE_NAME/Build/Runqemu}"
 SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/OSes/$STAGE_NAME/Source/Kernel.cs}"
+if [ "$STAGE_NAME" = "Stage9" ] && [ -z "${ORYN_KERNEL_SOURCE:-}" ]; then
+    SOURCE_FILE="$BUILD_ROOT/Generated/Kernel.Generated.cs"
+fi
+KERNEL_TEMPLATE_FILE="${ORYN_KERNEL_TEMPLATE:-$PROJECT_ROOT/OSes/$STAGE_NAME/Templates/Kernel.template.cs}"
 KERNEL_OBJECT="$BUILD_ROOT/Kernel.${STAGE_LABEL}.o"
 GENERATED_ASM="$BUILD_ROOT/Kernel.${STAGE_LABEL}.generated.S"
 BOOT_SOURCE="$BUILD_ROOT/Boot.S"
@@ -181,10 +185,21 @@ if [ "$QEMU_BOOT_MODE" = "iso" ]; then
     RequireTool grub-mkrescue
 fi
 
-[ -f "$SOURCE_FILE" ] || fail "Kernel source not found: $SOURCE_FILE"
-
 rm -rf "$BUILD_ROOT"
 mkdir -p "$BUILD_ROOT"
+
+if [ "$STAGE_NAME" = "Stage9" ]; then
+    [ -f "$KERNEL_TEMPLATE_FILE" ] || fail "Kernel template not found: $KERNEL_TEMPLATE_FILE"
+    info "Generating ${STAGE_NAME} kernel source from selected module template"
+    EnsureCompilerAvailable
+    if [ -n "${ORYN_COMPOSE_MODULES:-}" ]; then
+        dotnet "$ORYN_COMPILER_DLL" compose-kernel --stage Stage9 --template "$KERNEL_TEMPLATE_FILE" --output "$SOURCE_FILE" --modules "$ORYN_COMPOSE_MODULES"
+    else
+        dotnet "$ORYN_COMPILER_DLL" compose-kernel --stage Stage9 --template "$KERNEL_TEMPLATE_FILE" --output "$SOURCE_FILE"
+    fi
+fi
+
+[ -f "$SOURCE_FILE" ] || fail "Kernel source not found: $SOURCE_FILE"
 
 info "Running Oryn.Compiler backend for ${STAGE_NAME}"
 EnsureCompilerAvailable
@@ -491,7 +506,7 @@ def read_records():
             continue
         if int(item.get('stage', 0)) > stage_limit:
             continue
-        if stage_name in ('Stage7', 'Stage8') and item.get('module') == 'ManifestLoader':
+        if stage_name in ('Stage7', 'Stage8', 'Stage9') and item.get('module') == 'ManifestLoader':
             continue
         item['_path'] = str(path)
         item['dependsOn'] = list(item.get('dependsOn') or [])
@@ -546,7 +561,7 @@ except ManifestError as exc:
     print('[FAIL] [ MANIFEST ] ' + str(exc))
     sys.exit(2)
 
-stage_number = '8' if stage_name == 'Stage8' else ('7' if stage_name == 'Stage7' else '6')
+stage_number = '9' if stage_name == 'Stage9' else ('8' if stage_name == 'Stage8' else ('7' if stage_name == 'Stage7' else '6'))
 lines = []
 lines.append('#include "Diagnostics.Native.h"')
 lines.append('#include "Runtime.Native.h"')
@@ -569,12 +584,15 @@ lines.append('        return;')
 lines.append('    }')
 lines.append('')
 lines.append('    ModuleManifestAlreadyInitialized = 1;')
-if stage_name in ('Stage7', 'Stage8'):
+if stage_name in ('Stage7', 'Stage8', 'Stage9'):
     if stage_name == 'Stage8':
         lines.append('    Diagnostics_WriteOk("[ CONTRACT ] Stage8 module API contract runtime proof started");')
         lines.append('    Diagnostics_WriteOk("[ CONTRACT ] approved C# call Diagnostics.WriteOk -> Diagnostics_WriteOk");')
         lines.append('    Diagnostics_WriteOk("[ CONTRACT ] approved C# call Runtime.MarkKernelReady -> Runtime_MarkKernelReady");')
         lines.append('    Diagnostics_WriteOk("[ CONTRACT ] approved C# call Cpu.HaltForever -> Cpu_HaltForever");')
+    if stage_name == 'Stage9':
+        lines.append('    Diagnostics_WriteOk("[ COMPOSE ] Stage9 generated template composition runtime proof started");')
+        lines.append('    Diagnostics_WriteOk("[ COMPOSE ] generated C# kernel source passed validation before native compilation");')
     lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] {stage_name} dependency graph loading started");')
     for item in records:
         deps = item.get('dependsOn', [])
@@ -596,10 +614,12 @@ for item in records:
         lines.append(f'    {symbol}();')
     elif name == 'ManifestLoader' and stage_name != 'Stage7':
         lines.append('    Diagnostics_WriteOk("[ MANIFEST ] ManifestLoader glue is active");')
-if stage_name in ('Stage7', 'Stage8'):
+if stage_name in ('Stage7', 'Stage8', 'Stage9'):
     lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] {stage_name} dependency graph runtime completed");')
     if stage_name == 'Stage8':
         lines.append('    Diagnostics_WriteOk("[ CONTRACT ] Stage8 module API contract runtime proof completed");')
+    if stage_name == 'Stage9':
+        lines.append('    Diagnostics_WriteOk("[ COMPOSE ] Stage9 generated template composition runtime proof completed");')
 else:
     lines.append('    Diagnostics_WriteOk("[ MANIFEST ] generated Stage 6 manifest runtime completed");')
 lines.append('}')
@@ -621,7 +641,7 @@ CompileManifestModules() {
     local StageLimit="$1"
     GenerateManifestGlue "$StageLimit"
     local ManifestDir="$PROJECT_ROOT/Source/Sdk/ModuleManifests"
-    python3 - "$PROJECT_ROOT" "$ManifestDir" "$BUILD_ROOT/${STAGE_NAME}.manifest.sources" "$StageLimit" <<'PY_SOURCES'
+    python3 - "$PROJECT_ROOT" "$ManifestDir" "$BUILD_ROOT/${STAGE_NAME}.manifest.sources" "$StageLimit" "$STAGE_NAME" <<'PY_SOURCES'
 import json
 import pathlib
 import sys
@@ -629,6 +649,7 @@ root = pathlib.Path(sys.argv[1])
 manifest_dir = pathlib.Path(sys.argv[2])
 out = pathlib.Path(sys.argv[3])
 stage_limit = int(sys.argv[4])
+stage_name = sys.argv[5]
 records = []
 for path in sorted(manifest_dir.glob('*.module.json')):
     item = json.loads(path.read_text(encoding='utf-8'))
@@ -654,10 +675,8 @@ def visit(name):
 for item in sorted(records, key=lambda item: (int(item.get('initializeOrder', 0)), item.get('module', ''))):
     visit(item['module'])
 with out.open('w', encoding='utf-8') as handle:
-    if stage_limit >= 8:
-        handle.write(str(root / 'OSes' / 'Stage8' / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
-    elif stage_limit >= 7:
-        handle.write(str(root / 'OSes' / 'Stage7' / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
+    if stage_limit >= 7:
+        handle.write(str(root / 'OSes' / stage_name / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
     for item in resolved:
         source = item.get('nativeSource', '')
         if source == 'Build/Generated/ModuleManifest.Generated.c':
@@ -691,6 +710,8 @@ elif [ "$STAGE_NAME" = "Stage7" ]; then
     CompileManifestModules 7
 elif [ "$STAGE_NAME" = "Stage8" ]; then
     CompileManifestModules 8
+elif [ "$STAGE_NAME" = "Stage9" ]; then
+    CompileManifestModules 9
 else
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$DIAGNOSTICS_SOURCE" -o "$BUILD_ROOT/Diagnostics.Runtime.o"
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$RUNTIME_SOURCE" -o "$BUILD_ROOT/Runtime.Native.o"
@@ -705,7 +726,7 @@ if [ "${DIRECT_OBJECT_LINK:-0}" = "1" ]; then
     KERNEL_LINK_OBJECT="$KERNEL_OBJECT"
 fi
 
-if [ "$STAGE_NAME" = "Stage6" ] || [ "$STAGE_NAME" = "Stage7" ] || [ "$STAGE_NAME" = "Stage8" ]; then
+if [ "$STAGE_NAME" = "Stage6" ] || [ "$STAGE_NAME" = "Stage7" ] || [ "$STAGE_NAME" = "Stage8" ] || [ "$STAGE_NAME" = "Stage9" ]; then
     ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
         "$BUILD_ROOT/Boot.o" \
         "$KERNEL_LINK_OBJECT" \

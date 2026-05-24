@@ -86,8 +86,10 @@ internal sealed class CompilerPipeline
             BoundKernelModel BoundModel = SemanticAnalyzer.Bind(KernelAst);
             OrynIrModule IrModule = IrLowerer.Lower(BoundModel);
             OrynControlFlowGraph ControlFlowGraph = ControlFlowGraphBuilder.Build(IrModule);
-            IReadOnlyList<ModuleManifestRecord> SelectedModuleManifests = (Command.SourcePath.Contains("Stage7", StringComparison.OrdinalIgnoreCase) || Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase))
-                ? ModuleManifestCatalog.ResolveApprovedKernelModules(7, ExcludeManifestLoaderFromGraph: true)
+            bool IsStage7OrLater = Command.SourcePath.Contains("Stage7", StringComparison.OrdinalIgnoreCase) || Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase) || Command.SourcePath.Contains("Stage9", StringComparison.OrdinalIgnoreCase);
+            int ManifestStageLimit = Command.SourcePath.Contains("Stage9", StringComparison.OrdinalIgnoreCase) ? 9 : (Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase) ? 8 : 7);
+            IReadOnlyList<ModuleManifestRecord> SelectedModuleManifests = IsStage7OrLater
+                ? ModuleManifestCatalog.ResolveApprovedKernelModules(ManifestStageLimit, ExcludeManifestLoaderFromGraph: true)
                 : ModuleManifestCatalog.ApprovedKernelModules;
             BackendResult BackendResult = Backend.Emit(Version, Command, BoundModel, IrModule, ControlFlowGraph, SelectedModuleManifests);
             Backend.Write(BackendResult);
@@ -106,23 +108,30 @@ internal sealed class CompilerPipeline
                     Messages.Add($"[ OK ] [ MANIFEST ] expose={Manifest.ModuleName} stage={Manifest.Stage} order={Manifest.InitializeOrder} native={Manifest.NativeSource}");
                 }
             }
-            if (Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase))
+            if (Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase) || Command.SourcePath.Contains("Stage9", StringComparison.OrdinalIgnoreCase))
             {
-                Messages.Add("[ OK ] [ CONTRACT ] Stage 8 module API contract validation passed.");
+                Messages.Add(Command.SourcePath.Contains("Stage9", StringComparison.OrdinalIgnoreCase) ? "[ OK ] [ CONTRACT ] Stage 9 inherited module API contract validation passed." : "[ OK ] [ CONTRACT ] Stage 8 module API contract validation passed.");
                 foreach (BindingRecord Contract in ApiContracts.ApprovedCallContracts)
                 {
                     Messages.Add($"[ OK ] [ CONTRACT ] approved {Contract.FullyQualifiedManagedName} -> {Contract.NativeSymbol}");
                 }
             }
-            if (Command.SourcePath.Contains("Stage7", StringComparison.OrdinalIgnoreCase) || Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase))
+            if (IsStage7OrLater)
             {
-                Messages.Add(Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase) ? "[ OK ] [ MANIFEST ] Stage 8 inherited dependency graph validation passed." : "[ OK ] [ MANIFEST ] Stage 7 dependency graph validation passed.");
+                string DependencyGraphMessage = Command.SourcePath.Contains("Stage9", StringComparison.OrdinalIgnoreCase)
+                    ? "[ OK ] [ MANIFEST ] Stage 9 generated-template dependency graph validation passed."
+                    : (Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase) ? "[ OK ] [ MANIFEST ] Stage 8 inherited dependency graph validation passed." : "[ OK ] [ MANIFEST ] Stage 7 dependency graph validation passed.");
+                Messages.Add(DependencyGraphMessage);
                 foreach (ModuleManifestRecord Manifest in SelectedModuleManifests)
                 {
                     string Dependencies = Manifest.DependsOn.Count == 0 ? "<none>" : string.Join(", ", Manifest.DependsOn);
                     Messages.Add($"[ OK ] [ MANIFEST ] dependency {Manifest.ModuleName} -> {Dependencies}");
                 }
                 Messages.Add("[ OK ] [ MANIFEST ] resolved initialization order: " + string.Join(", ", SelectedModuleManifests.Select(Manifest => Manifest.ModuleName)));
+            }
+            if (Command.SourcePath.Contains("Stage9", StringComparison.OrdinalIgnoreCase))
+            {
+                Messages.Add("[ OK ] [ COMPOSE  ] Stage 9 generated source was accepted before backend/native compilation.");
             }
             Messages.Add($"[ OK ] Approved module calls: {BoundModel.ApprovedModuleCallCount}");
             Messages.Add($"[ OK ] Lowered IR instructions: {IrModule.Instructions.Count}");

@@ -19,7 +19,7 @@ internal sealed class X64NativeBackend
         string BaseName = Path.GetFileNameWithoutExtension(FullOutputPath);
         Directory.CreateDirectory(OutputDirectory);
 
-        string StageTag = BaseName.Contains("stage8", StringComparison.OrdinalIgnoreCase) ? "stage8" : (BaseName.Contains("stage7", StringComparison.OrdinalIgnoreCase) ? "stage7" : (BaseName.Contains("stage6", StringComparison.OrdinalIgnoreCase) ? "stage6" : (BaseName.Contains("stage5", StringComparison.OrdinalIgnoreCase) ? "stage5" : (BaseName.Contains("stage4", StringComparison.OrdinalIgnoreCase) ? "stage4" : (BaseName.Contains("stage3", StringComparison.OrdinalIgnoreCase) ? "stage3" : "stage2")))));
+        string StageTag = BaseName.Contains("stage9", StringComparison.OrdinalIgnoreCase) ? "stage9" : (BaseName.Contains("stage8", StringComparison.OrdinalIgnoreCase) ? "stage8" : (BaseName.Contains("stage7", StringComparison.OrdinalIgnoreCase) ? "stage7" : (BaseName.Contains("stage6", StringComparison.OrdinalIgnoreCase) ? "stage6" : (BaseName.Contains("stage5", StringComparison.OrdinalIgnoreCase) ? "stage5" : (BaseName.Contains("stage4", StringComparison.OrdinalIgnoreCase) ? "stage4" : (BaseName.Contains("stage3", StringComparison.OrdinalIgnoreCase) ? "stage3" : "stage2"))))));
         string ManifestPath = Path.Combine(OutputDirectory, BaseName + "." + StageTag + ".ir.json");
         string CPath = Path.Combine(OutputDirectory, BaseName + ".generated.c");
         string AssemblyPath = Path.Combine(OutputDirectory, BaseName + ".generated.S");
@@ -55,6 +55,7 @@ internal sealed class X64NativeBackend
     {
         return StageTag switch
         {
+            "stage9" => "Stage 9 proves generated kernel template composition: selected module manifests are resolved, a safe C# kernel is generated from the template, and generated calls are validated before backend/native compilation.",
             "stage8" => "Stage 8 proves module API contracts: safe C# calls are validated against explicit approved API contract JSON before binding to native module symbols, while retaining the Stage 7 dependency-safe manifest graph.",
             "stage7" => "Stage 7 proves module dependency resolution: selected manifests are validated as a graph, missing and circular dependencies are rejected, modules are linked from the resolved set, and generated manifest glue initializes modules in dependency-safe order.",
             "stage6" => "Stage 6 proves service/module manifest loading: JSON module manifests define what is exposed to safe kernel code, linked into the freestanding image, and initialized through generated manifest glue before the kernel halts.",

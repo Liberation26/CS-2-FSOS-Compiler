@@ -27,6 +27,11 @@ internal sealed class CompilerCli
             return 0;
         }
 
+        if (Command.Equals("compose-kernel", StringComparison.OrdinalIgnoreCase))
+        {
+            return ComposeKernel(Args.Skip(1).ToArray());
+        }
+
         if (Command.Equals("compile", StringComparison.OrdinalIgnoreCase))
         {
             return Compile(Args.Skip(1).ToArray());
@@ -41,10 +46,11 @@ internal sealed class CompilerCli
     {
         Output.WriteLine("Usage:");
         Output.WriteLine("  oryn compiler modules");
+        Output.WriteLine("  oryn compiler compose-kernel --stage Stage9 --template <template.cs> --output <generated.cs> [--modules Runtime,Diagnostics,Memory,Panic,Cpu,ManifestLoader]");
         Output.WriteLine("  oryn compiler compile <source.cs> --target x64-elf --output <output.o>");
         Output.WriteLine();
-        Output.WriteLine("Stage 7 compile output:");
-        Output.WriteLine("  <output>.stage2.ir.json, <output>.stage3.ir.json, <output>.stage4.ir.json, <output>.stage6.ir.json, or <output>.stage7.ir.json lowered Oryn IR and backend manifest");
+        Output.WriteLine("Stage 9 compile output:");
+        Output.WriteLine("  <output>.stage2.ir.json through <output>.stage9.ir.json lowered Oryn IR and backend manifest");
         Output.WriteLine("  <output>.generated.c     freestanding C backend snippet");
         Output.WriteLine("  <output>.generated.S     readable x64 assembly reference artifact");
         Output.WriteLine("  <output>                 real ELF64 relocatable object written directly by Oryn after approved-module validation");
@@ -52,9 +58,9 @@ internal sealed class CompilerCli
 
     private void PrintModules()
     {
-        Output.WriteLine("[ OK ] Stage 7 manifest-backed approved module catalogue:");
+        Output.WriteLine("[ OK ] Stage 9 manifest-backed approved module catalogue:");
         ModuleManifestCatalog ManifestCatalog = ModuleManifestCatalog.CreateDefault();
-        foreach (ModuleManifestRecord Manifest in ManifestCatalog.ResolveApprovedKernelModules(7, ExcludeManifestLoaderFromGraph: false))
+        foreach (ModuleManifestRecord Manifest in ManifestCatalog.ResolveApprovedKernelModules(9, ExcludeManifestLoaderFromGraph: false))
         {
             string Initializer = string.IsNullOrWhiteSpace(Manifest.InitializerNativeSymbol) ? "<none>" : Manifest.InitializerNativeSymbol;
             Output.WriteLine($"  {Manifest.ModuleName,-16} exposed namespace={Manifest.NamespaceName} stage={Manifest.Stage} order={Manifest.InitializeOrder} initializer={Initializer} dependsOn={(Manifest.DependsOn.Count == 0 ? "<none>" : string.Join(",", Manifest.DependsOn))} nativeSource={Manifest.NativeSource}");
@@ -65,6 +71,29 @@ internal sealed class CompilerCli
         {
             string Approval = Binding.AllowedInKernel ? "approved" : "blocked";
             Output.WriteLine($"  {Binding.ModuleName,-16} {Approval,-8} namespace={Binding.NamespaceName} type={Binding.TypeName} method={Binding.MethodName} signature=\"{Binding.Signature}\" native={Binding.NativeSymbol}");
+        }
+    }
+
+
+    private int ComposeKernel(string[] Args)
+    {
+        try
+        {
+            KernelCompositionCommand Command = KernelTemplateComposer.ParseCommand(Args);
+            BindingCatalog Bindings = BindingCatalog.CreateDefault();
+            ModuleApiContractCatalog ApiContracts = ModuleApiContractCatalog.CreateDefault();
+            KernelTemplateComposer Composer = new(Version, ModuleManifestCatalog.CreateDefault(), Bindings, ApiContracts);
+            foreach (string Message in Composer.Compose(Command))
+            {
+                Output.WriteLine(Message);
+            }
+
+            return 0;
+        }
+        catch (OrynCompileException Exception)
+        {
+            Output.WriteLine($"[FAIL] {Exception.Message}");
+            return 2;
         }
     }
 

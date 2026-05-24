@@ -1,99 +1,27 @@
 # Oryn Manual
 
-Oryn is a C# to freestanding operating-system compiler project.
+Oryn is a C# to freestanding operating-system compiler project from Oryn Foundry.
 
-## Compiler stages
+Current version: **0.9.0**
 
-Stage 1 proves approved calls can become a bootable freestanding kernel. This means calls through approved Oryn SDK module APIs can be lowered into native freestanding code and linked into a kernel image.
+## Current proof stage
 
-Stage 2 proves Oryn can compile a useful C# subset with variables, branches, loops, helper methods, and module calls.
+Stage 9 proves generated kernel template composition from selected modules.
 
-Stage 3 proves Oryn can write a real ELF64 relocatable object directly from Oryn IR and link that object into a bootable freestanding x86_64 kernel. The current Stage 3 kernel is the default target for `Runqemu.sh`.
+The Stage 9 composer reads module manifests, resolves dependencies, fills `OSes/Stage9/Templates/Kernel.template.cs`, validates the generated C# source against the safe subset and API contracts, and only then lets the backend emit IR, diagnostics, reference C/assembly, and direct ELF64 output.
 
-## Running the Stage 3 proof
+Invalid calls are blocked before backend/native compilation. The Stage 9 invalid-call test confirms no generated C, generated assembly, or ELF64 object is produced when an unapproved call is present.
 
-From the repository root:
-
-```bash
-./Runqemu.sh
-```
-
-or:
+## Useful commands
 
 ```bash
-./Runqemu.sh Stage3
+ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage9
+./Tests/Compiler/Stage9/run.sh
 ```
 
-For compile/link/ISO generation without launching QEMU:
+See also:
 
-```bash
-ORYN_SKIP_QEMU=1 ./Runqemu.sh Stage3
-```
-
-## Running Stage 3 tests
-
-```bash
-Tests/Compiler/Stage3/run.sh
-```
-
-The tests check compiler output, IR output, readable assembly reference output, direct ELF64 relocatable object creation, ELF and ISO creation, QEMU diagnostics, and the expected timeout success after the kernel halts forever.
-
-## Stage 3 object inspection
-
-Oryn 0.3.3 adds direct inspection tests for `OSes/Stage3/Build/Runqemu/Kernel.stage3.o`.
-
-The object inspection tests check that the generated kernel object is a little-endian ELF64 x86-64 relocatable object and that it contains the expected sections, symbols, and relocations.
-
-The checks include:
-
-- `.text`
-- `.rodata`
-- `.rela.text`
-- `.symtab`
-- `.strtab`
-- `.shstrtab`
-- `.note.GNU-stack`
-- `Kernel_Main`
-- `Kernel_WriteBanner`
-- unresolved external symbols for approved module calls
-- `R_X86_64_PC32` and `R_X86_64_PLT32` relocation records
-
-These tests help prove that Stage 3 is not merely producing a file that happens to link. It is producing a structurally valid object file that the linker can consume in the expected way.
-
-## Compiler build policy
-
-The Stage 3 tests do not rebuild the compiler by default. They use the existing compiler DLL.
-
-To rebuild the compiler deliberately:
-
-```bash
-ORYN_BUILD_COMPILER=1 Tests/Compiler/Stage3/run.sh
-```
-
-
-## Stage 3 feature parity
-
-Oryn 0.3.4 adds a Stage 3 parity proof. The Stage 3 kernel now deliberately uses the useful Stage 2 subset while still compiling through the direct ELF64 object writer.
-
-The proof covers variables, integer constants, string constants, addition, subtraction, equality comparison, less-than comparison, loops, branches, helper methods, explicit returns, approved module calls, and the final halt path.
-
-Run the full proof with:
-
-```bash
-Tests/Compiler/Stage3/run.sh
-```
-
-Run only the parity inspection after a Stage 3 compile with:
-
-```bash
-Tests/Compiler/Stage3/09-stage3-feature-parity-check.sh
-```
-
-
-## Oryn 0.4.0 Stage 4 note
-
-Oryn 0.4.0 adds the approved module boundary. Safe user-facing C# kernel code may call only APIs recorded in `Source/Sdk/Bindings/*.binding.json` with `allowedInKernel=true`. Unapproved calls and unapproved `Oryn.Kernel.*` namespaces are rejected before IR lowering.
-## Oryn 0.4.1 Stage 4 harness fix
-
-Oryn 0.4.1 fixes the Stage 4 QEMU proof check so the harness recognises the approved module boundary diagnostics emitted by the Stage 4 kernel. The Stage 4 kernel also now emits the standard entry and halt proof lines used by the earlier stage harnesses.
-
+- `README.md`
+- `OSes/Stage9/README.md`
+- `Documents/Stages/Stage9.md`
+- `Documents/ReleaseNotes/0.9.0.md`
