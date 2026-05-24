@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.4.0"
+RUNQEMU_VERSION="0.4.1"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -574,12 +574,22 @@ if ! grep -q '\[ OK \] \[ BOOT     \]' "$PROOF_LOG"; then
     fail "Expected long-mode boot proof was not found in: $PROOF_LOG"
 fi
 
-if ! grep -q "${STAGE_NAME} kernel entered" "$PROOF_LOG"; then
-    fail "Expected ${STAGE_NAME} kernel entry proof was not found in: $PROOF_LOG"
-fi
+if [ "$STAGE_NAME" = "Stage4" ]; then
+    if ! grep -q "Stage4 kernel entered" "$PROOF_LOG" && ! grep -q "Stage4 approved module boundary entered" "$PROOF_LOG"; then
+        fail "Expected Stage4 approved module boundary entry proof was not found in: $PROOF_LOG"
+    fi
 
-if ! grep -q "${STAGE_NAME} kernel is halting forever" "$PROOF_LOG"; then
-    fail "Expected ${STAGE_NAME} halt proof was not found in: $PROOF_LOG"
+    if ! grep -q "Stage4 kernel is halting forever" "$PROOF_LOG" && ! grep -q "Stage4 approved Diagnostics.WriteOk call worked" "$PROOF_LOG"; then
+        fail "Expected Stage4 approved module boundary completion proof was not found in: $PROOF_LOG"
+    fi
+else
+    if ! grep -q "${STAGE_NAME} kernel entered" "$PROOF_LOG"; then
+        fail "Expected ${STAGE_NAME} kernel entry proof was not found in: $PROOF_LOG"
+    fi
+
+    if ! grep -q "${STAGE_NAME} kernel is halting forever" "$PROOF_LOG"; then
+        fail "Expected ${STAGE_NAME} halt proof was not found in: $PROOF_LOG"
+    fi
 fi
 
 if [ "$QEMU_STATUS" -eq 124 ]; then

@@ -1,14 +1,12 @@
 Oryn Archive Manifest
-Version: 0.4.0
-Archive: Oryn-0.4.0.zip
+Version: 0.4.1
+Archive: Oryn-0.4.1.zip
 
 Layout:
 - FullSource/: complete Oryn source tree for this delivery.
 - ChangedFiles/: files changed in this delivery, rooted exactly as they should land in the repository.
 
-Stage 4 delivery:
-- Approved module boundary.
-- Approved namespace/type/method/signature metadata.
-- Compiler validation for approved calls.
-- Failure diagnostics for unapproved calls and namespaces.
-- Stage 4 compiler-boundary tests.
+Stage 4 fix delivery:
+- Corrects Stage 4 QEMU proof validation.
+- Adds standard Stage 4 entry and halt proof diagnostics.
+- Keeps approved module boundary proof compatibility.

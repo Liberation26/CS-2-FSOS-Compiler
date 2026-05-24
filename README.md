@@ -113,4 +113,4 @@ Run the Stage 3 compiler/object/boot proof tests:
 
 ## Version
 
-Current version: `0.4.0`.
+Current version: `0.4.1`.
