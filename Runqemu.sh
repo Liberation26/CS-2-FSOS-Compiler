@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.9.1"
+RUNQEMU_VERSION="0.9.2"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -56,7 +56,7 @@ EnsureCompilerAvailable() {
     RequireTool tee
 
     local SelectedCompilerDll="${ORYN_COMPILER_DLL:-$COMPILER_DLL}"
-    local BuildRequested="${ORYN_BUILD_COMPILER:-0}"
+    local BuildRequested="${ORYN_BUILD_COMPILER:-1}"
 
     case "$BuildRequested" in
         1|true|TRUE|yes|YES|on|ON)
@@ -71,7 +71,7 @@ EnsureCompilerAvailable() {
             ;;
     esac
 
-    [ -f "$SelectedCompilerDll" ] || fail "Compiler DLL not found: $SelectedCompilerDll. Build it explicitly with: ORYN_BUILD_COMPILER=1 ./Runqemu.sh $STAGE_NAME"
+    [ -f "$SelectedCompilerDll" ] || fail "Compiler DLL not found: $SelectedCompilerDll. The compiler should be built automatically by Runqemu.sh. Check the build log or set ORYN_BUILD_COMPILER=1 explicitly."
     export ORYN_COMPILER_DLL="$SelectedCompilerDll"
 }
 
