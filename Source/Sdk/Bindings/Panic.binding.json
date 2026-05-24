@@ -1,0 +1,18 @@
+{
+  "module": "Panic",
+  "namespace": "Oryn.Kernel.Panic",
+  "stage": 5,
+  "methods": [
+    {
+      "managedName": "Panic.Halt",
+      "signature": "void Halt(string Reason)",
+      "nativeSymbol": "Panic_Halt",
+      "allowedInKernel": true,
+      "summary": "Writes a panic reason through the approved runtime path and halts forever.",
+      "argumentCount": 1,
+      "typeName": "Panic",
+      "methodName": "Halt",
+      "argumentTypes": ["String"]
+    }
+  ]
+}

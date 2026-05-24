@@ -1,67 +1,151 @@
 # Oryn
 
-Oryn is a C# Operating System Development Platform from Oryn Foundry.
+Current version: **0.5.0**
 
-The purpose of Oryn is to let a developer write safe, user-facing C# kernel code and turn it into freestanding native output for a bootable operating-system project. The developer should not need to write unsafe kernel-facing code directly. Unsafe, native, boot, CPU, memory, and device details are meant to live behind approved Oryn modules.
+Oryn is a C# to freestanding operating-system compiler project from Oryn Foundry.
 
-Oryn is not trying to be one fixed operating system. It is a generator and compiler platform for creating operating systems from selected, tested modules.
+The goal is to let developers write an Oryn-safe subset of C# and compile it into native freestanding output that can be linked into a bootable kernel. Oryn is not a general .NET runtime and it is not intended to compile arbitrary C# applications. Oryn compiles a controlled kernel-safe C# subset into native code for operating-system development.
 
-## What the app is about
+## Stage 5 status
 
-Oryn is being built so that an end user can:
+Stage 5 is now the default development stage.
 
-1. choose the kind of operating system they want to create;
-2. answer structured questions about the target OS and target machine;
-3. select only modules that Oryn knows are available for that target;
-4. write safe C# kernel-facing code against approved Oryn APIs;
-5. have Oryn compile that code into freestanding native output;
-6. build a bootable kernel image;
-7. run and test that generated operating-system project in a supported virtual-machine profile.
+Stage 5 proves that Oryn can compile safe C# kernel-facing code through the approved module boundary into a bootable freestanding x86_64 kernel with a small runtime contract.
 
-The long-term goal is that Oryn gives C# developers a practical route from safe C# OS design to a bootable freestanding kernel without exposing them to the dangerous implementation details unless they are writing approved modules themselves.
-
-## What Stage 3 gives the end user
-
-Stage 3 proves that Oryn can take real safe C# kernel code and turn it into a bootable freestanding kernel proof.
-
-For the end user, Stage 3 gives a working compiler path from:
+The Stage 5 pipeline is:
 
 ```text
-Kernel.cs
+OSes/Stage5/Source/Kernel.cs
+  -> Oryn safe-subset validation
+  -> approved module binding validation
+  -> semantic binding
   -> Oryn IR
-  -> direct ELF64 relocatable object
-  -> linked freestanding kernel ELF
-  -> bootable GRUB ISO
-  -> QEMU proof run
+  -> control-flow graph proof
+  -> direct ELF64 relocatable object written by Oryn
+  -> linked freestanding x86_64 kernel ELF
+  -> GRUB ISO
+  -> QEMU serial proof run
 ```
 
-That matters because the generated kernel is no longer only a sketch, a mock-up, or host-dependent output. Stage 3 proves that Oryn can produce native freestanding kernel output that boots.
+## What Stage 5 adds
 
-Stage 3 supports a useful early C# subset for kernel-facing code:
+Stage 1 proved approved calls could become a bootable freestanding kernel.
 
+Stage 2 proved variables, branches, loops, helper methods, and module calls.
+
+Stage 3 proved Oryn could write a real ELF64 relocatable object directly instead of relying on assembler output as the primary object path.
+
+Stage 4 proved that user-facing safe C# can only call approved Oryn module APIs.
+
+Stage 5 adds the first explicit runtime contract:
+
+- `Oryn.Kernel.Runtime.Runtime.Initialize()`
+- `Oryn.Kernel.Runtime.Runtime.MarkKernelReady()`
+- `Oryn.Kernel.Panic.Panic.Halt(string Reason)`
+- native Runtime and Panic modules
+- Stage 5 boot kernel
+- Stage 5 compiler tests
+- Stage 5 QEMU boot proof
+
+In plain terms: Stage 5 proves that a safe C# kernel can enter an approved Oryn runtime path, initialize memory, use diagnostics, run control flow, expose an approved panic route, mark itself ready, and halt forever in QEMU.
+
+## Current safe C# subset
+
+The current Oryn-safe subset supports:
+
+- `public static void Main()` as the kernel entry point;
+- private static helper methods with no parameters;
 - local `int` variables;
-- integer addition and subtraction;
-- integer equality checks;
-- integer less-than checks;
-- `if` and `else` branches;
-- `while` loops;
-- private static helper methods;
-- explicit `return` statements;
+- integer literals;
 - string literals passed to approved module calls;
-- approved calls such as diagnostics output, memory initialization, and CPU halt.
+- assignment;
+- `+` and `-` integer arithmetic;
+- `==` and `<` integer comparisons;
+- `if` / `else`;
+- `while` loops;
+- explicit `return` statements;
+- approved Oryn module calls.
 
-Stage 3 also gives the end user proof artifacts they can inspect:
+Unsupported C# features are intentionally rejected. Oryn is building a freestanding compiler and runtime contract, not a general .NET runtime.
 
-- generated Oryn IR;
-- generated control-flow output;
-- generated assembly reference output;
-- a real ELF64 object written by Oryn;
-- a linked freestanding kernel ELF;
-- a bootable ISO;
-- QEMU serial proof output.
+## Approved modules in Stage 5
 
-In practical terms, Stage 3 is the point where Oryn proves the compiler pipeline can create and boot a real freestanding kernel from safe C# source.
+The approved module catalogue lives under `Source/Sdk/Bindings/`.
 
-## Current version
+Current approved kernel-facing modules are:
 
-`0.4.2`
+| Module | Approved safe C# API | Native symbol |
+| --- | --- | --- |
+| Runtime | `Runtime.Initialize()` | `Runtime_Initialize` |
+| Runtime | `Runtime.MarkKernelReady()` | `Runtime_MarkKernelReady` |
+| Diagnostics | `Diagnostics.WriteOk(string Message)` | `Diagnostics_WriteOk` |
+| Diagnostics | `Diagnostics.WriteWarn(string Message)` | `Diagnostics_WriteWarn` |
+| Diagnostics | `Diagnostics.WriteFail(string Message)` | `Diagnostics_WriteFail` |
+| Memory | `Memory.Initialize()` | `Memory_Initialize` |
+| Panic | `Panic.Halt(string Reason)` | `Panic_Halt` |
+| Cpu | `Cpu.HaltForever()` | `Cpu_HaltForever` |
+
+Safe C# code may use only approved `Oryn.Kernel.*` namespaces and approved binding catalogue entries. Unsafe details stay behind native module implementations.
+
+## Run Stage 5
+
+From the repository root:
+
+```bash
+ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage5
+```
+
+`Stage5` is also the default:
+
+```bash
+ORYN_BUILD_COMPILER=1 ./Runqemu.sh
+```
+
+The expected serial proof includes:
+
+```text
+[ OK ] [ BOOT32   ] Multiboot entry reached; preparing long mode
+[ OK ] [ BOOT     ] Long mode entered; calling Kernel_Main
+[ OK ] [ KERNEL   ] Stage5 kernel entered
+[ OK ] [ KERNEL   ] Stage5 runtime contract initialized
+[ OK ] [ KERNEL   ] Stage5 memory module initialized
+[ OK ] [ KERNEL   ] Stage5 loop and branch proof worked
+[ OK ] [ KERNEL   ] Stage5 runtime marked kernel ready
+[ OK ] [ KERNEL   ] Stage5 kernel is halting forever
+```
+
+The kernel intentionally halts forever. The QEMU timeout is treated as success when the expected diagnostics have appeared.
+
+## Run Stage 5 tests
+
+```bash
+./Tests/Compiler/Stage5/run.sh
+```
+
+The tests check that:
+
+- the compiler exits successfully;
+- the Stage 5 IR manifest exists;
+- generated assembly exists;
+- the direct ELF64 object exists;
+- Runtime and Panic bindings are present and approved;
+- the Stage 5 kernel boots in QEMU;
+- the QEMU serial log reaches the expected Stage 5 diagnostics;
+- timeout after the halt loop is treated as success.
+
+## Repository layout
+
+```text
+OSes/Stage5/                 Stage 5 proof kernel
+Source/Core/Oryn.Compiler/   Oryn compiler implementation
+Source/Sdk/Apis/             compile-time SDK API declarations
+Source/Sdk/Bindings/         approved module binding metadata
+Source/Native/Modules/       native freestanding module implementations
+Tests/Compiler/Stage5/       Stage 5 compiler and boot tests
+Documents/Stages/Stage5.md   Stage 5 design note
+Documents/ReleaseNotes/      release notes
+```
+
+## Development rule
+
+Oryn code generation must keep the user-facing kernel source safe. Hardware access, CPU halt loops, panic handling, diagnostics output, memory setup, and future runtime services belong behind approved modules and binding metadata.

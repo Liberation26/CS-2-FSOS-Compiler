@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.4.4"
+RUNQEMU_VERSION="0.5.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
 COMPILER_FRAMEWORK="${ORYN_COMPILER_FRAMEWORK:-net8.0}"
 COMPILER_DLL="$PROJECT_ROOT/Source/Core/Oryn.Compiler/bin/${COMPILER_CONFIGURATION}/${COMPILER_FRAMEWORK}/Oryn.Compiler.dll"
-REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage4}}"
+REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage5}}"
 
 info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
 warn() { printf '[WARN] [ RUNQEMU  ] %s\n' "$1"; }
@@ -84,13 +84,13 @@ case "$REQUESTED_STAGE" in
     all|All|ALL)
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
         info "Selected stage set: All"
-        info "Stage 4 development mode is active; running the approved module boundary kernel."
-        RunOneStage Stage4
-        info "Requested Stage 4 kernel completed."
+        info "Stage 5 development mode is active; running the runtime contract kernel."
+        RunOneStage Stage5
+        info "Requested Stage 5 kernel completed."
         exit 0
         ;;
     1|stage1|Stage1|STAGE1)
-        printf '[FAIL] [ RUNQEMU  ] Stage 4 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, or Stage4.\n'
+        printf '[FAIL] [ RUNQEMU  ] Stage 5 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, Stage4, or Stage5.\n'
         exit 1
         ;;
     2|stage2|Stage2|STAGE2)
@@ -108,8 +108,13 @@ case "$REQUESTED_STAGE" in
         STAGE_LABEL="stage4"
         DIRECT_OBJECT_LINK=1
         ;;
+    5|stage5|Stage5|STAGE5)
+        STAGE_NAME="Stage5"
+        STAGE_LABEL="stage5"
+        DIRECT_OBJECT_LINK=1
+        ;;
     *)
-        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, or Stage4.\n' "$REQUESTED_STAGE"
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, or Stage5.\n' "$REQUESTED_STAGE"
         exit 1
         ;;
 esac
@@ -119,6 +124,8 @@ KERNEL_OBJECT="$BUILD_ROOT/Kernel.${STAGE_LABEL}.o"
 GENERATED_ASM="$BUILD_ROOT/Kernel.${STAGE_LABEL}.generated.S"
 BOOT_SOURCE="$BUILD_ROOT/Boot.S"
 DIAGNOSTICS_SOURCE="$PROJECT_ROOT/Source/Native/Modules/Diagnostics/Diagnostics.Native.c"
+RUNTIME_SOURCE="$PROJECT_ROOT/Source/Native/Modules/Runtime/Runtime.Native.c"
+PANIC_SOURCE="$PROJECT_ROOT/Source/Native/Modules/Panic/Panic.Native.c"
 COMPILER_DIAGNOSTICS_LOG="$BUILD_ROOT/Kernel.${STAGE_LABEL}.diagnostics.log"
 LINKER_SCRIPT="$BUILD_ROOT/Linker.ld"
 KERNEL_ELF="$BUILD_ROOT/OrynKernel.elf"
@@ -443,6 +450,8 @@ else
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$GENERATED_ASM" -o "$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real"
 fi
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$DIAGNOSTICS_SOURCE" -o "$BUILD_ROOT/Diagnostics.Runtime.o"
+clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$RUNTIME_SOURCE" -o "$BUILD_ROOT/Runtime.Native.o"
+clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$PANIC_SOURCE" -o "$BUILD_ROOT/Panic.Native.o"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Cpu/Cpu.Native.c" -o "$BUILD_ROOT/Cpu.Native.o"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Memory/Memory.Native.c" -o "$BUILD_ROOT/Memory.Native.o"
 
@@ -456,6 +465,8 @@ ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
     "$BUILD_ROOT/Boot.o" \
     "$KERNEL_LINK_OBJECT" \
     "$BUILD_ROOT/Diagnostics.Runtime.o" \
+    "$BUILD_ROOT/Runtime.Native.o" \
+    "$BUILD_ROOT/Panic.Native.o" \
     "$BUILD_ROOT/Cpu.Native.o" \
     "$BUILD_ROOT/Memory.Native.o"
 

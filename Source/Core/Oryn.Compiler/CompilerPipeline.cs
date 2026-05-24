@@ -61,7 +61,7 @@ internal sealed class CompilerPipeline
         IReadOnlyList<string> ValidationFailures = Validator.Validate(SourceText);
         if (ValidationFailures.Count > 0)
         {
-            Messages.Add("[FAIL] Stage 4 safe-subset validation failed.");
+            Messages.Add("[FAIL] Safe-subset validation failed.");
             foreach (string Failure in ValidationFailures)
             {
                 Messages.Add($"[FAIL] {Failure}");
@@ -81,6 +81,10 @@ internal sealed class CompilerPipeline
 
             Messages.Add($"[ OK ] Parsed source: {Command.SourcePath}");
             Messages.Add("[ OK ] Stage 4 approved-module boundary validation passed.");
+            if (Command.SourcePath.Contains("Stage5", StringComparison.OrdinalIgnoreCase))
+            {
+                Messages.Add("[ OK ] Stage 5 runtime contract validation passed.");
+            }
             Messages.Add($"[ OK ] Approved module calls: {BoundModel.ApprovedModuleCallCount}");
             Messages.Add($"[ OK ] Lowered IR instructions: {IrModule.Instructions.Count}");
             Messages.Add($"[ OK ] [ CFG      ] Basic blocks: {ControlFlowGraph.Blocks.Count}");

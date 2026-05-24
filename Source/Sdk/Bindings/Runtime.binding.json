@@ -1,0 +1,29 @@
+{
+  "module": "Runtime",
+  "namespace": "Oryn.Kernel.Runtime",
+  "stage": 5,
+  "methods": [
+    {
+      "managedName": "Runtime.Initialize",
+      "signature": "void Initialize()",
+      "nativeSymbol": "Runtime_Initialize",
+      "allowedInKernel": true,
+      "summary": "Initializes the approved Oryn freestanding runtime contract before higher-level kernel work runs.",
+      "argumentCount": 0,
+      "typeName": "Runtime",
+      "methodName": "Initialize",
+      "argumentTypes": []
+    },
+    {
+      "managedName": "Runtime.MarkKernelReady",
+      "signature": "void MarkKernelReady()",
+      "nativeSymbol": "Runtime_MarkKernelReady",
+      "allowedInKernel": true,
+      "summary": "Records that the safe C# kernel reached the runtime-ready point.",
+      "argumentCount": 0,
+      "typeName": "Runtime",
+      "methodName": "MarkKernelReady",
+      "argumentTypes": []
+    }
+  ]
+}
