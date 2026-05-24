@@ -43,11 +43,11 @@ internal sealed class CompilerCli
         Output.WriteLine("  oryn compiler modules");
         Output.WriteLine("  oryn compiler compile <source.cs> --target x64-elf --output <output.o>");
         Output.WriteLine();
-        Output.WriteLine("Stage 2 compile output:");
-        Output.WriteLine("  <output>.stage2.ir.json lowered Oryn IR and backend manifest");
+        Output.WriteLine("Stage 3 compile output:");
+        Output.WriteLine("  <output>.stage2.ir.json or <output>.stage3.ir.json lowered Oryn IR and backend manifest");
         Output.WriteLine("  <output>.generated.c     freestanding C backend snippet");
-        Output.WriteLine("  <output>.generated.S     real x64 assembly for clang/as");
-        Output.WriteLine("  <output>                 Stage 3 text placeholder for the future direct ELF64 object writer");
+        Output.WriteLine("  <output>.generated.S     readable x64 assembly reference artifact");
+        Output.WriteLine("  <output>                 real ELF64 relocatable object written directly by Oryn");
     }
 
     private void PrintModules()

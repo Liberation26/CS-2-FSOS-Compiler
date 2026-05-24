@@ -261,3 +261,34 @@ The Stage 2 documentation now states the stage boundary clearly:
 
 - Stage 1 proves approved calls can become a bootable freestanding kernel.
 - Stage 2 proves Oryn can compile a useful C# subset with variables, branches, loops, helper methods, and module calls.
+
+
+## 0.3.0 Stage 3: Direct ELF64 relocatable object writer
+
+Stage 3 replaces the placeholder object output with a real ELF64 relocatable object writer. The compiler still emits readable C and x64 assembly reference artifacts for diagnostics, but the Stage 3 build links the object written directly by Oryn instead of assembling the generated `.S` file for the kernel object.
+
+The Stage 3 object writer emits:
+
+```text
+.text
+.rodata
+.rela.text
+.symtab
+.strtab
+.shstrtab
+.note.GNU-stack
+```
+
+The Stage 3 build flow is now:
+
+```text
+Kernel.cs
+  -> Oryn IR
+  -> direct ELF64 relocatable object
+  -> link with boot/runtime/module objects
+  -> OrynKernel.elf
+  -> GRUB ISO
+  -> QEMU
+```
+
+Stage 3 keeps Stage 2's working IR and x64 lowering model: locals, branches, loops, helper methods, module calls, labels, jumps, string literals, and explicit CFG diagnostics.

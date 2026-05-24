@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.2.17"
+RUNQEMU_VERSION="0.3.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
 COMPILER_FRAMEWORK="${ORYN_COMPILER_FRAMEWORK:-net8.0}"
 COMPILER_DLL="$PROJECT_ROOT/Source/Core/Oryn.Compiler/bin/${COMPILER_CONFIGURATION}/${COMPILER_FRAMEWORK}/Oryn.Compiler.dll"
-REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage2}}"
+REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage3}}"
 
 info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
 warn() { printf '[WARN] [ RUNQEMU  ] %s\n' "$1"; }
@@ -70,28 +70,34 @@ case "$REQUESTED_STAGE" in
     all|All|ALL)
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
         info "Selected stage set: All"
-        info "Stage 2 development mode is active; running only the second kernel."
+        info "Stage 3 development mode is active; running the direct ELF64 object writer kernel."
         BuildCompilerOnce
-        RunOneStage Stage2
-        info "Requested Stage 2 kernel completed."
+        RunOneStage Stage3
+        info "Requested Stage 3 kernel completed."
         exit 0
         ;;
     1|stage1|Stage1|STAGE1)
-        printf '[FAIL] [ RUNQEMU  ] Stage 2 development mode is active; Stage1 is not run by this script. Use Stage2.\n'
+        printf '[FAIL] [ RUNQEMU  ] Stage 3 development mode is active; Stage1 is not run by this script. Use Stage2 or Stage3.\n'
         exit 1
         ;;
     2|stage2|Stage2|STAGE2)
         STAGE_NAME="Stage2"
         STAGE_LABEL="stage2"
+        DIRECT_OBJECT_LINK=0
+        ;;
+    3|stage3|Stage3|STAGE3)
+        STAGE_NAME="Stage3"
+        STAGE_LABEL="stage3"
+        DIRECT_OBJECT_LINK=1
         ;;
     *)
-        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All or Stage2.\n' "$REQUESTED_STAGE"
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, or Stage3.\n' "$REQUESTED_STAGE"
         exit 1
         ;;
 esac
 BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/OSes/$STAGE_NAME/Build/Runqemu}"
 SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/OSes/$STAGE_NAME/Source/Kernel.cs}"
-KERNEL_OBJECT_PLACEHOLDER="$BUILD_ROOT/Kernel.${STAGE_LABEL}.o"
+KERNEL_OBJECT="$BUILD_ROOT/Kernel.${STAGE_LABEL}.o"
 GENERATED_ASM="$BUILD_ROOT/Kernel.${STAGE_LABEL}.generated.S"
 BOOT_SOURCE="$BUILD_ROOT/Boot.S"
 DIAGNOSTICS_SOURCE="$PROJECT_ROOT/Source/Native/Modules/Diagnostics/Diagnostics.Native.c"
@@ -148,9 +154,10 @@ if [ "${ORYN_COMPILER_PREBUILT:-0}" != "1" ] || [ ! -f "${ORYN_COMPILER_DLL:-$CO
     ORYN_COMPILER_DLL="$COMPILER_DLL"
 fi
 [ -f "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" ] || fail "Compiler DLL not found: ${ORYN_COMPILER_DLL:-$COMPILER_DLL}"
-dotnet "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" compile "$SOURCE_FILE" --target x64-elf --output "$KERNEL_OBJECT_PLACEHOLDER"
+dotnet "${ORYN_COMPILER_DLL:-$COMPILER_DLL}" compile "$SOURCE_FILE" --target x64-elf --output "$KERNEL_OBJECT"
 info "Oryn.Compiler backend completed for ${STAGE_NAME}"
 
+[ -f "$KERNEL_OBJECT" ] || fail "Compiler did not produce expected direct ELF64 object: $KERNEL_OBJECT"
 [ -f "$GENERATED_ASM" ] || fail "Compiler did not produce expected backend assembly: $GENERATED_ASM"
 [ -f "$COMPILER_DIAGNOSTICS_LOG" ] || fail "Compiler did not produce expected diagnostics log: $COMPILER_DIAGNOSTICS_LOG"
 info "Compiler diagnostics log: $COMPILER_DIAGNOSTICS_LOG"
@@ -418,15 +425,24 @@ EOF_LINK
 
 info "Compiling freestanding x86_64 kernel objects"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$BOOT_SOURCE" -o "$BUILD_ROOT/Boot.o"
-clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$GENERATED_ASM" -o "$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real"
+if [ "${DIRECT_OBJECT_LINK:-0}" = "1" ]; then
+    info "Using direct Oryn ELF64 object writer output: $KERNEL_OBJECT"
+else
+    clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$GENERATED_ASM" -o "$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real"
+fi
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$DIAGNOSTICS_SOURCE" -o "$BUILD_ROOT/Diagnostics.Runtime.o"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Cpu/Cpu.Native.c" -o "$BUILD_ROOT/Cpu.Native.o"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Memory/Memory.Native.c" -o "$BUILD_ROOT/Memory.Native.o"
 
 info "Linking x86_64 freestanding ELF kernel: $KERNEL_ELF"
+KERNEL_LINK_OBJECT="$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real"
+if [ "${DIRECT_OBJECT_LINK:-0}" = "1" ]; then
+    KERNEL_LINK_OBJECT="$KERNEL_OBJECT"
+fi
+
 ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
     "$BUILD_ROOT/Boot.o" \
-    "$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real" \
+    "$KERNEL_LINK_OBJECT" \
     "$BUILD_ROOT/Diagnostics.Runtime.o" \
     "$BUILD_ROOT/Cpu.Native.o" \
     "$BUILD_ROOT/Memory.Native.o"

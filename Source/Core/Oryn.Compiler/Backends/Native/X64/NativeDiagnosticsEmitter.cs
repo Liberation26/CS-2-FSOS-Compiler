@@ -8,7 +8,7 @@ internal sealed class NativeDiagnosticsEmitter
     public string Emit(CompilerManifest Manifest, IReadOnlyList<IrInstruction> Instructions, string CPath, string AssemblyPath)
     {
         StringBuilder Builder = new();
-        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 2 JSON binding diagnostics");
+        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 3 JSON binding and ELF64 diagnostics");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Version: {Manifest.CompilerVersion}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Source: {Manifest.SourcePath}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Target: {Manifest.Target}");
@@ -32,8 +32,8 @@ internal sealed class NativeDiagnosticsEmitter
 
         Builder.AppendLine($"[ OK ] [ BACKEND  ] C output: {CPath}");
         Builder.AppendLine($"[ OK ] [ BACKEND  ] real x64 assembly output: {AssemblyPath}");
-        Builder.AppendLine("[ OK ] [ BACKEND  ] Stage 2 lowers Oryn IR directly to clang/as-compatible x64 assembly, including static helper method calls lowered to Kernel_* symbols and module calls resolved from JSON binding records.");
-        Builder.AppendLine("[ OK ] [ BACKEND  ] Runtime diagnostics write to QEMU serial and VGA when built with DEBUG=1; ELF64 object writing is deferred to Stage 3.");
+        Builder.AppendLine("[ OK ] [ BACKEND  ] Stage 3 lowers Oryn IR directly to a real ELF64 relocatable object, while retaining clang/as-compatible x64 assembly as a readable reference artifact.");
+        Builder.AppendLine("[ OK ] [ BACKEND  ] Runtime diagnostics write to QEMU serial and VGA when built with DEBUG=1; generated kernel objects now come from the direct ELF64 writer for Stage 3.");
         return Builder.ToString();
     }
 

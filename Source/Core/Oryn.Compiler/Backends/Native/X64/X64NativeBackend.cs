@@ -9,7 +9,7 @@ internal sealed class X64NativeBackend
 {
     private readonly X64CSourceEmitter CSourceEmitter = new();
     private readonly X64AssemblyEmitter AssemblyEmitter = new();
-    private readonly NativeObjectPlaceholderEmitter ObjectEmitter = new();
+    private readonly NativeElf64ObjectEmitter ObjectEmitter = new();
     private readonly NativeDiagnosticsEmitter DiagnosticsEmitter = new();
 
     public BackendResult Emit(string Version, CompilerCommand Command, BoundKernelModel BoundModel, OrynIrModule IrModule, OrynControlFlowGraph ControlFlowGraph)
@@ -19,7 +19,8 @@ internal sealed class X64NativeBackend
         string BaseName = Path.GetFileNameWithoutExtension(FullOutputPath);
         Directory.CreateDirectory(OutputDirectory);
 
-        string ManifestPath = Path.Combine(OutputDirectory, BaseName + ".stage2.ir.json");
+        string StageTag = BaseName.Contains("stage3", StringComparison.OrdinalIgnoreCase) ? "stage3" : "stage2";
+        string ManifestPath = Path.Combine(OutputDirectory, BaseName + "." + StageTag + ".ir.json");
         string CPath = Path.Combine(OutputDirectory, BaseName + ".generated.c");
         string AssemblyPath = Path.Combine(OutputDirectory, BaseName + ".generated.S");
         string DiagnosticsPath = Path.Combine(OutputDirectory, BaseName + ".diagnostics.log");
@@ -34,7 +35,7 @@ internal sealed class X64NativeBackend
             IrModule.Methods,
             ControlFlowGraph,
             ControlFlowGraph.Blocks.Count,
-            "Stage 2 supports real clang/as-compatible x64 assembly from Oryn IR, rbp-based 64-bit local stack slots, .rodata string literal tables, and private static helper methods lowered to Kernel_* symbols. Direct ELF64 object writing remains a Stage 3 task.");
+            "Stage 3 writes a real ELF64 relocatable object directly from Oryn IR while still emitting readable C and assembly reference artifacts for diagnostics. The direct object contains .text, .rodata, .rela.text, .symtab, .strtab, .shstrtab, and .note.GNU-stack sections.");
 
         return new BackendResult(
             ManifestPath,
@@ -56,6 +57,6 @@ internal sealed class X64NativeBackend
         File.WriteAllText(BackendResult.CPath, BackendResult.CSource);
         File.WriteAllText(BackendResult.AssemblyPath, BackendResult.AssemblySource);
         File.WriteAllText(BackendResult.DiagnosticsPath, BackendResult.DiagnosticsText);
-        File.WriteAllText(BackendResult.ObjectPath, BackendResult.ObjectPlaceholder);
+        File.WriteAllBytes(BackendResult.ObjectPath, BackendResult.ObjectBytes);
     }
 }

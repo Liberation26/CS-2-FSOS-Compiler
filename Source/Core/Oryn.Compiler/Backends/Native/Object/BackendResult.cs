@@ -23,5 +23,5 @@ internal sealed record BackendResult(
     CompilerManifest Manifest,
     string CSource,
     string AssemblySource,
-    string ObjectPlaceholder,
+    byte[] ObjectBytes,
     string DiagnosticsText);
