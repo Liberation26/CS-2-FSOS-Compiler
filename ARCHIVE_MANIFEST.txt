@@ -1,12 +1,14 @@
-Oryn Archive Manifest
-Version: 0.4.2
-Archive: Oryn-0.4.2.zip
+Oryn archive version: 0.4.4
 
-Layout:
-- FullSource/: complete Oryn source tree for this delivery.
-- ChangedFiles/: files changed in this delivery, rooted exactly as they should land in the repository.
+Archive layout:
+- FullSource/ contains the complete Oryn source tree for this version.
+- ChangedFiles/ contains only the files changed for this delivery.
+- update.sh applies ChangedFiles to ~/Dev/OrynFoundry and pushes to the configured GitHub remote.
 
-Stage 4 README correction delivery:
-- Replaces the root README.md with a clean end-user explanation of what Oryn is.
-- Describes what Stage 3 gives the end user.
-- Removes old workflow/project-history wording from the root README.md.
+Changed in 0.4.4:
+- update.sh
+- VERSION
+- ARCHIVE_MANIFEST.txt
+- Documents/ReleaseNotes/0.4.4.md
+- Source/Core/Oryn.Compiler/Program.cs
+- Runqemu.sh
