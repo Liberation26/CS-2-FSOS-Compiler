@@ -1,0 +1,13 @@
+{
+  "Id": "vm-profile",
+  "Order": 5,
+  "Prompt": "Which virtual machine profile should run the generated OS?",
+  "AnswerKey": "VmProfile",
+  "Type": "choice",
+  "Required": true,
+  "Default": "RunQemu",
+  "Choices": [
+    "RunQemu"
+  ],
+  "ExpectedAnswer": "RunQemu"
+}

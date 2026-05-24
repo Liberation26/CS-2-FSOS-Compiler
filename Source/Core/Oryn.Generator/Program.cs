@@ -6,7 +6,7 @@ namespace Oryn.Generator;
 
 internal static class Program
 {
-    private const string Version = "1.0.8";
+    private const string Version = "2.0.0";
     private static readonly string[] MandatoryKernelModules = { "Runtime", "Diagnostics", "Panic", "Cpu", "ManifestLoader" };
     private static readonly string[] DefaultUserSelectedModules = Array.Empty<string>();
     private static readonly string[] AvailableUserSelectableModules = { "Memory" };
@@ -57,7 +57,7 @@ internal static class Program
     {
         Console.WriteLine("Usage:");
         Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate");
-        Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate --os-name <name> [--kernel-name <name>] [--modules None|Memory] [--vm-display-mode Headless|Visual]");
+        Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate --os-title <title> --os-name <StrictName> [--kernel-name <StrictKernelName>] [--modules None|Memory] [--vm-display-mode Headless|Visual]");
         Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- modules");
         Console.WriteLine();
         Console.WriteLine("Diagnostics and Panic are always enabled. Mandatory kernel modules are not user-selected modules.");
@@ -72,7 +72,7 @@ internal static class Program
             Console.WriteLine($"  [mandatory] {Module}");
         }
 
-        Console.WriteLine("[ OK ] User-selectable modules for 1.0.8:");
+        Console.WriteLine("[ OK ] User-selectable modules for 2.0.0:");
         Console.WriteLine("  [available] None");
         foreach (string Module in AvailableUserSelectableModules)
         {
@@ -89,8 +89,11 @@ internal static class Program
 
         PrintQuestionHelpBanner();
 
-        string OsName = ReadOption(Args, "--os-name") ?? ReadOption(Args, "--name") ?? Prompt("OS name", "My Oryn OS", "Type the name of the operating system to generate. Spaces are allowed; the folder name will remove spaces.", NonInteractive);
-        string KernelName = ReadOption(Args, "--kernel-name") ?? Prompt("Kernel name", SanitizeIdentifier(OsName) + "Kernel", "Type the generated kernel class/name. Use letters, numbers, and underscores; press Enter to accept the default.", NonInteractive);
+        string OsTitle = ReadOption(Args, "--os-title") ?? ReadOption(Args, "--title") ?? Prompt("OS title", "My Oryn OS", "Friendly display title. Spaces are allowed here only because this is not used as a path or symbol.", NonInteractive);
+        string OsName = ReadOption(Args, "--os-name") ?? ReadOption(Args, "--name") ?? Prompt("OS name", SanitizeStrictName(OsTitle), "Strict technical name. Use letters and numbers only. No spaces. Must start with a letter.", NonInteractive);
+        OsName = NormalizeStrictName(OsName, "OS name");
+        string KernelName = ReadOption(Args, "--kernel-name") ?? Prompt("Kernel name", OsName + "Kernel", "Strict kernel name. Use letters and numbers only. No spaces. Must start with a letter.", NonInteractive);
+        KernelName = NormalizeStrictName(KernelName, "Kernel name");
         string Target = ReadOption(Args, "--target") ?? Prompt("Target architecture", "x64-elf", "Valid answer: x64-elf", NonInteractive);
         Target = NormalizeTarget(Target);
         string VmProfile = ReadOption(Args, "--vm-profile") ?? Prompt("Virtual machine profile", "RunQemu", "Valid answer: RunQemu", NonInteractive);
@@ -103,18 +106,13 @@ internal static class Program
         Console.WriteLine("[ OK ] [GENERATOR] Mandatory kernel modules are always linked and hidden from user selection:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", MandatoryKernelModules));
         Console.WriteLine("[ OK ] [GENERATOR] Diagnostics and Panic are always enabled.");
-        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.8:");
+        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 2.0.0:");
         Console.WriteLine("[ OK ] [GENERATOR]   None, " + string.Join(", ", AvailableUserSelectableModules));
 
         string ModulesText = ReadOption(Args, "--modules") ?? Prompt("Additional user-selected modules", FormatModuleDefault(DefaultUserSelectedModules), "Valid answers: None or Memory. Use comma-separated values only when more optional modules are available. Mandatory boot/kernel modules are linked automatically and must not be typed here.", NonInteractive);
 
-        string SafeOsName = SanitizeFileName(OsName);
-        if (string.IsNullOrWhiteSpace(SafeOsName))
-        {
-            throw new InvalidOperationException("OS name must contain at least one letter or number.");
-        }
-
-        string SafeKernelName = SanitizeIdentifier(KernelName);
+        string SafeOsName = OsName;
+        string SafeKernelName = KernelName;
         string[] UserSelectedModules = ParseUserSelectedModules(ModulesText);
         ValidateUserSelectedModules(UserSelectedModules);
 
@@ -136,10 +134,10 @@ internal static class Program
         string ReadmePath = Path.Combine(OsRoot, "README.md");
 
         File.WriteAllText(TemplatePath, BuildKernelTemplate(), Utf8NoBom);
-        File.WriteAllText(SourcePath, BuildUncomposedKernelSource(OsName, SafeKernelName), Utf8NoBom);
-        File.WriteAllText(AnswersPath, BuildAnswersJson(OsName, SafeKernelName, Target, VmProfile, VmDisplayMode, BuildMode, UserSelectedModules), Utf8NoBom);
-        File.WriteAllText(ManifestPath, BuildManifestJson(SafeOsName, SafeKernelName, Target, VmProfile, VmDisplayMode, BuildMode, UserSelectedModules), Utf8NoBom);
-        File.WriteAllText(ReadmePath, BuildOsReadme(SafeOsName, SafeKernelName), Utf8NoBom);
+        File.WriteAllText(SourcePath, BuildUncomposedKernelSource(OsTitle, SafeOsName, SafeKernelName), Utf8NoBom);
+        File.WriteAllText(AnswersPath, BuildAnswersJson(OsTitle, SafeOsName, SafeKernelName, Target, VmProfile, VmDisplayMode, BuildMode, UserSelectedModules), Utf8NoBom);
+        File.WriteAllText(ManifestPath, BuildManifestJson(OsTitle, SafeOsName, SafeKernelName, Target, VmProfile, VmDisplayMode, BuildMode, UserSelectedModules), Utf8NoBom);
+        File.WriteAllText(ReadmePath, BuildOsReadme(OsTitle, SafeOsName, SafeKernelName), Utf8NoBom);
 
         Console.WriteLine($"[ OK ] [GENERATOR] OS folder created: {OsRoot}");
         Console.WriteLine($"[ OK ] [GENERATOR] Answers saved: {AnswersPath}");
@@ -345,12 +343,14 @@ internal static class Program
 
             if (!Available.Contains(Module))
             {
-                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.8: {Module}");
+                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 2.0.0: {Module}");
             }
         }
     }
 
     private static string BuildKernelTemplate() => """
+// Generated kernel template for the Oryn freestanding SDK surface.
+// The using directives below are .Oryn approved namespaces, not normal host .NET runtime APIs.
 __ORYN_GENERATED_USINGS__
 
 public static class Kernel
@@ -370,13 +370,14 @@ __ORYN_MODULE_INITIALIZATION_CALLS__
 }
 """;
 
-    private static string BuildUncomposedKernelSource(string OsName, string KernelName)
+    private static string BuildUncomposedKernelSource(string OsTitle, string OsName, string KernelName)
     {
         string[] Lines =
         {
             $"// Generated by Oryn.Generator {Version}.",
             "// This file is the user-facing generated source stub. Runqemu.sh composes Templates/Kernel.template.cs before compiling.",
-            $"// OS: {OsName}",
+            $"// OS title: {OsTitle}",
+            $"// OS name: {OsName}",
             $"// Kernel: {KernelName}",
             string.Empty,
             "public static class Kernel",
@@ -390,49 +391,65 @@ __ORYN_MODULE_INITIALIZATION_CALLS__
         return string.Join(Environment.NewLine, Lines) + Environment.NewLine;
     }
 
-    private static string BuildAnswersJson(string OsName, string KernelName, string Target, string VmProfile, string VmDisplayMode, string BuildMode, string[] UserSelectedModules)
+    private static string BuildAnswersJson(string OsTitle, string OsName, string KernelName, string Target, string VmProfile, string VmDisplayMode, string BuildMode, string[] UserSelectedModules)
     {
         object Model = new
         {
             OrynVersion = Version,
+            QuestionSchemaVersion = Version,
+            OsTitle,
             OsName,
             KernelName,
             Target,
             DefaultBootMode = "long-mode",
+            SdkVersion = Version,
+            HostSdk = "Source/Core/Oryn.Sdk",
+            FreestandingSdk = "Source/Sdk/Oryn",
             VmProfile,
             VmDisplayMode,
             BuildMode,
             MandatoryKernelModules,
             DiagnosticsAlwaysEnabled = true,
             PanicAlwaysEnabled = true,
+            VisualConfiguratorCompleted = true,
+            LastConfiguredWithOrynVersion = Version,
+            LastConfiguredWithQuestionSchemaVersion = Version,
             UserSelectedModules
         };
         return JsonSerializer.Serialize(Model, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine;
     }
 
-    private static string BuildManifestJson(string OsName, string KernelName, string Target, string VmProfile, string VmDisplayMode, string BuildMode, string[] UserSelectedModules)
+    private static string BuildManifestJson(string OsTitle, string OsName, string KernelName, string Target, string VmProfile, string VmDisplayMode, string BuildMode, string[] UserSelectedModules)
     {
         object Model = new
         {
             OrynVersion = Version,
+            QuestionSchemaVersion = Version,
+            OsTitle,
             OsName,
             KernelName,
             Target,
             DefaultBootMode = "long-mode",
+            SdkVersion = Version,
+            HostSdk = "Source/Core/Oryn.Sdk",
+            FreestandingSdk = "Source/Sdk/Oryn",
             VmProfile,
             VmDisplayMode,
             BuildMode,
             MandatoryKernelModules,
             UserSelectedModules,
+            SdkPolicy = "Generated kernels use the .Oryn freestanding SDK namespaces under Source/Sdk/Oryn. Host tools may use the .NET Oryn.Sdk project under Source/Core/Oryn.Sdk.",
             LinkedModulePolicy = "Mandatory kernel modules are linked automatically. User-selected modules exclude modules needed to get the kernel running. Diagnostics and Panic are always enabled."
         };
         return JsonSerializer.Serialize(Model, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine;
     }
 
-    private static string BuildOsReadme(string OsName, string KernelName) => $"""
-# {OsName}
+    private static string BuildOsReadme(string OsTitle, string OsName, string KernelName) => $"""
+# {OsTitle}
 
 Generated by Oryn {Version}.
+
+Technical OS name: `{OsName}`
 
 Kernel name: `{KernelName}`
 
@@ -446,6 +463,13 @@ From the Oryn repository root:
 ```
 
 The generated manifest records mandatory kernel modules separately from user-selected modules. Runtime, Diagnostics, Panic, Cpu, and ManifestLoader are linked automatically. Diagnostics and Panic are always enabled. The generated kernel prints `Hello from {OsName}` during boot. The VM display mode is chosen during generation and can be Headless or Visual. Headless mode closes automatically after the proof timeout. Visual mode stays open until you close the VM window.
+
+## SDKs used
+
+- Host-side .NET SDK: `Source/Core/Oryn.Sdk`
+- Freestanding `.Oryn` SDK declarations: `Source/Sdk/Oryn`
+
+The generated kernel uses approved `.Oryn` namespaces such as `Oryn.Diagnostics`, `Oryn.Cpu`, and `Oryn.Runtime`. These are compile-time declarations that map to native freestanding module symbols.
 """;
 
     private static string LocateProjectRoot()
@@ -480,6 +504,33 @@ The generated manifest records mandatory kernel modules separately from user-sel
     private static bool HasFlag(string[] Args, string Name)
     {
         return Args.Any(Arg => Arg.Equals(Name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string SanitizeStrictName(string Name)
+    {
+        string Sanitized = Regex.Replace(Name.Trim(), "[^A-Za-z0-9]", string.Empty);
+        if (string.IsNullOrWhiteSpace(Sanitized))
+        {
+            return "MyOrynOS";
+        }
+
+        if (!char.IsLetter(Sanitized[0]))
+        {
+            return "Oryn" + Sanitized;
+        }
+
+        return Sanitized;
+    }
+
+    private static string NormalizeStrictName(string Name, string Label)
+    {
+        string Trimmed = Name.Trim();
+        if (!Regex.IsMatch(Trimmed, "^[A-Za-z][A-Za-z0-9]*$"))
+        {
+            throw new InvalidOperationException(Label + " must start with a letter and contain only letters and numbers. Spaces are not allowed.");
+        }
+
+        return Trimmed;
     }
 
     private static string SanitizeFileName(string Name)

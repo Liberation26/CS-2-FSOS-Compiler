@@ -1,0 +1,13 @@
+{
+  "Id": "build-mode",
+  "Order": 8,
+  "Prompt": "Which build mode should be used?",
+  "AnswerKey": "BuildMode",
+  "Type": "choice",
+  "Required": true,
+  "Default": "Debug",
+  "Choices": [
+    "Debug"
+  ],
+  "ExpectedAnswer": "Debug"
+}

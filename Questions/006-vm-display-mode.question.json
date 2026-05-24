@@ -1,0 +1,14 @@
+{
+  "Id": "vm-display-mode",
+  "Order": 6,
+  "Prompt": "Should the virtual machine be visual or headless?",
+  "AnswerKey": "VmDisplayMode",
+  "Type": "choice",
+  "Required": true,
+  "Default": "Headless",
+  "Choices": [
+    "Headless",
+    "Visual"
+  ],
+  "ExpectedAnswer": "Headless or Visual. Headless closes automatically after the proof timeout. Visual stays open until you close the VM window."
+}

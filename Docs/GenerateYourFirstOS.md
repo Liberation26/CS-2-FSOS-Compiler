@@ -1,43 +1,25 @@
-# Generate your first OS with Oryn 1.0.1
+# Generate Your First OS
 
-Run:
-
-```bash
-./Oryn.sh generate --os-name MyOrynOS --kernel-name MyOrynKernel --modules None
-```
-
-Then build:
+Oryn 2.0.0 uses the visual configurator.
 
 ```bash
-./Oryn.sh build MyOrynOS
+./Oryn.sh new
 ```
 
-Then run:
+The configurator shows every question from the installed version's `Questions/*.question.json` files.
 
-```bash
-./Oryn.sh run MyOrynOS
-```
+Use `OS Title` for the friendly title. Use `OS Name` for the strict technical name with no spaces. Use `Kernel Name` for the strict generated kernel name.
 
-Expected serial proof includes:
+After saving, Oryn creates:
 
 ```text
-[ OK ] [ KERNEL   ] MyOrynOS generated kernel entered
-[ OK ] [ KERNEL   ] MyOrynOS kernel name MyOrynKernel
-[ OK ] [ KERNEL   ] MyOrynOS mandatory kernel module: Runtime
-[ OK ] [ KERNEL   ] MyOrynOS mandatory kernel module: Diagnostics
-[ OK ] [ KERNEL   ] MyOrynOS mandatory kernel module: Panic
-[ OK ] [ KERNEL   ] MyOrynOS mandatory kernel module: Cpu
-[ OK ] [ KERNEL   ] MyOrynOS mandatory kernel module: ManifestLoader
-[ OK ] [ KERNEL   ] MyOrynOS user-selected modules: <none>
-[ OK ] [ KERNEL   ] MyOrynOS generated kernel is halting forever
+OSes/<OsName>/
 ```
 
-## 1.0.8 generated OS proof
+Then it can build and run the generated freestanding OS.
 
-Generated kernels now print `Hello from <OsName>` during boot. The generation questions also ask whether QEMU should run in `Headless` mode or `Visual` mode, and the generated manifest records that choice as `VmDisplayMode`.
+To change answers later:
 
-## VM display answer
-
-For `VM display mode`, answer `Headless` for an automated run that closes after the proof timeout, or `Visual` to open a QEMU window that stays open until you close it.
-
-Generator prompts show the accepted options on a separate `OPTIONS` line. In interactive terminals, those options are displayed in a different colour so the expected answers are easier to see.
+```bash
+./Oryn.sh configure <OsName>
+```

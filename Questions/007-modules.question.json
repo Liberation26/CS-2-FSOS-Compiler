@@ -1,0 +1,14 @@
+{
+  "Id": "modules",
+  "Order": 7,
+  "Prompt": "Which additional user-selected modules should be included? Use None for a minimal generated OS.",
+  "AnswerKey": "UserSelectedModules",
+  "Type": "multi-choice",
+  "Required": true,
+  "Default": "None",
+  "Choices": [
+    "None",
+    "Memory"
+  ],
+  "ExpectedAnswer": "None or Memory. Use None for no optional modules. Mandatory modules are automatic."
+}

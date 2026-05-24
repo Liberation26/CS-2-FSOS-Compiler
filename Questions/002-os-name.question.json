@@ -1,0 +1,10 @@
+{
+  "Id": "os-name",
+  "Order": 2,
+  "Prompt": "What is the strict OS name used for folders and generated symbols?",
+  "AnswerKey": "OsName",
+  "Type": "string",
+  "Required": true,
+  "Default": "MyOrynOS",
+  "ExpectedAnswer": "Letters and numbers only. No spaces, punctuation, slashes, dots, or shell-sensitive characters. Must start with a letter."
+}

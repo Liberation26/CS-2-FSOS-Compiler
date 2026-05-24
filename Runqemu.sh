@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="1.0.8"
+RUNQEMU_VERSION="2.0.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -908,12 +908,30 @@ fi
 TIMEOUT_ARGS+=("$QEMU_TIMEOUT")
 rm -f "$SERIAL_LOG" "$DEBUGCON_LOG" "$QEMU_STDERR_LOG"
 
+VISUAL_LIVE_SERIAL=0
+TAIL_PID=""
+
 if [ "$QEMU_DISPLAY_MODE" = "visual" ]; then
     info "Starting QEMU in visual mode using ${QEMU_BOOT_MODE} boot. The VM will stay open until you close the QEMU window."
+    info "Live serial output will be shown below while the visual VM is running."
+    : > "$SERIAL_LOG"
+    VISUAL_LIVE_SERIAL=1
+    (
+        if command -v stdbuf >/dev/null 2>&1; then
+            tail -n +1 -F "$SERIAL_LOG" 2>/dev/null | stdbuf -oL sed -u 's/^/[SERIAL] /'
+        else
+            tail -n +1 -F "$SERIAL_LOG" 2>/dev/null | sed -u 's/^/[SERIAL] /'
+        fi
+    ) &
+    TAIL_PID=$!
     set +e
     qemu-system-x86_64 "${QEMU_ARGS[@]}" 2>"$QEMU_STDERR_LOG"
     QEMU_STATUS=$?
     set -e
+    if [ -n "$TAIL_PID" ]; then
+        kill "$TAIL_PID" >/dev/null 2>&1 || true
+        wait "$TAIL_PID" >/dev/null 2>&1 || true
+    fi
 else
     info "Starting QEMU in headless mode using ${QEMU_BOOT_MODE} boot. The kernel intentionally halts forever; timeout is treated as success."
     set +e
@@ -923,8 +941,12 @@ else
 fi
 
 if [ -s "$SERIAL_LOG" ]; then
-    info "QEMU serial output follows from: $SERIAL_LOG"
-    sed 's/^/[SERIAL] /' "$SERIAL_LOG"
+    if [ "$VISUAL_LIVE_SERIAL" = "1" ]; then
+        info "QEMU serial proof was captured live from: $SERIAL_LOG"
+    else
+        info "QEMU serial output follows from: $SERIAL_LOG"
+        sed 's/^/[SERIAL] /' "$SERIAL_LOG"
+    fi
     PROOF_LOG="$SERIAL_LOG"
 elif [ -s "$DEBUGCON_LOG" ]; then
     warn "QEMU serial log was empty, but debugcon output was captured: $DEBUGCON_LOG"
@@ -1006,7 +1028,7 @@ if [ "$QEMU_STATUS" -ne 0 ]; then
 fi
 
 if [ "$QEMU_DISPLAY_MODE" = "visual" ]; then
-    info "QEMU visual window was closed by the user after proof output was captured."
+    info "QEMU visual window was closed by the user after live proof output was captured."
 else
     info "QEMU exited cleanly."
 fi

@@ -1,0 +1,10 @@
+{
+  "Id": "os-title",
+  "Order": 1,
+  "Prompt": "What is the OS title shown to people?",
+  "AnswerKey": "OsTitle",
+  "Type": "string",
+  "Required": true,
+  "Default": "My Oryn OS",
+  "ExpectedAnswer": "Friendly title. Spaces are allowed here because this is display text, not a path or symbol."
+}

@@ -1,0 +1,22 @@
+{
+  "OrynVersion": "1.0.8",
+  "OsName": "DES",
+  "KernelName": "DESKernel",
+  "Target": "x64-elf",
+  "DefaultBootMode": "long-mode",
+  "VmProfile": "RunQemu",
+  "VmDisplayMode": "Visual",
+  "BuildMode": "Debug",
+  "MandatoryKernelModules": [
+    "Runtime",
+    "Diagnostics",
+    "Panic",
+    "Cpu",
+    "ManifestLoader"
+  ],
+  "DiagnosticsAlwaysEnabled": true,
+  "PanicAlwaysEnabled": true,
+  "UserSelectedModules": [
+    "Memory"
+  ]
+}
