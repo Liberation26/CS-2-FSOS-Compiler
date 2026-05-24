@@ -1,4 +1,4 @@
-# Generate your first OS with Oryn 1.0.0
+# Generate your first OS with Oryn 1.0.1
 
 Run:
 

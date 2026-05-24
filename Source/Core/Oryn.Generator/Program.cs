@@ -6,7 +6,7 @@ namespace Oryn.Generator;
 
 internal static class Program
 {
-    private const string Version = "1.0.0";
+    private const string Version = "1.0.1";
     private static readonly string[] MandatoryKernelModules = { "Runtime", "Diagnostics", "Panic", "Cpu", "ManifestLoader" };
     private static readonly string[] DefaultUserSelectedModules = { "Memory" };
     private static readonly string[] AvailableUserSelectableModules = { "Memory" };
@@ -51,6 +51,7 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.WriteLine("Usage:");
+        Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate");
         Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate --os-name <name> [--kernel-name <name>] [--modules Memory]");
         Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- modules");
         Console.WriteLine();
@@ -65,7 +66,7 @@ internal static class Program
             Console.WriteLine($"  [mandatory] {Module}");
         }
 
-        Console.WriteLine("[ OK ] User-selectable modules for 1.0.0:");
+        Console.WriteLine("[ OK ] User-selectable modules for 1.0.1:");
         foreach (string Module in AvailableUserSelectableModules)
         {
             Console.WriteLine($"  [available] {Module}");
@@ -77,12 +78,21 @@ internal static class Program
         string ProjectRoot = LocateProjectRoot();
         ValidateQuestionFiles(ProjectRoot);
 
-        string OsName = ReadOption(Args, "--os-name") ?? ReadOption(Args, "--name") ?? "MyOrynOS";
-        string KernelName = ReadOption(Args, "--kernel-name") ?? SanitizeIdentifier(OsName) + "Kernel";
-        string ModulesText = ReadOption(Args, "--modules") ?? string.Join(',', DefaultUserSelectedModules);
-        string BuildMode = ReadOption(Args, "--build-mode") ?? "Debug";
-        string VmProfile = ReadOption(Args, "--vm-profile") ?? "RunQemu";
-        string Target = ReadOption(Args, "--target") ?? "x64-elf";
+        bool NonInteractive = HasFlag(Args, "--non-interactive") || HasFlag(Args, "--defaults");
+
+        string OsName = ReadOption(Args, "--os-name") ?? ReadOption(Args, "--name") ?? Prompt("OS name", "My Oryn OS", NonInteractive);
+        string KernelName = ReadOption(Args, "--kernel-name") ?? Prompt("Kernel name", SanitizeIdentifier(OsName) + "Kernel", NonInteractive);
+        string Target = ReadOption(Args, "--target") ?? Prompt("Target architecture", "x64-elf", NonInteractive);
+        string VmProfile = ReadOption(Args, "--vm-profile") ?? Prompt("Virtual machine profile", "RunQemu", NonInteractive);
+        string BuildMode = ReadOption(Args, "--build-mode") ?? Prompt("Build mode", "Debug", NonInteractive);
+
+        Console.WriteLine("[ OK ] [GENERATOR] Mandatory kernel modules are always linked and hidden from user selection:");
+        Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", MandatoryKernelModules));
+        Console.WriteLine("[ OK ] [GENERATOR] Diagnostics and Panic are always enabled.");
+        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.1:");
+        Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", AvailableUserSelectableModules));
+
+        string ModulesText = ReadOption(Args, "--modules") ?? Prompt("User-selected modules, comma-separated", string.Join(',', DefaultUserSelectedModules), NonInteractive);
 
         string SafeOsName = SanitizeFileName(OsName);
         if (string.IsNullOrWhiteSpace(SafeOsName))
@@ -122,6 +132,24 @@ internal static class Program
         Console.WriteLine($"[ OK ] [GENERATOR] Manifest saved: {ManifestPath}");
         Console.WriteLine($"[ OK ] [GENERATOR] Mandatory kernel modules: {string.Join(", ", MandatoryKernelModules)}");
         Console.WriteLine($"[ OK ] [GENERATOR] User-selected modules: {(UserSelectedModules.Length == 0 ? "<none>" : string.Join(", ", UserSelectedModules))}");
+    }
+
+    private static string Prompt(string Label, string DefaultValue, bool NonInteractive)
+    {
+        if (NonInteractive)
+        {
+            Console.WriteLine($"[ OK ] [QUESTION ] {Label}: {DefaultValue}");
+            return DefaultValue;
+        }
+
+        Console.Write($"[QUESTION] {Label} [{DefaultValue}]: ");
+        string? Answer = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(Answer))
+        {
+            return DefaultValue;
+        }
+
+        return Answer.Trim();
     }
 
     private static void ValidateQuestionFiles(string ProjectRoot)
@@ -164,7 +192,7 @@ internal static class Program
 
             if (!Available.Contains(Module))
             {
-                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.0: {Module}");
+                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.1: {Module}");
             }
         }
     }
@@ -285,6 +313,11 @@ The generated manifest records mandatory kernel modules separately from user-sel
         }
 
         return null;
+    }
+
+    private static bool HasFlag(string[] Args, string Name)
+    {
+        return Args.Any(Arg => Arg.Equals(Name, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string SanitizeFileName(string Name)

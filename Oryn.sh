@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ORYN_VERSION="1.0.0"
+ORYN_VERSION="1.0.1"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GENERATOR_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Generator/Oryn.Generator.csproj"
 
@@ -32,6 +32,7 @@ Usage() {
 Oryn ${ORYN_VERSION}
 
 Usage:
+  ./Oryn.sh generate
   ./Oryn.sh generate --os-name <name> [--kernel-name <name>] [--modules Memory]
   ./Oryn.sh build <OsName>
   ./Oryn.sh run <OsName>

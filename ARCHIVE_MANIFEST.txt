@@ -1,10 +1,3 @@
-Oryn 1.0.0 archive manifest
-
-Package layout:
-- FullSource: complete source tree
-- ChangedFiles: files changed or added for 1.0.0
-
-FullSource files:
 .gitignore
 ARCHIVE_MANIFEST.txt
 Docs/.gitkeep
@@ -64,6 +57,7 @@ Documents/ReleaseNotes/0.9.1.md
 Documents/ReleaseNotes/0.9.2.md
 Documents/ReleaseNotes/0.9.3.md
 Documents/ReleaseNotes/1.0.0.md
+Documents/ReleaseNotes/1.0.1.md
 Documents/Stages/Stage2.md
 Documents/Stages/Stage4.md
 Documents/Stages/Stage5.md
@@ -279,5 +273,13 @@ Tests/Generator/1.0.0/05-invalid-mandatory-selection-fails.sh
 Tests/Generator/1.0.0/06-build-generated-os.sh
 Tests/Generator/1.0.0/07-qemu-generated-os-boot.sh
 Tests/Generator/1.0.0/run.sh
+Tests/Generator/1.0.1/01-questionnaire-files-check.sh
+Tests/Generator/1.0.1/02-generator-creates-os-folder.sh
+Tests/Generator/1.0.1/03-generated-kernel-template-check.sh
+Tests/Generator/1.0.1/04-mandatory-and-selected-module-policy-check.sh
+Tests/Generator/1.0.1/05-invalid-mandatory-selection-fails.sh
+Tests/Generator/1.0.1/06-build-generated-os.sh
+Tests/Generator/1.0.1/07-qemu-generated-os-boot.sh
+Tests/Generator/1.0.1/run.sh
 VERSION
 update.sh

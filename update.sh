@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UPDATE_VERSION="1.0.0"
+UPDATE_VERSION="1.0.1"
 REMOTE_URL="https://github.com/Liberation26/CS-2-FSOS-Compiler.git"
 REPO_DIR="${ORYN_REPO_DIR:-$HOME/Dev/OrynFoundry}"
 DOWNLOADS_DIR="${ORYN_DOWNLOADS_DIR:-$HOME/Downloads}"
@@ -195,18 +195,33 @@ CurrentBranch() {
     printf '%s\n' "$Branch"
 }
 
-LaunchRunqemu() {
-    local RunQemuScript="$REPO_DIR/Runqemu.sh"
-    if [ -f "$RunQemuScript" ]; then
-        chmod +x "$RunQemuScript" || fail "Could not mark Runqemu.sh executable: $RunQemuScript"
+FindNewestGeneratedOsName() {
+    local Manifest
+    Manifest="$(find "$REPO_DIR/OSes" -mindepth 2 -maxdepth 2 -type f -name manifest.json -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2-)"
+    [ -n "$Manifest" ] || fail "No generated OS manifest was found under: $REPO_DIR/OSes"
+    basename "$(dirname "$Manifest")"
+}
+
+LaunchGeneratedWorkflow() {
+    local OrynScript="$REPO_DIR/Oryn.sh"
+    if [ -f "$OrynScript" ]; then
+        chmod +x "$OrynScript" || fail "Could not mark Oryn.sh executable: $OrynScript"
     fi
 
-    if [ -x "$RunQemuScript" ]; then
-        info "Launching Runqemu.sh to build and run the freestanding kernel."
-        "$RunQemuScript"
-    else
-        fail "Runqemu.sh was not found or is not executable after update: $RunQemuScript"
+    [ -x "$OrynScript" ] || fail "Oryn.sh was not found or is not executable after update: $OrynScript"
+
+    if [ "${ORYN_UPDATE_SKIP_GENERATE:-0}" = "1" ]; then
+        warn "Skipping end-user generation because ORYN_UPDATE_SKIP_GENERATE=1."
+        return 0
     fi
+
+    info "Launching Oryn end-user OS generation. You will be asked the 1.0.1 generation questions."
+    "$OrynScript" generate
+
+    local OsName
+    OsName="$(FindNewestGeneratedOsName)"
+    info "Launching generated OS run for: $OsName"
+    "$OrynScript" run "$OsName"
 }
 
 RequireTool git
@@ -254,7 +269,7 @@ git -C "$REPO_DIR" add -A
 
 if git -C "$REPO_DIR" diff --cached --quiet; then
     warn "No changed files to commit."
-    LaunchRunqemu
+    LaunchGeneratedWorkflow
     exit 0
 fi
 
@@ -268,4 +283,4 @@ else
     warn "Check GitHub authentication, or pull/merge remote changes before pushing again."
 fi
 
-LaunchRunqemu
+LaunchGeneratedWorkflow

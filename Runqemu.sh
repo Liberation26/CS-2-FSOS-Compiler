@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="1.0.0"
+RUNQEMU_VERSION="1.0.1"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -166,6 +166,7 @@ GRUB_CFG="$ISO_ROOT/boot/grub/grub.cfg"
 KERNEL_ISO="$BUILD_ROOT/OrynKernel.iso"
 SERIAL_LOG="$BUILD_ROOT/Qemu.serial.log"
 DEBUGCON_LOG="$BUILD_ROOT/Qemu.debugcon.log"
+QEMU_STDERR_LOG="$BUILD_ROOT/Qemu.stderr.log"
 QEMU_TIMEOUT="${ORYN_QEMU_TIMEOUT:-8}"
 QEMU_DISPLAY_MODE="${ORYN_QEMU_DISPLAY:-headless}"
 QEMU_BOOT_MODE="${ORYN_QEMU_BOOT:-iso}"
@@ -793,6 +794,9 @@ EOF_GRUB
     info "Creating bootable x86_64 GRUB ISO: $KERNEL_ISO"
     grub-mkrescue -o "$KERNEL_ISO" "$ISO_ROOT" >/dev/null 2>&1 || fail "grub-mkrescue failed while creating: $KERNEL_ISO. Your host may also need xorriso installed."
     [ -f "$KERNEL_ISO" ] || fail "Kernel ISO was not produced: $KERNEL_ISO"
+    [ -f "$GRUB_CFG" ] || fail "GRUB config missing from ISO root: $GRUB_CFG"
+    [ -f "$ISO_ROOT/boot/OrynKernel.elf" ] || fail "Kernel missing from ISO root: $ISO_ROOT/boot/OrynKernel.elf"
+    info "Verified ISO root contains GRUB config and kernel image."
     info "Bootable kernel ISO created: $KERNEL_ISO"
 }
 
@@ -826,8 +830,10 @@ esac
 read -r -a QEMU_EXTRA_ARGS <<< "${ORYN_QEMU_EXTRA_FLAGS:-}"
 if [ "$QEMU_BOOT_MODE" = "iso" ]; then
     QEMU_ARGS=(
-        -cdrom "$KERNEL_ISO"
-        -boot d
+        -machine pc
+        -m 256M
+        -drive "file=$KERNEL_ISO,media=cdrom,readonly=on,if=ide"
+        -boot order=d
         -serial "file:$SERIAL_LOG"
         -debugcon "file:$DEBUGCON_LOG"
         -global isa-debugcon.iobase=0xe9
@@ -856,11 +862,11 @@ if timeout --help 2>/dev/null | grep -q -- '--foreground'; then
     TIMEOUT_ARGS+=(--foreground)
 fi
 TIMEOUT_ARGS+=("$QEMU_TIMEOUT")
-rm -f "$SERIAL_LOG" "$DEBUGCON_LOG"
+rm -f "$SERIAL_LOG" "$DEBUGCON_LOG" "$QEMU_STDERR_LOG"
 
 info "Starting QEMU in ${QEMU_DISPLAY_MODE} mode using ${QEMU_BOOT_MODE} boot. The kernel intentionally halts forever; timeout is treated as success."
 set +e
-timeout "${TIMEOUT_ARGS[@]}" qemu-system-x86_64 "${QEMU_ARGS[@]}"
+timeout "${TIMEOUT_ARGS[@]}" qemu-system-x86_64 "${QEMU_ARGS[@]}" 2>"$QEMU_STDERR_LOG"
 QEMU_STATUS=$?
 set -e
 
@@ -873,6 +879,10 @@ elif [ -s "$DEBUGCON_LOG" ]; then
     sed 's/^/[DEBUGCON] /' "$DEBUGCON_LOG"
     PROOF_LOG="$DEBUGCON_LOG"
 else
+    if [ -s "$QEMU_STDERR_LOG" ]; then
+        warn "QEMU stderr output follows from: $QEMU_STDERR_LOG"
+        sed 's/^/[QEMU-ERR] /' "$QEMU_STDERR_LOG"
+    fi
     fail "QEMU serial and debugcon logs were empty even after GRUB serial output was enabled: $SERIAL_LOG ; $DEBUGCON_LOG"
 fi
 
