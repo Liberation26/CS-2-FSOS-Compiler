@@ -10,7 +10,7 @@ internal sealed record Question(string Id, int Order, string Prompt, string Answ
 
 internal static class Program
 {
-    private const string Version = "2.0.1";
+    private const string Version = "2.0.2";
     private const string Cyan = "\u001b[96m";
     private const string Yellow = "\u001b[93m";
     private const string Green = "\u001b[92m";
@@ -147,7 +147,7 @@ internal static class Program
             return;
         }
 
-        SendHtml(Context, RenderPage("Oryn Visual Configurator", "<p>Unknown route.</p>" + Navigation()), 404);
+        SendHtml(Context, RenderPage("Oryn Visual Configurator", "<p>Unknown route.</p>", Navigation()), 404);
     }
 
     private static void HandleSave(HttpListenerContext Context, BrowserSession Session)

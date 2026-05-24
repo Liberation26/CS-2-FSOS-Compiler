@@ -1,6 +1,6 @@
 # Generate Your First OS
 
-Oryn 2.0.1 uses the visual configurator.
+Oryn 2.0.2 uses the visual configurator.
 
 ```bash
 ./Oryn.sh new

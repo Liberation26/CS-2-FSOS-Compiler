@@ -4,11 +4,11 @@ Oryn is a C# to freestanding operating-system compiler and OS generation platfor
 
 Oryn lets a developer configure an operating-system project, generate a freestanding kernel, compile the approved Oryn-safe C# subset into native output, link a bootable kernel, and run it in a virtual machine.
 
-Current version: **2.0.1**
+Current version: **2.0.2**
 
-## What 2.0.1 means
+## What 2.0.2 means
 
-Oryn 2.0.1 is the first **visual-first OS project configuration** milestone.
+Oryn 2.0.2 is the first **visual-first OS project configuration** milestone.
 
 The major change is that OS setup is no longer treated as a one-time terminal questionnaire. Oryn now has a project configuration application:
 
@@ -299,7 +299,7 @@ The visual configurator is the normal path. The old terminal generator remains a
 ```
 
 
-## 2.0.1 visual configurator fix
+## 2.0.2 visual configurator fix
 
 OrynVisualConfigurator now opens a local browser-based visual configuration UI rather than presenting the normal question flow only in the terminal. It still reads the current version's `Questions/*.question.json` files, so the question set remains version-driven. Known-choice questions are rendered as dropdowns or check boxes, while `OS Title`, `OS Name`, and `Kernel Name` remain the only typed fields.
 
@@ -309,9 +309,9 @@ The terminal fallback is still available for automation:
 ORYN_VISUALCFG_TERMINAL=1 ./Oryn.sh new
 ```
 
-## Version 2.0.1 summary
+## Version 2.0.2 summary
 
-Oryn 2.0.1 adds:
+Oryn 2.0.2 adds:
 
 ```text
 - Applications/OrynVisualConfigurator
@@ -322,5 +322,5 @@ Oryn 2.0.1 adds:
 - strict no-space OS and kernel identifiers
 - saved answers as reusable project profiles
 - automatic configurator launch only when needed
-- README rewritten for the 2.0.1 product flow
+- README rewritten for the 2.0.2 product flow
 ```

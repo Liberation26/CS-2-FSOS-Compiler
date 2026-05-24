@@ -12,5 +12,5 @@ if grep -q 'out string Mode' "$PROGRAM"; then
   fail "nullable warning-prone out string Mode pattern still present"
 fi
 grep -q 'ORYN_VISUALCFG_TERMINAL' "$PROGRAM" || fail "terminal fallback switch missing"
-grep -q '2.0.1' "$ROOT/VERSION" || fail "VERSION was not bumped to 2.0.1"
-ok "2.0.1 visual configurator checks passed."
+grep -q '2.0.2' "$ROOT/VERSION" || fail "VERSION was not bumped to 2.0.2"
+ok "2.0.2 visual configurator checks passed."

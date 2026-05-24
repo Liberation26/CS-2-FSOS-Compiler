@@ -6,7 +6,7 @@ namespace Oryn.Generator;
 
 internal static class Program
 {
-    private const string Version = "2.0.1";
+    private const string Version = "2.0.2";
     private static readonly string[] MandatoryKernelModules = { "Runtime", "Diagnostics", "Panic", "Cpu", "ManifestLoader" };
     private static readonly string[] DefaultUserSelectedModules = Array.Empty<string>();
     private static readonly string[] AvailableUserSelectableModules = { "Memory" };
@@ -72,7 +72,7 @@ internal static class Program
             Console.WriteLine($"  [mandatory] {Module}");
         }
 
-        Console.WriteLine("[ OK ] User-selectable modules for 2.0.1:");
+        Console.WriteLine("[ OK ] User-selectable modules for 2.0.2:");
         Console.WriteLine("  [available] None");
         foreach (string Module in AvailableUserSelectableModules)
         {
@@ -106,7 +106,7 @@ internal static class Program
         Console.WriteLine("[ OK ] [GENERATOR] Mandatory kernel modules are always linked and hidden from user selection:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", MandatoryKernelModules));
         Console.WriteLine("[ OK ] [GENERATOR] Diagnostics and Panic are always enabled.");
-        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 2.0.1:");
+        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 2.0.2:");
         Console.WriteLine("[ OK ] [GENERATOR]   None, " + string.Join(", ", AvailableUserSelectableModules));
 
         string ModulesText = ReadOption(Args, "--modules") ?? Prompt("Additional user-selected modules", FormatModuleDefault(DefaultUserSelectedModules), "Valid answers: None or Memory. Use comma-separated values only when more optional modules are available. Mandatory boot/kernel modules are linked automatically and must not be typed here.", NonInteractive);
@@ -343,7 +343,7 @@ internal static class Program
 
             if (!Available.Contains(Module))
             {
-                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 2.0.1: {Module}");
+                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 2.0.2: {Module}");
             }
         }
     }
