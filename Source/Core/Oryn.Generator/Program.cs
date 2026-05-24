@@ -6,7 +6,7 @@ namespace Oryn.Generator;
 
 internal static class Program
 {
-    private const string Version = "1.0.2";
+    private const string Version = "1.0.3";
     private static readonly string[] MandatoryKernelModules = { "Runtime", "Diagnostics", "Panic", "Cpu", "ManifestLoader" };
     private static readonly string[] DefaultUserSelectedModules = { "Memory" };
     private static readonly string[] AvailableUserSelectableModules = { "Memory" };
@@ -66,7 +66,7 @@ internal static class Program
             Console.WriteLine($"  [mandatory] {Module}");
         }
 
-        Console.WriteLine("[ OK ] User-selectable modules for 1.0.2:");
+        Console.WriteLine("[ OK ] User-selectable modules for 1.0.3:");
         foreach (string Module in AvailableUserSelectableModules)
         {
             Console.WriteLine($"  [available] {Module}");
@@ -89,7 +89,7 @@ internal static class Program
         Console.WriteLine("[ OK ] [GENERATOR] Mandatory kernel modules are always linked and hidden from user selection:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", MandatoryKernelModules));
         Console.WriteLine("[ OK ] [GENERATOR] Diagnostics and Panic are always enabled.");
-        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.2:");
+        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.3:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", AvailableUserSelectableModules));
 
         string ModulesText = ReadOption(Args, "--modules") ?? Prompt("User-selected modules, comma-separated", string.Join(',', DefaultUserSelectedModules), NonInteractive);
@@ -192,7 +192,7 @@ internal static class Program
 
             if (!Available.Contains(Module))
             {
-                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.2: {Module}");
+                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.3: {Module}");
             }
         }
     }
@@ -294,15 +294,15 @@ The generated manifest records mandatory kernel modules separately from user-sel
 
     private static string LocateProjectRoot()
     {
-        DirectoryInfo? Directory = new(Directory.GetCurrentDirectory());
-        while (Directory is not null)
+        DirectoryInfo? CurrentDirectory = new(System.IO.Directory.GetCurrentDirectory());
+        while (CurrentDirectory is not null)
         {
-            if (File.Exists(Path.Combine(Directory.FullName, "VERSION")) && Directory.Exists(Path.Combine(Directory.FullName, "Source")))
+            if (File.Exists(Path.Combine(CurrentDirectory.FullName, "VERSION")) && System.IO.Directory.Exists(Path.Combine(CurrentDirectory.FullName, "Source")))
             {
-                return Directory.FullName;
+                return CurrentDirectory.FullName;
             }
 
-            Directory = Directory.Parent;
+            CurrentDirectory = CurrentDirectory.Parent;
         }
 
         throw new InvalidOperationException("Could not locate Oryn project root. Run the generator from inside the Oryn source tree.");

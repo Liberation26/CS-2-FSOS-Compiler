@@ -2,11 +2,11 @@
 
 Oryn is a C# to freestanding operating-system compiler and generator project from Oryn Foundry.
 
-Current version: **1.0.2**
+Current version: **1.0.3**
 
-## 1.0.2 milestone
+## 1.0.3 milestone
 
-Oryn 1.0.2 is the first end-user OS generation milestone.
+Oryn 1.0.3 is the first end-user OS generation milestone.
 
 It proves that a user can:
 
@@ -35,7 +35,7 @@ Mandatory kernel modules are linked automatically:
 
 Diagnostics and Panic are always enabled. They are not optional user-selected modules.
 
-For 1.0.2, the only user-selectable module is:
+For 1.0.3, the only user-selectable module is:
 
 - Memory
 
@@ -75,7 +75,7 @@ The generated OS should print diagnostics containing the OS name, kernel name, m
 
 ## Development stages
 
-Stage 9 remains the internal compiler proof for generated kernel template composition. Oryn 1.0.2 uses that proof as the engine behind the user-facing generated OS workflow.
+Stage 9 remains the internal compiler proof for generated kernel template composition. Oryn 1.0.3 uses that proof as the engine behind the user-facing generated OS workflow.
 
 ```bash
 ./Runqemu.sh Stage9
@@ -86,11 +86,11 @@ Stage 9 remains the internal compiler proof for generated kernel template compos
 Generator milestone tests live under:
 
 ```text
-Tests/Generator/1.0.2/
+Tests/Generator/1.0.3/
 ```
 
 Run them with:
 
 ```bash
-Tests/Generator/1.0.2/run.sh
+Tests/Generator/1.0.3/run.sh
 ```

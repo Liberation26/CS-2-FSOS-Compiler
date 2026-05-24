@@ -3,6 +3,7 @@ Docs/GenerateYourFirstOS.md
 Documents/Milestones/1.0.0.md
 Documents/ReleaseNotes/1.0.1.md
 Documents/ReleaseNotes/1.0.2.md
+Documents/ReleaseNotes/1.0.3.md
 Manual/README.md
 Oryn.sh
 Questions/001-os-name.question.json
@@ -31,5 +32,14 @@ Tests/Generator/1.0.2/05-invalid-mandatory-selection-fails.sh
 Tests/Generator/1.0.2/06-build-generated-os.sh
 Tests/Generator/1.0.2/07-qemu-generated-os-boot.sh
 Tests/Generator/1.0.2/run.sh
+Tests/Generator/1.0.3/01-questionnaire-files-check.sh
+Tests/Generator/1.0.3/02-generator-creates-os-folder.sh
+Tests/Generator/1.0.3/03-generated-kernel-template-check.sh
+Tests/Generator/1.0.3/04-mandatory-and-selected-module-policy-check.sh
+Tests/Generator/1.0.3/05-invalid-mandatory-selection-fails.sh
+Tests/Generator/1.0.3/06-build-generated-os.sh
+Tests/Generator/1.0.3/07-qemu-generated-os-boot.sh
+Tests/Generator/1.0.3/08-generator-directory-shadowing-check.sh
+Tests/Generator/1.0.3/run.sh
 VERSION
 update.sh
