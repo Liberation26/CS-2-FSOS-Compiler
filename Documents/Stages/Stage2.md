@@ -145,3 +145,22 @@ The C backend remains useful for inspection, but the Stage 2 kernel object now c
 ## 0.2.10 Stage 2 Phase 5 syntax fix
 
 The `0.2.10` package corrects invalid C# string escaping in the Phase 5 x64 assembly emitter. The fix is intentionally small: it preserves the IR-to-x64 lowering path from `0.2.9` and only changes the diagnostic construction that prevented `Oryn.Compiler` from compiling.
+
+
+## Phase 6 - Stack/local variable model
+
+Stage 2 now emits an explicit rbp-based stack frame for `Kernel_Main` in the x64 backend. Each declared integer local is assigned a 64-bit slot even when the source type is `int`, keeping code generation simple and predictable for the current backend.
+
+The generated method shape is:
+
+```asm
+Kernel_Main:
+    push %rbp
+    mov %rsp, %rbp
+    sub $N, %rsp
+    # locals and calls
+    leave
+    ret
+```
+
+Local slot examples are emitted as readable assembly comments and instructions, such as `Counter -> -8(%rbp)`.

@@ -14,7 +14,7 @@ internal sealed class NativeObjectPlaceholderEmitter
         Builder.AppendLine($"EntrySymbol: {Manifest.EntrySymbol}");
         Builder.AppendLine();
         Builder.AppendLine("This file intentionally is not a direct-writer ELF64 object yet.");
-        Builder.AppendLine("Stage 2 Phase 5 uses clang/as to assemble the generated .S file into a real object.");
+        Builder.AppendLine("Stage 2 Phase 6 uses clang/as to assemble the generated .S file into a real object; local variables are lowered to simple rbp-relative 64-bit stack slots.");
         return Builder.ToString();
     }
 }

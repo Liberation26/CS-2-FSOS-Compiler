@@ -571,3 +571,8 @@ The generated C file remains as a readable reference artifact, but Stage 2 no lo
 ## Version 0.2.10 Stage 2 Phase 5 syntax fix
 
 Version `0.2.10` fixes the C# syntax errors in `X64AssemblyEmitter.cs` reported after the `0.2.9` Phase 5 package. The issue was caused by incorrectly escaped string literals inside interpolated diagnostic messages. The backend now stores those fallback names in local variables before constructing the exception messages, keeping the real x64 backend behaviour unchanged.
+
+
+## Stage 2 Phase 6
+
+The Stage 2 x64 backend now has a simple stack/local variable model. Integer locals are lowered to 64-bit rbp-relative stack slots, and generated assembly uses a conventional `push %rbp`, `mov %rsp, %rbp`, local-frame reservation, `leave`, and `ret` shape.

@@ -33,7 +33,7 @@ internal sealed class X64NativeBackend
             IrModule.Instructions,
             ControlFlowGraph,
             ControlFlowGraph.Blocks.Count,
-            "Stage 2 phase 5 emits real clang/as-compatible x64 assembly from Oryn IR, while keeping the generated C file as a readable reference artifact. Direct ELF64 object writing remains a Stage 3 task.");
+            "Stage 2 phase 6 emits real clang/as-compatible x64 assembly from Oryn IR with a simple rbp-based 64-bit local stack-slot model, while keeping the generated C file as a readable reference artifact. Direct ELF64 object writing remains a Stage 3 task.");
 
         return new BackendResult(
             ManifestPath,

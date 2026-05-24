@@ -1,9 +1,19 @@
-ARCHIVE_MANIFEST.txt
-Documents/ReleaseNotes/0.2.10.md
+Oryn archive version 0.2.11
+ChangedFiles contains only files changed in this delivery, rooted exactly as they land in the repository.
+
+Changed files:
+Documents/ReleaseNotes/0.2.11.md
 Documents/Stages/Stage2.md
+OSes/Stage2/README.md
+OSes/Stage2/Source/Kernel.cs
 README.md
 Runqemu.sh
+Source/Core/Oryn.Compiler/Backends/Native/Object/NativeObjectPlaceholderEmitter.cs
+Source/Core/Oryn.Compiler/Backends/Native/X64/NativeDiagnosticsEmitter.cs
 Source/Core/Oryn.Compiler/Backends/Native/X64/X64AssemblyEmitter.cs
+Source/Core/Oryn.Compiler/Backends/Native/X64/X64NativeBackend.cs
 Source/Core/Oryn.Compiler/Program.cs
+Tests/Compiler/Stage2/run.sh
 VERSION
 update.sh
+ARCHIVE_MANIFEST.txt

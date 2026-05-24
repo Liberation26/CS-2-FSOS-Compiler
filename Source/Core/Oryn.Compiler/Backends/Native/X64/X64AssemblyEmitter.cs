@@ -13,12 +13,13 @@ internal sealed class X64AssemblyEmitter
     {
         LabelNames.Clear();
         Dictionary<string, LocalSlot> LocalSlots = AllocateLocals(Instructions);
-        int LocalFrameSize = AlignTo(LocalSlots.Count * 4, 16);
+        int LocalFrameSize = AlignTo(LocalSlots.Count * 8, 16);
         int EvaluationStackDepth = 0;
 
         StringBuilder Builder = new();
-        Builder.AppendLine("# Oryn Stage 2 Phase 5 real x64 backend output.");
+        Builder.AppendLine("# Oryn Stage 2 Phase 6 real x64 backend output.");
         Builder.AppendLine("# This file is assembled by clang/as and linked with native runtime modules.");
+        Builder.AppendLine("# Locals use 64-bit stack slots addressed from rbp, for example Counter -> -8(%rbp).");
         Builder.AppendLine(".section .text");
         Builder.AppendLine(".global Kernel_Main");
         Builder.AppendLine(".type Kernel_Main, @function");
@@ -53,7 +54,7 @@ internal sealed class X64AssemblyEmitter
 
                 case "LoadLocal":
                     LocalSlot LoadSlot = RequireLocal(LocalSlots, Instruction.Operand, Instruction.OpCode);
-                    Builder.AppendLine($"    mov {LoadSlot.Offset}(%rbp), %eax");
+                    Builder.AppendLine($"    mov {LoadSlot.Offset}(%rbp), %rax");
                     Builder.AppendLine("    push %rax");
                     EvaluationStackDepth++;
                     break;
@@ -62,7 +63,7 @@ internal sealed class X64AssemblyEmitter
                     RequireStack(EvaluationStackDepth, Instruction.OpCode);
                     LocalSlot StoreSlot = RequireLocal(LocalSlots, Instruction.Operand, Instruction.OpCode);
                     Builder.AppendLine("    pop %rax");
-                    Builder.AppendLine($"    mov %eax, {StoreSlot.Offset}(%rbp)");
+                    Builder.AppendLine($"    mov %rax, {StoreSlot.Offset}(%rbp)");
                     EvaluationStackDepth--;
                     break;
 
@@ -161,7 +162,7 @@ internal sealed class X64AssemblyEmitter
 
             if (!Slots.ContainsKey(Instruction.Operand))
             {
-                int Offset = -4 * (Slots.Count + 1);
+                int Offset = -8 * (Slots.Count + 1);
                 Slots.Add(Instruction.Operand, new LocalSlot(Instruction.Operand, Offset));
             }
         }
@@ -172,7 +173,7 @@ internal sealed class X64AssemblyEmitter
     private static void EmitDeclareLocal(StringBuilder Builder, IrInstruction Instruction, Dictionary<string, LocalSlot> LocalSlots)
     {
         LocalSlot Slot = RequireLocal(LocalSlots, Instruction.Operand, Instruction.OpCode);
-        Builder.AppendLine($"    movl $0, {Slot.Offset}(%rbp)");
+        Builder.AppendLine($"    movq $0, {Slot.Offset}(%rbp)");
     }
 
     private static int EmitCall(StringBuilder Builder, IrInstruction Instruction, int EvaluationStackDepth)
@@ -215,12 +216,8 @@ internal sealed class X64AssemblyEmitter
 
     private static void EmitReturn(StringBuilder Builder, int LocalFrameSize)
     {
-        if (LocalFrameSize > 0)
-        {
-            Builder.AppendLine($"    add ${LocalFrameSize}, %rsp");
-        }
-
-        Builder.AppendLine("    pop %rbp");
+        _ = LocalFrameSize;
+        Builder.AppendLine("    leave");
         Builder.AppendLine("    ret");
     }
 

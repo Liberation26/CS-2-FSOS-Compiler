@@ -26,4 +26,11 @@ grep -q '"Successors"' "$MANIFEST"
 grep -q '\[ OK \] \[ CFG      \]' "$DIAGNOSTICS"
 grep -q '\[ OK \] \[ CFG      \]' "$OUTPUT_DIR/Compiler.stdout.log"
 
-printf '[ OK ] Stage 2 control-flow graph proof outputs written to: %s\n' "$OUTPUT_DIR"
+grep -q 'push %rbp' "$OUTPUT_DIR/Kernel.generated.S"
+grep -q 'mov %rsp, %rbp' "$OUTPUT_DIR/Kernel.generated.S"
+grep -q 'sub \$32, %rsp\|sub \$16, %rsp' "$OUTPUT_DIR/Kernel.generated.S"
+grep -q -- '-8(%rbp)' "$OUTPUT_DIR/Kernel.generated.S"
+grep -q 'movq \$0, -8(%rbp)' "$OUTPUT_DIR/Kernel.generated.S"
+grep -q 'leave' "$OUTPUT_DIR/Kernel.generated.S"
+
+printf '[ OK ] Stage 2 CFG and stack/local proof outputs written to: %s\n' "$OUTPUT_DIR"
