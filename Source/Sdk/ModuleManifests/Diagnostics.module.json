@@ -6,8 +6,11 @@
   "linkByDefault": true,
   "initializeOrder": 20,
   "initializerManagedName": "",
-  "initializerNativeSymbol": "",
+  "initializerNativeSymbol": "Diagnostics_Initialize",
   "nativeSource": "Source/Native/Modules/Diagnostics/Diagnostics.Native.c",
   "bindingPath": "Source/Sdk/Bindings/Diagnostics.binding.json",
-  "summary": "Serial/debug diagnostics and status output."
+  "summary": "Serial/debug diagnostics and status output.",
+  "dependsOn": [
+    "Runtime"
+  ]
 }

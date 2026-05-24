@@ -9,5 +9,6 @@
   "initializerNativeSymbol": "Runtime_Initialize",
   "nativeSource": "Source/Native/Modules/Runtime/Runtime.Native.c",
   "bindingPath": "Source/Sdk/Bindings/Runtime.binding.json",
-  "summary": "Runtime lifecycle contract."
+  "summary": "Runtime lifecycle contract.",
+  "dependsOn": []
 }

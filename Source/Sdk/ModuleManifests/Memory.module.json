@@ -9,5 +9,9 @@
   "initializerNativeSymbol": "Memory_Initialize",
   "nativeSource": "Source/Native/Modules/Memory/Memory.Native.c",
   "bindingPath": "Source/Sdk/Bindings/Memory.binding.json",
-  "summary": "Memory module selected for early freestanding kernels."
+  "summary": "Memory module selected for early freestanding kernels.",
+  "dependsOn": [
+    "Runtime",
+    "Diagnostics"
+  ]
 }

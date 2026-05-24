@@ -1,7 +1,7 @@
-Oryn 0.6.1 archive
+Oryn 0.7.0 archive
 
 FullSource contains the complete Oryn source tree for this delivery.
-ChangedFiles contains only files changed for the 0.6.1 Stage 6 boot/runtime proof fix.
+ChangedFiles contains only files changed for the 0.7.0 Stage 7 dependency graph proof.
 
-Version: 0.6.1
-Stage: Stage 6.1 boot proof fix
+Version: 0.7.0
+Stage: Stage 7 dependency-resolved module manifests

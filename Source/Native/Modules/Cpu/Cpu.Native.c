@@ -1,5 +1,9 @@
 #include "Cpu.Native.h"
 
+void Cpu_Initialize(void)
+{
+}
+
 void Cpu_HaltForever(void)
 {
     for (;;)

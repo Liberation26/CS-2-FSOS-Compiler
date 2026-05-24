@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.6.1"
+RUNQEMU_VERSION="0.7.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
 COMPILER_FRAMEWORK="${ORYN_COMPILER_FRAMEWORK:-net8.0}"
 COMPILER_DLL="$PROJECT_ROOT/Source/Core/Oryn.Compiler/bin/${COMPILER_CONFIGURATION}/${COMPILER_FRAMEWORK}/Oryn.Compiler.dll"
-REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage6}}"
+REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage7}}"
 
 info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
 warn() { printf '[WARN] [ RUNQEMU  ] %s\n' "$1"; }
@@ -84,13 +84,13 @@ case "$REQUESTED_STAGE" in
     all|All|ALL)
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
         info "Selected stage set: All"
-        info "Stage 6 development mode is active; running the service/module manifest kernel."
-        RunOneStage Stage6
-        info "Requested Stage 6 kernel completed."
+        info "Stage 7 development mode is active; running the dependency-resolved module kernel."
+        RunOneStage Stage7
+        info "Requested Stage 7 kernel completed."
         exit 0
         ;;
     1|stage1|Stage1|STAGE1)
-        printf '[FAIL] [ RUNQEMU  ] Stage 6 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, Stage4, Stage5, or Stage6.\n'
+        printf '[FAIL] [ RUNQEMU  ] Stage 6 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, Stage4, Stage5, Stage6, or Stage7.\n'
         exit 1
         ;;
     2|stage2|Stage2|STAGE2)
@@ -118,8 +118,13 @@ case "$REQUESTED_STAGE" in
         STAGE_LABEL="stage6"
         DIRECT_OBJECT_LINK=1
         ;;
+    7|stage7|Stage7|STAGE7)
+        STAGE_NAME="Stage7"
+        STAGE_LABEL="stage7"
+        DIRECT_OBJECT_LINK=1
+        ;;
     *)
-        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, Stage5, or Stage6.\n' "$REQUESTED_STAGE"
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, Stage5, Stage6, or Stage7.\n' "$REQUESTED_STAGE"
         exit 1
         ;;
 esac
@@ -452,12 +457,13 @@ SECTIONS
 }
 EOF_LINK
 
-GenerateStage6ManifestGlue() {
+GenerateManifestGlue() {
+    local StageLimit="$1"
     local GlueSource="$BUILD_ROOT/ModuleManifest.Generated.c"
     local ManifestDir="$PROJECT_ROOT/Source/Sdk/ModuleManifests"
     [ -d "$ManifestDir" ] || fail "Module manifest directory not found: $ManifestDir"
 
-    python3 - "$PROJECT_ROOT" "$ManifestDir" "$GlueSource" <<'PY_MANIFEST'
+    python3 - "$PROJECT_ROOT" "$ManifestDir" "$GlueSource" "$StageLimit" "$STAGE_NAME" <<'PY_MANIFEST'
 import json
 import pathlib
 import sys
@@ -465,17 +471,77 @@ import sys
 project_root = pathlib.Path(sys.argv[1])
 manifest_dir = pathlib.Path(sys.argv[2])
 glue = pathlib.Path(sys.argv[3])
-records = []
-for path in sorted(manifest_dir.glob('*.module.json')):
-    with path.open('r', encoding='utf-8') as handle:
-        item = json.load(handle)
-    if not item.get('allowedInKernel', False) or not item.get('linkByDefault', False):
-        continue
-    if int(item.get('stage', 0)) > 6:
-        continue
-    records.append(item)
+stage_limit = int(sys.argv[4])
+stage_name = sys.argv[5]
 
-records.sort(key=lambda item: (int(item.get('initializeOrder', 0)), item.get('module', '')))
+class ManifestError(Exception):
+    pass
+
+def read_records():
+    loaded = []
+    for path in sorted(manifest_dir.glob('*.module.json')):
+        with path.open('r', encoding='utf-8') as handle:
+            item = json.load(handle)
+        if not item.get('allowedInKernel', False) or not item.get('linkByDefault', False):
+            continue
+        if int(item.get('stage', 0)) > stage_limit:
+            continue
+        if stage_name == 'Stage7' and item.get('module') == 'ManifestLoader':
+            continue
+        item['_path'] = str(path)
+        item['dependsOn'] = list(item.get('dependsOn') or [])
+        loaded.append(item)
+    if not loaded:
+        raise ManifestError('no selected module manifests were loaded')
+    return loaded
+
+def resolve(records):
+    by_name = {}
+    for item in records:
+        name = item.get('module', '')
+        if not name:
+            raise ManifestError('module manifest missing module name: ' + item.get('_path', '<unknown>'))
+        if name in by_name:
+            raise ManifestError('duplicate module manifest: ' + name)
+        by_name[name] = item
+
+    for item in records:
+        name = item['module']
+        for dep in item.get('dependsOn', []):
+            if dep not in by_name:
+                raise ManifestError(f'module {name} requires missing dependency {dep}')
+
+    result = []
+    state = {}
+    stack = []
+
+    def visit(name):
+        current = state.get(name, 0)
+        if current == 2:
+            return
+        if current == 1:
+            cycle = stack[stack.index(name):] + [name] if name in stack else stack + [name]
+            raise ManifestError('circular module dependency detected: ' + ' -> '.join(cycle))
+        state[name] = 1
+        stack.append(name)
+        item = by_name[name]
+        for dep in sorted(item.get('dependsOn', []), key=lambda d: (int(by_name[d].get('initializeOrder', 0)), d)):
+            visit(dep)
+        stack.pop()
+        state[name] = 2
+        result.append(item)
+
+    for item in sorted(records, key=lambda i: (int(i.get('initializeOrder', 0)), i.get('module', ''))):
+        visit(item['module'])
+    return result
+
+try:
+    records = resolve(read_records())
+except ManifestError as exc:
+    print('[FAIL] [ MANIFEST ] ' + str(exc))
+    sys.exit(2)
+
+stage_number = '7' if stage_name == 'Stage7' else '6'
 lines = []
 lines.append('#include "Diagnostics.Native.h"')
 lines.append('#include "Runtime.Native.h"')
@@ -498,61 +564,104 @@ lines.append('        return;')
 lines.append('    }')
 lines.append('')
 lines.append('    ModuleManifestAlreadyInitialized = 1;')
-lines.append('    Diagnostics_WriteOk("[ MANIFEST ] generated Stage 6 manifest runtime started");')
+if stage_name == 'Stage7':
+    lines.append('    Diagnostics_WriteOk("[ MANIFEST ] Stage7 dependency graph loading started");')
+    for item in records:
+        deps = item.get('dependsOn', [])
+        dep_text = ', '.join(deps) if deps else '<none>'
+        lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] dependency {item.get("module", "Unknown")} -> {dep_text}");')
+    order = ', '.join(item.get('module', 'Unknown') for item in records)
+    lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] resolved initialization order: {order}");')
+else:
+    lines.append('    Diagnostics_WriteOk("[ MANIFEST ] generated Stage 6 manifest runtime started");')
+
 for item in records:
     name = item.get('module', 'Unknown')
     source = item.get('nativeSource', '')
     symbol = item.get('initializerNativeSymbol') or ''
-    lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] selected {name}: {source}");')
+    if stage_name != 'Stage7':
+        lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] selected {name}: {source}");')
     if symbol and name != 'ManifestLoader':
         lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] initializing {name}");')
         lines.append(f'    {symbol}();')
-    elif name == 'ManifestLoader':
+    elif name == 'ManifestLoader' and stage_name != 'Stage7':
         lines.append('    Diagnostics_WriteOk("[ MANIFEST ] ManifestLoader glue is active");')
-lines.append('    Diagnostics_WriteOk("[ MANIFEST ] generated Stage 6 manifest runtime completed");')
+if stage_name == 'Stage7':
+    lines.append('    Diagnostics_WriteOk("[ MANIFEST ] Stage7 dependency graph runtime completed");')
+else:
+    lines.append('    Diagnostics_WriteOk("[ MANIFEST ] generated Stage 6 manifest runtime completed");')
 lines.append('}')
 lines.append('')
 glue.write_text('\n'.join(lines), encoding='utf-8')
-print('[ OK ] [ MANIFEST ] Generated Stage 6 manifest glue: ' + str(glue))
+print(f'[ OK ] [ MANIFEST ] Generated {stage_name} manifest glue: {glue}')
 for item in records:
-    print('[ OK ] [ MANIFEST ] selected module={module} source={nativeSource} order={initializeOrder}'.format(**item))
+    deps = item.get('dependsOn', [])
+    print('[ OK ] [ MANIFEST ] resolved module={module} dependsOn={deps} source={nativeSource} order={initializeOrder}'.format(
+        module=item.get('module', 'Unknown'),
+        deps=(','.join(deps) if deps else '<none>'),
+        nativeSource=item.get('nativeSource', ''),
+        initializeOrder=item.get('initializeOrder', 0)))
+print('[ OK ] [ MANIFEST ] resolved initialization order: ' + ', '.join(item.get('module', 'Unknown') for item in records))
 PY_MANIFEST
 }
 
-CompileStage6ManifestModules() {
-    GenerateStage6ManifestGlue
+CompileManifestModules() {
+    local StageLimit="$1"
+    GenerateManifestGlue "$StageLimit"
     local ManifestDir="$PROJECT_ROOT/Source/Sdk/ModuleManifests"
-    python3 - "$PROJECT_ROOT" "$ManifestDir" "$BUILD_ROOT/Stage6.manifest.sources" <<'PY_SOURCES'
+    python3 - "$PROJECT_ROOT" "$ManifestDir" "$BUILD_ROOT/${STAGE_NAME}.manifest.sources" "$StageLimit" <<'PY_SOURCES'
 import json
 import pathlib
 import sys
 root = pathlib.Path(sys.argv[1])
 manifest_dir = pathlib.Path(sys.argv[2])
 out = pathlib.Path(sys.argv[3])
+stage_limit = int(sys.argv[4])
 records = []
 for path in sorted(manifest_dir.glob('*.module.json')):
     item = json.loads(path.read_text(encoding='utf-8'))
-    if item.get('allowedInKernel') and item.get('linkByDefault') and int(item.get('stage', 0)) <= 6:
+    if item.get('allowedInKernel') and item.get('linkByDefault') and int(item.get('stage', 0)) <= stage_limit:
+        item['dependsOn'] = list(item.get('dependsOn') or [])
         records.append(item)
-records.sort(key=lambda item: (int(item.get('initializeOrder', 0)), item.get('module', '')))
+by_name = {item['module']: item for item in records}
+state = {}
+resolved = []
+def visit(name):
+    if state.get(name) == 2:
+        return
+    if state.get(name) == 1:
+        raise SystemExit('[FAIL] circular module dependency detected while writing sources')
+    state[name] = 1
+    item = by_name[name]
+    for dep in sorted(item.get('dependsOn', []), key=lambda d: (int(by_name[d].get('initializeOrder', 0)), d)):
+        if dep not in by_name:
+            raise SystemExit('[FAIL] missing dependency while writing sources: ' + dep)
+        visit(dep)
+    state[name] = 2
+    resolved.append(item)
+for item in sorted(records, key=lambda item: (int(item.get('initializeOrder', 0)), item.get('module', ''))):
+    visit(item['module'])
 with out.open('w', encoding='utf-8') as handle:
-    for item in records:
+    if stage_limit >= 7:
+        handle.write(str(root / 'OSes' / 'Stage7' / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
+    for item in resolved:
         source = item.get('nativeSource', '')
         if source == 'Build/Generated/ModuleManifest.Generated.c':
-            handle.write(str(root / 'OSes' / 'Stage6' / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
+            if stage_limit < 7:
+                handle.write(str(root / 'OSes' / 'Stage6' / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
         else:
             handle.write(str(root / source) + '\n')
 PY_SOURCES
-    STAGE6_NATIVE_OBJECTS=()
+    STAGE_NATIVE_OBJECTS=()
     local Index=0
     while IFS= read -r NativeSource; do
-        [ -f "$NativeSource" ] || fail "Stage 6 selected native module source not found: $NativeSource"
-        local ObjectPath="$BUILD_ROOT/Stage6.Module.${Index}.o"
-        info "Compiling Stage 6 manifest-selected native module: $NativeSource"
+        [ -f "$NativeSource" ] || fail "${STAGE_NAME} selected native module source not found: $NativeSource"
+        local ObjectPath="$BUILD_ROOT/${STAGE_NAME}.Module.${Index}.o"
+        info "Compiling ${STAGE_NAME} manifest-selected native module: $NativeSource"
         clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -I"$PROJECT_ROOT/Source/Native/Modules/Diagnostics" -I"$PROJECT_ROOT/Source/Native/Modules/Runtime" -I"$PROJECT_ROOT/Source/Native/Modules/Memory" -I"$PROJECT_ROOT/Source/Native/Modules/Panic" -I"$PROJECT_ROOT/Source/Native/Modules/Cpu" -c "$NativeSource" -o "$ObjectPath"
-        STAGE6_NATIVE_OBJECTS+=("$ObjectPath")
+        STAGE_NATIVE_OBJECTS+=("$ObjectPath")
         Index=$((Index + 1))
-    done < "$BUILD_ROOT/Stage6.manifest.sources"
+    done < "$BUILD_ROOT/${STAGE_NAME}.manifest.sources"
 }
 
 info "Compiling freestanding x86_64 kernel objects"
@@ -563,7 +672,9 @@ else
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$GENERATED_ASM" -o "$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real"
 fi
 if [ "$STAGE_NAME" = "Stage6" ]; then
-    CompileStage6ManifestModules
+    CompileManifestModules 6
+elif [ "$STAGE_NAME" = "Stage7" ]; then
+    CompileManifestModules 7
 else
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$DIAGNOSTICS_SOURCE" -o "$BUILD_ROOT/Diagnostics.Runtime.o"
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$RUNTIME_SOURCE" -o "$BUILD_ROOT/Runtime.Native.o"
@@ -578,11 +689,11 @@ if [ "${DIRECT_OBJECT_LINK:-0}" = "1" ]; then
     KERNEL_LINK_OBJECT="$KERNEL_OBJECT"
 fi
 
-if [ "$STAGE_NAME" = "Stage6" ]; then
+if [ "$STAGE_NAME" = "Stage6" ] || [ "$STAGE_NAME" = "Stage7" ]; then
     ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
         "$BUILD_ROOT/Boot.o" \
         "$KERNEL_LINK_OBJECT" \
-        "${STAGE6_NATIVE_OBJECTS[@]}"
+        "${STAGE_NATIVE_OBJECTS[@]}"
 else
     ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
         "$BUILD_ROOT/Boot.o" \
@@ -721,6 +832,12 @@ if [ "$STAGE_NAME" = "Stage4" ]; then
     if ! grep -q "Stage4 kernel is halting forever" "$PROOF_LOG" && ! grep -q "Stage4 approved Diagnostics.WriteOk call worked" "$PROOF_LOG"; then
         fail "Expected Stage4 approved module boundary completion proof was not found in: $PROOF_LOG"
     fi
+elif [ "$STAGE_NAME" = "Stage7" ]; then
+    for Required in         "Stage7 native pre-kernel handoff reached"         "Stage7 kernel entered"         "Stage7 dependency graph loading started"         "[ MANIFEST ] dependency Runtime -> <none>"         "[ MANIFEST ] dependency Diagnostics -> Runtime"         "[ MANIFEST ] dependency Memory -> Runtime, Diagnostics"         "[ MANIFEST ] dependency Panic -> Runtime, Diagnostics"         "[ MANIFEST ] dependency Cpu -> Runtime, Diagnostics"         "[ MANIFEST ] resolved initialization order: Runtime, Diagnostics, Memory, Panic, Cpu"         "[ MANIFEST ] initializing Runtime"         "[ MANIFEST ] initializing Diagnostics"         "[ MANIFEST ] initializing Memory"         "[ MANIFEST ] initializing Panic"         "[ MANIFEST ] initializing Cpu"         "Stage7 dependency-resolved modules initialized"         "Stage7 kernel is halting forever"; do
+        if ! grep -Fq "$Required" "$PROOF_LOG"; then
+            fail "Expected Stage7 dependency proof was not found: $Required in $PROOF_LOG"
+        fi
+    done
 elif [ "$STAGE_NAME" = "Stage6" ]; then
     for Required in         "Stage6 native pre-kernel handoff reached"         "Stage6 kernel entered"         "Stage6 module manifest loading started"         "[ MANIFEST ] ManifestLoader glue is active"         "[ MANIFEST ] initializing Runtime"         "[ MANIFEST ] initializing Memory"         "[ MANIFEST ] generated Stage 6 manifest runtime completed"         "Stage6 selected modules initialized from manifest metadata"         "Stage6 kernel is halting forever"; do
         if ! grep -Fq "$Required" "$PROOF_LOG"; then

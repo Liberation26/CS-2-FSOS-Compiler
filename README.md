@@ -6,32 +6,57 @@ The goal is to let developers write an Oryn-safe subset of C# and compile it int
 
 ## Version
 
-Current version: **0.6.1**
+Current version: **0.7.0**
 
-## Stage 6 status
+## Stage 7 status
 
-Stage 6 is complete. Oryn now proves service/module manifest loading. This means generated OS module metadata can drive what the compiler exposes, what the build links, and what the booting kernel initializes.
+Stage 7 is complete. Oryn now proves module dependency resolution.
 
-Stage 6 adds JSON module manifests under:
+Stage 6 proved that selected manifest modules can be loaded, compiled, linked, and initialized. Stage 7 adds dependency graph rules so modules are no longer trusted merely because they were manually listed in the right order.
+
+Module manifests live under:
 
 ```text
 Source/Sdk/ModuleManifests/
 ```
 
-Each manifest declares:
+Each selected manifest can declare:
 
 - module name
 - safe namespace
 - stage introduced
 - whether it is allowed in kernel code
 - whether it should be linked by default
-- initializer order
+- dependency list with `dependsOn`
+- secondary `initializeOrder` tie-breaker
 - managed initializer name
 - native initializer symbol
 - native source path
 - binding path
 
-The Stage 6 build reads these manifests, generates native manifest glue, links selected native module objects, and calls selected initializers from the kernel through `ManifestLoader.InitializeSelected()`.
+`initializeOrder` is now secondary. The Stage 7 proof comes from dependency resolution.
+
+Example:
+
+```json
+{
+  "module": "Memory",
+  "namespace": "Oryn.Kernel.Memory",
+  "stage": 4,
+  "allowedInKernel": true,
+  "linkByDefault": true,
+  "initializeOrder": 30,
+  "dependsOn": [
+    "Runtime",
+    "Diagnostics"
+  ],
+  "initializerManagedName": "Memory.Initialize",
+  "initializerNativeSymbol": "Memory_Initialize",
+  "nativeSource": "Source/Native/Modules/Memory/Memory.Native.c",
+  "bindingPath": "Source/Sdk/Bindings/Memory.binding.json",
+  "summary": "Memory module selected for early freestanding kernels."
+}
+```
 
 ## Compiler flow
 
@@ -44,6 +69,10 @@ Safe-subset validation
     ↓
 Manifest-backed module exposure
     ↓
+Manifest dependency graph validation
+    ↓
+Dependency-safe module order resolution
+    ↓
 Binding and semantic analysis
     ↓
 Oryn IR
@@ -52,9 +81,9 @@ Control-flow graph
     ↓
 Direct ELF64 relocatable object writer
     ↓
-Manifest-driven native module linking
+Resolved native module linking
     ↓
-Generated manifest initialization glue
+Generated dependency-resolved manifest glue
     ↓
 Freestanding bootable kernel
 ```
@@ -68,14 +97,15 @@ Freestanding bootable kernel
 | Stage 3 | Oryn can write a real ELF64 relocatable object directly. |
 | Stage 4 | Safe user-facing C# calls are checked against the approved module boundary. |
 | Stage 5 | Runtime, diagnostics, memory, panic, and CPU bindings form a minimal freestanding runtime contract. |
-| Stage 6 | Service/module manifests drive module exposure, native linking, and initialization order. |
+| Stage 6 | Service/module manifests drive module exposure, native linking, and manifest glue initialization. |
+| Stage 7 | Module dependencies are validated, missing dependencies and cycles are rejected, and modules initialize in dependency-safe order. |
 
-## Running Stage 6
+## Running Stage 7
 
 From the repository root:
 
 ```bash
-ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage6
+ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage7
 ```
 
 Expected proof lines include:
@@ -83,16 +113,22 @@ Expected proof lines include:
 ```text
 [SERIAL] [ OK ] [ BOOT32   ] Multiboot entry reached; preparing long mode
 [SERIAL] [ OK ] [ BOOT     ] Long mode entered; calling Kernel_Main
-[SERIAL] [ OK ] [ KERNEL   ] Stage6 native pre-kernel handoff reached
-[SERIAL] [ OK ] [ KERNEL   ] Stage6 kernel entered
-[SERIAL] [ OK ] [ KERNEL   ] Stage6 module manifest loading started
-[SERIAL] [ OK ] [ MANIFEST ] ManifestLoader glue is active
+[SERIAL] [ OK ] [ KERNEL   ] Stage7 native pre-kernel handoff reached
+[SERIAL] [ OK ] [ KERNEL   ] Stage7 kernel entered
+[SERIAL] [ OK ] [ MANIFEST ] Stage7 dependency graph loading started
+[SERIAL] [ OK ] [ MANIFEST ] dependency Runtime -> <none>
+[SERIAL] [ OK ] [ MANIFEST ] dependency Diagnostics -> Runtime
+[SERIAL] [ OK ] [ MANIFEST ] dependency Memory -> Runtime, Diagnostics
+[SERIAL] [ OK ] [ MANIFEST ] dependency Panic -> Runtime, Diagnostics
+[SERIAL] [ OK ] [ MANIFEST ] dependency Cpu -> Runtime, Diagnostics
+[SERIAL] [ OK ] [ MANIFEST ] resolved initialization order: Runtime, Diagnostics, Memory, Panic, Cpu
 [SERIAL] [ OK ] [ MANIFEST ] initializing Runtime
+[SERIAL] [ OK ] [ MANIFEST ] initializing Diagnostics
 [SERIAL] [ OK ] [ MANIFEST ] initializing Memory
-[SERIAL] [ OK ] [ MANIFEST ] generated Stage 6 manifest runtime completed
-[SERIAL] [ OK ] [ KERNEL   ] Stage6 selected modules initialized from manifest metadata
-[SERIAL] [ OK ] [ KERNEL   ] Stage6 runtime marked kernel ready
-[SERIAL] [ OK ] [ KERNEL   ] Stage6 kernel is halting forever
+[SERIAL] [ OK ] [ MANIFEST ] initializing Panic
+[SERIAL] [ OK ] [ MANIFEST ] initializing Cpu
+[SERIAL] [ OK ] [ KERNEL   ] Stage7 dependency-resolved modules initialized
+[SERIAL] [ OK ] [ KERNEL   ] Stage7 kernel is halting forever
 ```
 
 The kernel intentionally halts forever after proving the stage. The QEMU timeout is treated as success.
@@ -100,29 +136,33 @@ The kernel intentionally halts forever after proving the stage. The QEMU timeout
 ## Running tests
 
 ```bash
-./Tests/Compiler/Stage6/run.sh
+./Tests/Compiler/Stage7/run.sh
 ```
 
-The Stage 6 tests check compiler success, manifest diagnostics, generated manifest glue, linked native module selection, and QEMU boot proof output.
+The Stage 7 tests check compiler success, manifest graph output, generated glue order, missing dependency rejection, circular dependency rejection, and QEMU boot proof output.
 
 ## Important directories
 
 ```text
 Source/Core/Oryn.Compiler/        Compiler implementation
+Source/Core/Oryn.Compiler/Manifests/
+                                      Manifest dependency resolver
 Source/Sdk/Bindings/              Safe C# API to native symbol bindings
-Source/Sdk/ModuleManifests/       Stage 6 module metadata
+Source/Sdk/ModuleManifests/       Module metadata and dependency declarations
 Source/Native/Modules/            Freestanding native module implementations
-OSes/Stage6/                      Stage 6 proof kernel
-Tests/Compiler/Stage6/            Stage 6 automated tests
-Documents/Stages/Stage6.md        Stage 6 design notes
+OSes/Stage7/                      Stage 7 proof kernel
+Tests/Compiler/Stage7/            Stage 7 automated tests
+Documents/ReleaseNotes/0.7.0.md   Stage 7 release notes
 ```
 
-## Current limitation
+## Why Stage 7 comes before filesystem and userland
 
-Stage 6 proves manifest-driven selection and initialization. It does not yet provide dynamic service loading, runtime ELF service startup, dependency solving, or a production module package manager. Those are later stages.
+After Stage 7, Oryn knows:
 
-## Stage 6.1 boot proof fix
+- what modules exist
+- what each module needs
+- what order modules must start in
+- what native source must be linked
+- what API surface is exposed to kernel code
 
-Oryn 0.6.1 keeps the Stage 6 manifest-loading goal and fixes the silent QEMU proof failure found after 0.6.0. The generated ISO now enables GRUB serial output, boots the kernel through `multiboot2`, prints a native pre-kernel handoff line before `Kernel_Main`, and prevents the generated ManifestLoader glue from recursively calling itself.
-
-The Stage 6 proof now requires runtime log lines showing ManifestLoader activation, Runtime initialization, Memory initialization, manifest runtime completion, kernel readiness, and intentional halt.
+That is the base needed before adding larger OS pieces such as filesystem support, scheduler support, userland services, PolicyManager, ELF loading, driver selection, and target profiles.

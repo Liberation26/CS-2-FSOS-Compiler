@@ -81,7 +81,10 @@ internal sealed class CompilerPipeline
             BoundKernelModel BoundModel = SemanticAnalyzer.Bind(KernelAst);
             OrynIrModule IrModule = IrLowerer.Lower(BoundModel);
             OrynControlFlowGraph ControlFlowGraph = ControlFlowGraphBuilder.Build(IrModule);
-            BackendResult BackendResult = Backend.Emit(Version, Command, BoundModel, IrModule, ControlFlowGraph, ModuleManifestCatalog.ApprovedKernelModules);
+            IReadOnlyList<ModuleManifestRecord> SelectedModuleManifests = Command.SourcePath.Contains("Stage7", StringComparison.OrdinalIgnoreCase)
+                ? ModuleManifestCatalog.ResolveApprovedKernelModules(7, ExcludeManifestLoaderFromGraph: true)
+                : ModuleManifestCatalog.ApprovedKernelModules;
+            BackendResult BackendResult = Backend.Emit(Version, Command, BoundModel, IrModule, ControlFlowGraph, SelectedModuleManifests);
             Backend.Write(BackendResult);
 
             Messages.Add($"[ OK ] Parsed source: {Command.SourcePath}");
@@ -93,10 +96,20 @@ internal sealed class CompilerPipeline
             if (Command.SourcePath.Contains("Stage6", StringComparison.OrdinalIgnoreCase))
             {
                 Messages.Add("[ OK ] [ MANIFEST ] Stage 6 service/module manifest loading validation passed.");
-                foreach (ModuleManifestRecord Manifest in ModuleManifestCatalog.ApprovedKernelModules)
+                foreach (ModuleManifestRecord Manifest in SelectedModuleManifests)
                 {
                     Messages.Add($"[ OK ] [ MANIFEST ] expose={Manifest.ModuleName} stage={Manifest.Stage} order={Manifest.InitializeOrder} native={Manifest.NativeSource}");
                 }
+            }
+            if (Command.SourcePath.Contains("Stage7", StringComparison.OrdinalIgnoreCase))
+            {
+                Messages.Add("[ OK ] [ MANIFEST ] Stage 7 dependency graph validation passed.");
+                foreach (ModuleManifestRecord Manifest in SelectedModuleManifests)
+                {
+                    string Dependencies = Manifest.DependsOn.Count == 0 ? "<none>" : string.Join(", ", Manifest.DependsOn);
+                    Messages.Add($"[ OK ] [ MANIFEST ] dependency {Manifest.ModuleName} -> {Dependencies}");
+                }
+                Messages.Add("[ OK ] [ MANIFEST ] resolved initialization order: " + string.Join(", ", SelectedModuleManifests.Select(Manifest => Manifest.ModuleName)));
             }
             Messages.Add($"[ OK ] Approved module calls: {BoundModel.ApprovedModuleCallCount}");
             Messages.Add($"[ OK ] Lowered IR instructions: {IrModule.Instructions.Count}");

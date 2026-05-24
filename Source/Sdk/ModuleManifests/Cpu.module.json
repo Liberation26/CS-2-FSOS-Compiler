@@ -6,8 +6,12 @@
   "linkByDefault": true,
   "initializeOrder": 50,
   "initializerManagedName": "",
-  "initializerNativeSymbol": "",
+  "initializerNativeSymbol": "Cpu_Initialize",
   "nativeSource": "Source/Native/Modules/Cpu/Cpu.Native.c",
   "bindingPath": "Source/Sdk/Bindings/Cpu.binding.json",
-  "summary": "CPU halt and low-level CPU helpers."
+  "summary": "CPU halt and low-level CPU helpers.",
+  "dependsOn": [
+    "Runtime",
+    "Diagnostics"
+  ]
 }

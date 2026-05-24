@@ -117,6 +117,13 @@ static void WriteLine(const char* Prefix, const char* Message, uint8_t Attribute
 }
 #endif
 
+void Diagnostics_Initialize(void)
+{
+#if DEBUG
+    DiagnosticsEnsureReady();
+#endif
+}
+
 void Diagnostics_WriteOk(const char* Message)
 {
 #if DEBUG

@@ -43,8 +43,8 @@ internal sealed class CompilerCli
         Output.WriteLine("  oryn compiler modules");
         Output.WriteLine("  oryn compiler compile <source.cs> --target x64-elf --output <output.o>");
         Output.WriteLine();
-        Output.WriteLine("Stage 6 compile output:");
-        Output.WriteLine("  <output>.stage2.ir.json, <output>.stage3.ir.json, or <output>.stage4.ir.json lowered Oryn IR and backend manifest");
+        Output.WriteLine("Stage 7 compile output:");
+        Output.WriteLine("  <output>.stage2.ir.json, <output>.stage3.ir.json, <output>.stage4.ir.json, <output>.stage6.ir.json, or <output>.stage7.ir.json lowered Oryn IR and backend manifest");
         Output.WriteLine("  <output>.generated.c     freestanding C backend snippet");
         Output.WriteLine("  <output>.generated.S     readable x64 assembly reference artifact");
         Output.WriteLine("  <output>                 real ELF64 relocatable object written directly by Oryn after approved-module validation");
@@ -52,12 +52,12 @@ internal sealed class CompilerCli
 
     private void PrintModules()
     {
-        Output.WriteLine("[ OK ] Stage 6 manifest-backed approved module catalogue:");
+        Output.WriteLine("[ OK ] Stage 7 manifest-backed approved module catalogue:");
         ModuleManifestCatalog ManifestCatalog = ModuleManifestCatalog.CreateDefault();
-        foreach (ModuleManifestRecord Manifest in ManifestCatalog.ApprovedKernelModules)
+        foreach (ModuleManifestRecord Manifest in ManifestCatalog.ResolveApprovedKernelModules(7, ExcludeManifestLoaderFromGraph: false))
         {
             string Initializer = string.IsNullOrWhiteSpace(Manifest.InitializerNativeSymbol) ? "<none>" : Manifest.InitializerNativeSymbol;
-            Output.WriteLine($"  {Manifest.ModuleName,-16} exposed namespace={Manifest.NamespaceName} stage={Manifest.Stage} order={Manifest.InitializeOrder} initializer={Initializer} nativeSource={Manifest.NativeSource}");
+            Output.WriteLine($"  {Manifest.ModuleName,-16} exposed namespace={Manifest.NamespaceName} stage={Manifest.Stage} order={Manifest.InitializeOrder} initializer={Initializer} dependsOn={(Manifest.DependsOn.Count == 0 ? "<none>" : string.Join(",", Manifest.DependsOn))} nativeSource={Manifest.NativeSource}");
         }
 
         Output.WriteLine("[ OK ] Approved method bindings:");

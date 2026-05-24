@@ -5,6 +5,7 @@ namespace Oryn.Compiler;
 internal sealed class ModuleManifestCatalog
 {
     private readonly IReadOnlyList<ModuleManifestRecord> Records;
+    private readonly ModuleDependencyResolver DependencyResolver = new();
 
     private ModuleManifestCatalog(IReadOnlyList<ModuleManifestRecord> Records)
     {
@@ -18,6 +19,15 @@ internal sealed class ModuleManifestCatalog
         .OrderBy(Record => Record.InitializeOrder)
         .ThenBy(Record => Record.ModuleName, StringComparer.Ordinal)
         .ToList();
+
+    public IReadOnlyList<ModuleManifestRecord> ResolveApprovedKernelModules(int MaximumStage, bool ExcludeManifestLoaderFromGraph)
+    {
+        IReadOnlyList<ModuleManifestRecord> Selected = Records
+            .Where(Record => Record.AllowedInKernel && Record.LinkByDefault && Record.Stage <= MaximumStage)
+            .Where(Record => !ExcludeManifestLoaderFromGraph || !Record.ModuleName.Equals("ManifestLoader", StringComparison.Ordinal))
+            .ToList();
+        return DependencyResolver.Resolve(Selected);
+    }
 
     public static ModuleManifestCatalog CreateDefault()
     {
@@ -74,6 +84,7 @@ internal sealed class ModuleManifestCatalog
                 FileModel.AllowedInKernel,
                 FileModel.LinkByDefault,
                 FileModel.InitializeOrder,
+                FileModel.DependsOn ?? Array.Empty<string>(),
                 FileModel.InitializerManagedName ?? string.Empty,
                 FileModel.InitializerNativeSymbol ?? string.Empty,
                 FileModel.NativeSource,
@@ -124,6 +135,7 @@ internal sealed class ModuleManifestCatalog
         public bool AllowedInKernel { get; set; }
         public bool LinkByDefault { get; set; }
         public int InitializeOrder { get; set; }
+        public string[]? DependsOn { get; set; }
         public string? InitializerManagedName { get; set; }
         public string? InitializerNativeSymbol { get; set; }
         public string? NativeSource { get; set; }
@@ -139,6 +151,7 @@ internal sealed record ModuleManifestRecord(
     bool AllowedInKernel,
     bool LinkByDefault,
     int InitializeOrder,
+    IReadOnlyList<string> DependsOn,
     string InitializerManagedName,
     string InitializerNativeSymbol,
     string NativeSource,
