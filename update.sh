@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UPDATE_VERSION="1.0.1"
+UPDATE_VERSION="1.0.2"
 REMOTE_URL="https://github.com/Liberation26/CS-2-FSOS-Compiler.git"
 REPO_DIR="${ORYN_REPO_DIR:-$HOME/Dev/OrynFoundry}"
 DOWNLOADS_DIR="${ORYN_DOWNLOADS_DIR:-$HOME/Downloads}"
@@ -215,7 +215,7 @@ LaunchGeneratedWorkflow() {
         return 0
     fi
 
-    info "Launching Oryn end-user OS generation. You will be asked the 1.0.1 generation questions."
+    info "Launching Oryn end-user OS generation. You will be asked the 1.0.2 generation questions."
     "$OrynScript" generate
 
     local OsName
@@ -280,7 +280,8 @@ if git -C "$REPO_DIR" push -u origin "$CURRENT_BRANCH"; then
     info "Git push completed."
 else
     warn "Git push failed. The local commit still exists in: $REPO_DIR"
-    warn "Check GitHub authentication, or pull/merge remote changes before pushing again."
+    warn "This is a GitHub authentication/remote access issue, not an Oryn build failure."
+    warn "Use a GitHub personal access token, SSH remote, or push manually after fixing credentials."
 fi
 
 LaunchGeneratedWorkflow
