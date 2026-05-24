@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UPDATE_VERSION="0.2.5"
-REMOTE_URL="https://github.com/Liberation26/CS-2-FSOS-Compiler.git"
+UPDATE_VERSION="0.2.7"
+REMOTE_URL="https://github.com/Liberation26/OrynFoundry"
 REPO_DIR="${ORYN_REPO_DIR:-$HOME/Dev/OrynFoundry}"
 DOWNLOADS_DIR="${ORYN_DOWNLOADS_DIR:-$HOME/Downloads}"
 ARCHIVE_PATH="${1:-}"

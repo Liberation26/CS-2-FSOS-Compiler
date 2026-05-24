@@ -20,7 +20,7 @@ For a compile-only proof without launching QEMU:
 ORYN_SKIP_QEMU=1 ./Runqemu.sh Stage2
 ```
 
-## Stage 2 Phase 3 in version 0.2.6
+## Stage 2 Phase 3 in version 0.2.7
 
 Stage 2 now has real Oryn IR. The compiler no longer treats the kernel body as a flat list of native calls. It parses a small safe C# subset into statement/expression AST nodes, binds locals and approved module calls, and lowers the result into an explicit stack-style IR stream.
 
@@ -48,3 +48,6 @@ OSes/Stage2/Build/Runqemu/Kernel.stage2.generated.S
 OSes/Stage2/Build/Runqemu/Kernel.stage2.generated.c
 OSes/Stage2/Build/Runqemu/Kernel.stage2.diagnostics.log
 ```
+
+
+Version 0.2.7 proves Stage 2 control-flow graph generation by compiling a loop and branch into explicit labels, jumps, basic blocks, and successor edges.

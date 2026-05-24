@@ -1,5 +1,53 @@
 # Stage 2 Compiler Plan
 
+## 0.2.7 Stage 2 Phase 4: Control Flow Graph
+
+Stage 2 now builds a simple readable control-flow graph from the IR instruction stream. This is intentionally not an optimiser. It exists so labels, branches, loops, and fallthroughs are represented reliably before later backend work.
+
+A loop such as:
+
+```csharp
+while (Counter < 3)
+{
+    Counter = Counter + 1;
+}
+```
+
+lowers to this IR shape:
+
+```text
+Label LoopStart0
+LoadLocal Counter
+ConstInt32 3
+CompareLessThanInt32
+JumpIfFalse LoopEnd0
+LoadLocal Counter
+ConstInt32 1
+AddInt32
+StoreLocal Counter
+Jump LoopStart0
+Label LoopEnd0
+```
+
+The control-flow graph then records basic blocks and successor edges, for example:
+
+```text
+Entry -> LoopStart0
+LoopStart0 -> LoopEnd0, Block2
+Block2 -> LoopStart0
+LoopEnd0 -> ...
+```
+
+The `.stage2.ir.json` manifest now includes:
+
+```text
+Instructions
+ControlFlowGraph
+BasicBlockCount
+```
+
+The generated diagnostics log also prints `[ CFG ]` lines so branch structure can be checked quickly during tests.
+
 ## 0.2.6 Stage 2 Phase 3: Real Oryn IR
 
 Stage 2 now has a real intermediate representation between the bound kernel model and native backend emission.

@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.2.6`
+Current version: `0.2.7`
 
 ## Core idea
 
@@ -214,6 +214,25 @@ Build/Kernel.o
 `Kernel.o` is intentionally a text placeholder in Stage 1. The real ELF64 relocatable writer is the next backend milestone. The generated `.c` and `.S` files are the first backend proof outputs.
 
 
+
+
+
+### Stage 2 control-flow graph in 0.2.7
+
+Version `0.2.7` adds a readable Stage 2 control-flow graph over the lowered IR. `if` and `while` now lower through explicit labels, `JumpIfFalse`, `Jump`, and basic blocks with successor edges. The generated `.stage2.ir.json` manifest includes the IR instruction stream and the `ControlFlowGraph` block list so later backend stages can reason about branches and loops without guessing from source text.
+
+Example shape:
+
+```text
+LoopStart0:
+  LoadLocal Counter
+  ConstInt32 3
+  CompareLessThanInt32
+  JumpIfFalse LoopEnd0
+  ...
+  Jump LoopStart0
+LoopEnd0:
+```
 
 ### Runqemu default behaviour in 0.2.6
 

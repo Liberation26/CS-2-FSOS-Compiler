@@ -6,25 +6,25 @@ public static class Kernel
 {
     public static void Main()
     {
-        Diagnostics.WriteOk("Stage2 phase3 kernel entered");
+        Diagnostics.WriteOk("Stage2 phase4 kernel entered");
         Memory.Initialize();
 
         int Counter = 0;
-        while (Counter < 2)
+        while (Counter < 3)
         {
             Counter = Counter + 1;
         }
 
-        if (Counter == 2)
+        if (Counter == 3)
         {
-            Diagnostics.WriteOk("Stage2 phase3 real Oryn IR loop completed");
+            Diagnostics.WriteOk("Stage2 phase4 control flow graph loop completed");
         }
         else
         {
-            Diagnostics.WriteFail("Stage2 phase3 real Oryn IR loop failed");
+            Diagnostics.WriteFail("Stage2 phase4 control flow graph loop failed");
         }
 
-        Diagnostics.WriteOk("Stage2 phase3 kernel is halting forever");
+        Diagnostics.WriteOk("Stage2 phase4 kernel is halting forever");
         Cpu.HaltForever();
     }
 }

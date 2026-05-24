@@ -52,8 +52,9 @@ internal sealed class KernelIrLowerer
                 break;
 
             case BoundIf If:
-                string ElseLabel = NewLabel("else");
-                string EndLabel = NewLabel("endif");
+                int IfLabelIndex = NextLabelIndex();
+                string ElseLabel = $"IfElse{IfLabelIndex}";
+                string EndLabel = $"IfEnd{IfLabelIndex}";
                 LowerExpression(If.Condition);
                 Emit("JumpIfFalse", Operand: ElseLabel);
                 LowerStatements(If.ThenStatements);
@@ -64,8 +65,9 @@ internal sealed class KernelIrLowerer
                 break;
 
             case BoundWhile While:
-                string StartLabel = NewLabel("while_start");
-                string EndWhileLabel = NewLabel("while_end");
+                int LoopLabelIndex = NextLabelIndex();
+                string StartLabel = $"LoopStart{LoopLabelIndex}";
+                string EndWhileLabel = $"LoopEnd{LoopLabelIndex}";
                 Emit("Label", Operand: StartLabel);
                 LowerExpression(While.Condition);
                 Emit("JumpIfFalse", Operand: EndWhileLabel);
@@ -132,11 +134,11 @@ internal sealed class KernelIrLowerer
         return Values;
     }
 
-    private string NewLabel(string Prefix)
+    private int NextLabelIndex()
     {
-        string Label = $"{Prefix}_{LabelIndex}";
+        int Current = LabelIndex;
         LabelIndex++;
-        return Label;
+        return Current;
     }
 
     private void Emit(

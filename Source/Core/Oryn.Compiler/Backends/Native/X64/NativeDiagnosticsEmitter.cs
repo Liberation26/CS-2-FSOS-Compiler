@@ -8,7 +8,7 @@ internal sealed class NativeDiagnosticsEmitter
     public string Emit(CompilerManifest Manifest, IReadOnlyList<IrInstruction> Instructions, string CPath, string AssemblyPath)
     {
         StringBuilder Builder = new();
-        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 2 phase 3 diagnostics");
+        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 2 phase 4 diagnostics");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Version: {Manifest.CompilerVersion}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Source: {Manifest.SourcePath}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Target: {Manifest.Target}");
@@ -16,6 +16,13 @@ internal sealed class NativeDiagnosticsEmitter
         Builder.AppendLine($"[ OK ] [ COMPILER ] Basic blocks: {Manifest.BasicBlockCount}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] IR instructions: {Instructions.Count}");
         Builder.AppendLine("[ OK ] [ IR       ] Real Oryn IR is stack-style and explicit: locals, constants, arithmetic, comparisons, calls, labels, jumps, conditional jumps, and returns.");
+        Builder.AppendLine("[ OK ] [ CFG      ] Basic blocks and successor edges are generated from labels, jumps, conditional jumps, and fallthroughs.");
+
+        foreach (Oryn.Compiler.IR.ControlFlowGraph.OrynBasicBlock Block in Manifest.ControlFlowGraph.Blocks)
+        {
+            string Successors = Block.Successors.Count == 0 ? "<none>" : string.Join(", ", Block.Successors);
+            Builder.AppendLine($"[ OK ] [ CFG      ] {Block.Name} -> {Successors}");
+        }
 
         foreach (IrInstruction Instruction in Instructions)
         {

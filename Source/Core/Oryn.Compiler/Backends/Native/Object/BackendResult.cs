@@ -1,3 +1,5 @@
+using Oryn.Compiler.IR.ControlFlowGraph;
+
 namespace Oryn.Compiler;
 
 internal sealed record CompilerManifest(
@@ -7,6 +9,7 @@ internal sealed record CompilerManifest(
     string OutputPath,
     string EntrySymbol,
     IReadOnlyList<IrInstruction> Instructions,
+    OrynControlFlowGraph ControlFlowGraph,
     int BasicBlockCount,
     string Notes);
 

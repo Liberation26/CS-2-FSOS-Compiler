@@ -31,8 +31,9 @@ internal sealed class X64NativeBackend
             FullOutputPath,
             IrModule.EntrySymbol,
             IrModule.Instructions,
+            ControlFlowGraph,
             ControlFlowGraph.Blocks.Count,
-            "Stage 2 phase 3 adds real Oryn IR: explicit labels, jumps, returns, calls, local declarations, local loads/stores, Int32 and string constants, Int32 arithmetic, and Int32 comparisons. The .o file remains a placeholder until the ELF64 object writer lands.");
+            "Stage 2 phase 4 adds a real readable control-flow graph over the Stage 2 IR. If and while lower to explicit labels, conditional jumps, unconditional jumps, and basic blocks with successor edges. No optimiser is used yet; reliability and readable output are the goal.");
 
         return new BackendResult(
             ManifestPath,
