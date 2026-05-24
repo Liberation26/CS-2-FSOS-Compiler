@@ -39,7 +39,7 @@ internal sealed class CompilerPipeline
         BindingCatalog Bindings = BindingCatalog.CreateDefault();
         return new CompilerPipeline(
             Version,
-            new SafeSubsetValidator(),
+            new SafeSubsetValidator(Bindings.ApprovedNamespaces),
             new CSharpKernelParser(),
             new SemanticAnalyzer(Bindings),
             new KernelIrLowerer(),
@@ -61,7 +61,7 @@ internal sealed class CompilerPipeline
         IReadOnlyList<string> ValidationFailures = Validator.Validate(SourceText);
         if (ValidationFailures.Count > 0)
         {
-            Messages.Add("[FAIL] Safe-subset validation failed.");
+            Messages.Add("[FAIL] Stage 4 safe-subset validation failed.");
             foreach (string Failure in ValidationFailures)
             {
                 Messages.Add($"[FAIL] {Failure}");
@@ -80,7 +80,8 @@ internal sealed class CompilerPipeline
             Backend.Write(BackendResult);
 
             Messages.Add($"[ OK ] Parsed source: {Command.SourcePath}");
-            Messages.Add("[ OK ] Safe-subset validation passed.");
+            Messages.Add("[ OK ] Stage 4 approved-module boundary validation passed.");
+            Messages.Add($"[ OK ] Approved module calls: {BoundModel.ApprovedModuleCallCount}");
             Messages.Add($"[ OK ] Lowered IR instructions: {IrModule.Instructions.Count}");
             Messages.Add($"[ OK ] [ CFG      ] Basic blocks: {ControlFlowGraph.Blocks.Count}");
             foreach (Oryn.Compiler.IR.ControlFlowGraph.OrynBasicBlock Block in ControlFlowGraph.Blocks)

@@ -113,20 +113,22 @@ internal sealed class SemanticAnalyzer
         {
             if (!Binding.AllowedInKernel)
             {
-                throw new OrynCompileException($"Binding is not allowed in kernel code: {Call.ManagedName}");
+                throw new OrynCompileException($"Stage 4 module boundary rejected call: {Call.ManagedName}. The method exists in the catalogue but is not approved for safe kernel code.");
             }
 
             if (Call.Arguments.Count != Binding.ArgumentCount)
             {
-                throw new OrynCompileException($"Call {Call.ManagedName} expected {Binding.ArgumentCount} argument(s) but received {Call.Arguments.Count}.");
+                throw new OrynCompileException($"Stage 4 module boundary rejected call: {Call.ManagedName}. Expected {Binding.ArgumentCount} argument(s) for {Binding.Signature} but received {Call.Arguments.Count}.");
             }
 
             List<BoundExpression> Arguments = Call.Arguments.Select(Argument => BindExpression(Argument, Locals)).ToList();
-            foreach (BoundExpression Argument in Arguments)
+            for (int Index = 0; Index < Arguments.Count; Index++)
             {
-                if (Binding.ArgumentCount > 0 && Argument.TypeName != "String")
+                string ExpectedType = Binding.ArgumentTypeNames[Index];
+                string ActualType = Arguments[Index].TypeName;
+                if (!ExpectedType.Equals(ActualType, StringComparison.Ordinal))
                 {
-                    throw new OrynCompileException($"Call {Call.ManagedName} currently accepts string arguments only.");
+                    throw new OrynCompileException($"Stage 4 module boundary rejected call: {Call.ManagedName}. Argument {Index + 1} expected {ExpectedType} but received {ActualType}.");
                 }
             }
 
@@ -143,7 +145,7 @@ internal sealed class SemanticAnalyzer
             return new BoundCall(Call.ManagedName, Method.NativeSymbol, Array.Empty<BoundExpression>(), true);
         }
 
-        throw new OrynCompileException($"No approved Stage 2 binding or static helper method for call: {Call.ManagedName}");
+        throw new OrynCompileException($"Stage 4 module boundary rejected call: {Call.ManagedName}. Add it to Source/Sdk/Bindings with allowedInKernel=true before safe user-facing kernel code can call it.");
     }
 
     private BoundExpression BindExpression(KernelExpressionAst Expression, Dictionary<string, BoundLocal> Locals)
@@ -192,6 +194,25 @@ internal sealed record BoundKernelModel(string SourcePath, BoundKernelMethod Mai
 {
     public IReadOnlyList<BoundStatement> Statements => MainMethod.Statements;
     public IReadOnlyList<BoundLocal> Locals => MainMethod.Locals;
+
+    public int ApprovedModuleCallCount => Methods.Sum(Method => CountApprovedModuleCalls(Method.Statements));
+
+    private static int CountApprovedModuleCalls(IEnumerable<BoundStatement> Statements)
+    {
+        int Count = 0;
+        foreach (BoundStatement Statement in Statements)
+        {
+            Count += Statement switch
+            {
+                BoundCall Call when !Call.IsStaticHelperCall => 1,
+                BoundIf If => CountApprovedModuleCalls(If.ThenStatements) + CountApprovedModuleCalls(If.ElseStatements),
+                BoundWhile While => CountApprovedModuleCalls(While.BodyStatements),
+                _ => 0
+            };
+        }
+
+        return Count;
+    }
 }
 
 internal sealed record BoundKernelMethod(string Name, string NativeSymbol, bool IsPublic, IReadOnlyList<BoundStatement> Statements, IReadOnlyList<BoundLocal> Locals);

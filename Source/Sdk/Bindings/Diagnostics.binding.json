@@ -1,7 +1,7 @@
 {
   "module": "Diagnostics",
   "namespace": "Oryn.Kernel.Diagnostics",
-  "stage": 2,
+  "stage": 4,
   "methods": [
     {
       "managedName": "Diagnostics.WriteOk",
@@ -9,7 +9,12 @@
       "nativeSymbol": "Diagnostics_WriteOk",
       "allowedInKernel": true,
       "summary": "Writes a successful diagnostic status line.",
-      "argumentCount": 1
+      "argumentCount": 1,
+      "typeName": "Diagnostics",
+      "methodName": "WriteOk",
+      "argumentTypes": [
+        "String"
+      ]
     },
     {
       "managedName": "Diagnostics.WriteWarn",
@@ -17,7 +22,12 @@
       "nativeSymbol": "Diagnostics_WriteWarn",
       "allowedInKernel": true,
       "summary": "Writes a warning diagnostic status line.",
-      "argumentCount": 1
+      "argumentCount": 1,
+      "typeName": "Diagnostics",
+      "methodName": "WriteWarn",
+      "argumentTypes": [
+        "String"
+      ]
     },
     {
       "managedName": "Diagnostics.WriteFail",
@@ -25,7 +35,12 @@
       "nativeSymbol": "Diagnostics_WriteFail",
       "allowedInKernel": true,
       "summary": "Writes a failure diagnostic status line.",
-      "argumentCount": 1
+      "argumentCount": 1,
+      "typeName": "Diagnostics",
+      "methodName": "WriteFail",
+      "argumentTypes": [
+        "String"
+      ]
     }
   ]
 }

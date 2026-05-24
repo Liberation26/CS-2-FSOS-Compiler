@@ -1,12 +1,14 @@
-Oryn archive manifest
-Version: 0.3.4
-Archive: Oryn-0.3.4.zip
+Oryn Archive Manifest
+Version: 0.4.0
+Archive: Oryn-0.4.0.zip
 
-Top-level layout:
-- FullSource/ contains the complete source tree.
-- ChangedFiles/ contains only files changed for this delivery, rooted exactly as they should land in the repository.
+Layout:
+- FullSource/: complete Oryn source tree for this delivery.
+- ChangedFiles/: files changed in this delivery, rooted exactly as they should land in the repository.
 
-Delivery focus:
-- Stage 3 feature parity proof.
-- Stage 3 IR/assembly parity inspection test.
-- Stage 3 QEMU parity proof diagnostics.
+Stage 4 delivery:
+- Approved module boundary.
+- Approved namespace/type/method/signature metadata.
+- Compiler validation for approved calls.
+- Failure diagnostics for unapproved calls and namespaces.
+- Stage 4 compiler-boundary tests.

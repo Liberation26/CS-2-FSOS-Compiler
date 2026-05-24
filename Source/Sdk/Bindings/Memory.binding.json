@@ -1,7 +1,7 @@
 {
   "module": "Memory",
   "namespace": "Oryn.Kernel.Memory",
-  "stage": 2,
+  "stage": 4,
   "methods": [
     {
       "managedName": "Memory.Initialize",
@@ -9,7 +9,10 @@
       "nativeSymbol": "Memory_Initialize",
       "allowedInKernel": true,
       "summary": "Initializes the selected memory module.",
-      "argumentCount": 0
+      "argumentCount": 0,
+      "typeName": "Memory",
+      "methodName": "Initialize",
+      "argumentTypes": []
     }
   ]
 }

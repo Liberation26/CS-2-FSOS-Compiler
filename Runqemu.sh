@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.3.4"
+RUNQEMU_VERSION="0.4.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
 COMPILER_FRAMEWORK="${ORYN_COMPILER_FRAMEWORK:-net8.0}"
 COMPILER_DLL="$PROJECT_ROOT/Source/Core/Oryn.Compiler/bin/${COMPILER_CONFIGURATION}/${COMPILER_FRAMEWORK}/Oryn.Compiler.dll"
-REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage3}}"
+REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage4}}"
 
 info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
 warn() { printf '[WARN] [ RUNQEMU  ] %s\n' "$1"; }
@@ -84,13 +84,13 @@ case "$REQUESTED_STAGE" in
     all|All|ALL)
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
         info "Selected stage set: All"
-        info "Stage 3 development mode is active; running the direct ELF64 object writer kernel."
-        RunOneStage Stage3
-        info "Requested Stage 3 kernel completed."
+        info "Stage 4 development mode is active; running the approved module boundary kernel."
+        RunOneStage Stage4
+        info "Requested Stage 4 kernel completed."
         exit 0
         ;;
     1|stage1|Stage1|STAGE1)
-        printf '[FAIL] [ RUNQEMU  ] Stage 3 development mode is active; Stage1 is not run by this script. Use Stage2 or Stage3.\n'
+        printf '[FAIL] [ RUNQEMU  ] Stage 4 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, or Stage4.\n'
         exit 1
         ;;
     2|stage2|Stage2|STAGE2)
@@ -103,8 +103,13 @@ case "$REQUESTED_STAGE" in
         STAGE_LABEL="stage3"
         DIRECT_OBJECT_LINK=1
         ;;
+    4|stage4|Stage4|STAGE4)
+        STAGE_NAME="Stage4"
+        STAGE_LABEL="stage4"
+        DIRECT_OBJECT_LINK=1
+        ;;
     *)
-        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, or Stage3.\n' "$REQUESTED_STAGE"
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, or Stage4.\n' "$REQUESTED_STAGE"
         exit 1
         ;;
 esac

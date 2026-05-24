@@ -88,3 +88,8 @@ Run only the parity inspection after a Stage 3 compile with:
 ```bash
 Tests/Compiler/Stage3/09-stage3-feature-parity-check.sh
 ```
+
+
+## Oryn 0.4.0 Stage 4 note
+
+Oryn 0.4.0 adds the approved module boundary. Safe user-facing C# kernel code may call only APIs recorded in `Source/Sdk/Bindings/*.binding.json` with `allowedInKernel=true`. Unapproved calls and unapproved `Oryn.Kernel.*` namespaces are rejected before IR lowering.

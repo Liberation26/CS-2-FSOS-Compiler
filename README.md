@@ -1,759 +1,116 @@
 # Oryn
 
-Oryn is a C# to freestanding operating-system compiler project.
+Oryn is a C# Operating System Development Platform from Oryn Foundry. Its purpose is to let a developer describe safe, user-facing kernel code in a restricted C# subset and have Oryn turn that code into freestanding native output for a bootable operating-system project.
 
-The goal is to let developers write an Oryn-safe subset of C# and compile it into native freestanding output that can be linked into a bootable kernel.
+## Current status
 
-Oryn is not a general .NET runtime, and it is not intended to compile arbitrary C# applications. Oryn compiles a controlled kernel-safe C# subset into native code for operating-system development.
+Oryn has completed the Stage 3 compiler proof and now includes the Stage 4 approved module boundary.
+
+### What Stage 3 already proves
+
+Stage 3 proves that Oryn is no longer only producing sketches or host-dependent output.
+
+The Stage 3 pipeline can:
+
+1. read a safe C# kernel source file;
+2. validate the safe subset;
+3. parse variables, branches, loops, helper methods, returns, integer arithmetic, string literals, and approved module calls;
+4. lower the source into explicit Oryn IR;
+5. build a basic control-flow graph;
+6. emit readable diagnostic C and x64 assembly reference artifacts;
+7. write a real ELF64 relocatable object directly from Oryn IR;
+8. link that object with native freestanding module implementations;
+9. produce a bootable GRUB ISO;
+10. boot the generated kernel in QEMU and reach expected serial diagnostics.
+
+Stage 3 therefore proves the core compiler path:
+
+```text
+Kernel.cs
+  -> safe-subset validation
+  -> Oryn IR
+  -> control-flow graph
+  -> direct ELF64 relocatable object
+  -> linked freestanding kernel ELF
+  -> bootable ISO
+  -> QEMU proof output
+```
+
+The Stage 3 kernel lives in `OSes/Stage3/Source/Kernel.cs` and exercises:
+
+- `Diagnostics.WriteOk` / `Diagnostics.WriteFail`
+- `Memory.Initialize`
+- `Cpu.HaltForever`
+- local `int` variables
+- `while` loops
+- `if` / `else` branches
+- `+`, `-`, `==`, and `<`
+- private static helper methods
+- explicit `return`
+
+The Stage 3 tests live in `Tests/Compiler/Stage3/` and check IR, assembly, ELF64 sections, symbols, relocations, no compiler rebuild dependency during the proof run, feature parity, and QEMU boot diagnostics.
+
+### What Stage 4 adds
+
+Stage 4 introduces the approved module boundary.
+
+Safe user-facing C# kernel code can now call approved Oryn module APIs, while unsafe native/freestanding details stay hidden behind approved modules.
+
+Stage 4 adds:
+
+- an approved module catalogue in `Source/Sdk/Bindings/*.binding.json`;
+- namespace, type, method, signature, argument-type, native-symbol, stage, and approval metadata;
+- compiler validation for approved `Oryn.Kernel.*` namespaces;
+- compiler validation for approved module calls;
+- clear failure diagnostics for unapproved calls;
+- tests proving allowed calls compile;
+- tests proving forbidden calls fail.
+
+The current approved modules are:
+
+| Module | Approved namespace | Approved API |
+| --- | --- | --- |
+| Diagnostics | `Oryn.Kernel.Diagnostics` | `Diagnostics.WriteOk(string)`, `Diagnostics.WriteWarn(string)`, `Diagnostics.WriteFail(string)` |
+| Memory | `Oryn.Kernel.Memory` | `Memory.Initialize()` |
+| Cpu | `Oryn.Kernel.Cpu` | `Cpu.HaltForever()` |
+
+This is the point where Oryn starts becoming a real OS-generation platform: end-user C# stays safe and small, and platform/native details are mediated by approved modules.
+
+## Running the current stage
+
+Build and run the current Stage 4 proof:
+
+```bash
+ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage4
+```
+
+Run only the Stage 4 compiler-boundary tests:
+
+```bash
+./Tests/Compiler/Stage4/run.sh
+```
+
+Run the Stage 3 compiler/object/boot proof tests:
+
+```bash
+./Tests/Compiler/Stage3/run.sh
+```
+
+## Repository layout
+
+| Path | Purpose |
+| --- | --- |
+| `Source/Core/Oryn.Compiler/` | The Oryn compiler. |
+| `Source/Sdk/Apis/` | Safe C# API surface for approved modules. |
+| `Source/Sdk/Bindings/` | Approved module catalogue and native binding metadata. |
+| `Source/Native/Modules/` | Freestanding native implementations hidden behind module APIs. |
+| `OSes/Stage3/` | Stage 3 direct ELF64 object writer proof kernel. |
+| `OSes/Stage4/` | Stage 4 approved module boundary proof kernel. |
+| `Tests/Compiler/Stage3/` | Stage 3 compiler, object, and boot proof tests. |
+| `Tests/Compiler/Stage4/` | Stage 4 approved/forbidden module-boundary tests. |
+| `Documents/Stages/` | Stage design notes. |
+| `Documents/ReleaseNotes/` | Versioned release notes. |
 
 ## Version
 
-Current version: `0.3.4`
-
-
-
-## Stage 1, Stage 2, and Stage 3 proofs
-
-Stage 1 proves approved Oryn SDK calls can be lowered into a bootable freestanding kernel path. It is the first end-to-end proof that user-facing C# using approved module APIs can become native kernel code.
-
-Stage 2 proves Oryn can compile a useful C# subset with variables, arithmetic, branches, loops, static helper methods, and module calls. The Stage 2 kernel lives under `OSes/Stage2/`.
-
-Stage 3 proves Oryn can write a real ELF64 relocatable object directly from Oryn IR and link that object into a bootable freestanding x86_64 kernel. The Stage 3 kernel lives under `OSes/Stage3/` and is the default kernel run by `./Runqemu.sh`.
-
-Stage 2 currently proves:
-
-```text
-Diagnostics.WriteOk
-Memory.Initialize
-Cpu.HaltForever
-int locals backed by rbp-relative stack slots
-integer arithmetic
-if / else
-while
-static helper methods
-.rodata string literal table emission
-JSON-loaded module bindings
-```
-
-The Stage 2 tests live under:
-
-```text
-Tests/Compiler/Stage2/
-```
-
-Run the full Stage 2 test set with:
-
-```bash
-Tests/Compiler/Stage2/run.sh
-```
-
-The Stage 3 tests live under:
-
-```text
-Tests/Compiler/Stage3/
-```
-
-Run the full Stage 3 test set with:
-
-```bash
-Tests/Compiler/Stage3/run.sh
-```
-
-## Core idea
-
-The intended compiler flow is:
-
-```text
-Oryn-safe C# source
-    ↓
-Roslyn parse and semantic analysis
-    ↓
-Oryn safe-subset validation
-    ↓
-Oryn kernel/module model
-    ↓
-Oryn IR
-    ↓
-Oryn native code generator
-    ↓
-Direct ELF64 relocatable object writer
-    ↓
-freestanding linker
-    ↓
-bootable kernel image
-    ↓
-QEMU or hardware test
-```
-
-## Stage 1 language target
-
-Stage 1 supports kernel-safe C# without runtime-heavy features.
-
-Supported:
-
-```text
-static classes
-static methods
-structs
-enums
-constants
-if / else
-switch
-while / for
-basic arithmetic
-method calls
-simple fields
-module API calls
-```
-
-Not supported yet:
-
-```text
-new object()
-GC allocation
-exceptions
-reflection
-async
-LINQ
-dynamic
-arbitrary generics
-delegates
-normal .NET libraries
-```
-
-Example target source:
-
-```csharp
-using Oryn.Kernel.Diagnostics;
-using Oryn.Kernel.Memory;
-using Oryn.Kernel.Cpu;
-
-public static class Kernel
-{
-    public static void Main()
-    {
-        Diagnostics.WriteOk("Kernel entered");
-        Memory.Initialize();
-        Cpu.HaltForever();
-    }
-}
-```
-
-## SDK model
-
-End-user code should use Oryn SDK namespaces such as:
-
-```csharp
-using Oryn.Kernel.Diagnostics;
-using Oryn.Kernel.Cpu;
-using Oryn.Kernel.Memory;
-```
-
-These are Oryn-approved compile-time API assemblies. They exist so Roslyn and editors can provide type checking, autocomplete, and documentation.
-
-They are not runtime .NET DLLs loaded by the kernel.
-
-Each module has three parts:
-
-```text
-1. API assembly
-   Used by Roslyn and the user's editor.
-
-2. Binding metadata
-   Used by Oryn.Compiler to lower approved C# calls to native symbols.
-
-3. Native implementation
-   Linked into the generated freestanding kernel.
-```
-
-For example:
-
-```text
-Diagnostics.WriteOk(string)
-    ↓
-Diagnostics_WriteOk
-```
-
-## Initial filesystem
-
-The repository is arranged around a native compiler pipeline:
-
-```text
-Source/Core/Oryn.Compiler/
-  Frontend/
-    CSharpParser/
-    SemanticModel/
-    SafeSubsetValidator/
-
-  KernelModel/
-    KernelAst/
-    ModuleAst/
-    SymbolTable/
-    CapabilityTable/
-
-  IR/
-    OrynIr/
-    ControlFlowGraph/
-    TypeLowering/
-
-  Backends/
-    Native/
-      X64/
-      Object/
-
-  Runtime/
-    ObjectModel/
-    StringModel/
-    ArrayModel/
-    Panic/
-    Startup/
-
-  Tests/
-```
-
-SDK and module layout:
-
-```text
-Source/Sdk/Apis/
-  Oryn.Kernel.Diagnostics/
-  Oryn.Kernel.Cpu/
-  Oryn.Kernel.Memory/
-
-Source/Sdk/Bindings/
-  Diagnostics.binding.json
-  Cpu.binding.json
-  Memory.binding.json
-
-Source/Native/Modules/
-  Diagnostics/
-  Cpu/
-  Memory/
-
-Source/Native/Runtime/
-```
-
-## Stage 1 compiler and backend
-
-Version `0.1.0` provides the first working compiler proof. The `compile` command now:
-
-```text
-1. Reads an Oryn-safe C# kernel source file.
-2. Validates that unsupported runtime-heavy constructs are not present.
-3. Finds `public static void Main()`.
-4. Lowers approved SDK calls such as `Diagnostics.WriteOk`, `Memory.Initialize`, and `Cpu.HaltForever` into Oryn IR records.
-5. Emits a backend manifest, a freestanding C backend reference snippet, and real x64 assembly that clang/as assembles into the linked kernel object.
-```
-
-Example:
-
-```bash
-cd Source/Core/Oryn.Compiler
-dotnet run -- compile Tests/Stage0/Kernel.stage0.cs --target x64-elf --output ../../../../Build/Kernel.o
-```
-
-This writes:
-
-```text
-Build/Kernel.stage2.ir.json
-Build/Kernel.generated.c
-Build/Kernel.generated.S
-Build/Kernel.o
-```
-
-`Kernel.stage3.o` is now a real ELF64 relocatable object written directly by Oryn. The generated `.c` and `.S` files remain readable reference artifacts for diagnostics.
-
-
-
-
-
-### Stage 2 control-flow graph in 0.2.7
-
-Version `0.2.7` adds a readable Stage 2 control-flow graph over the lowered IR. `if` and `while` now lower through explicit labels, `JumpIfFalse`, `Jump`, and basic blocks with successor edges. The generated `.stage2.ir.json` manifest includes the IR instruction stream and the `ControlFlowGraph` block list so later backend stages can reason about branches and loops without guessing from source text.
-
-Example shape:
-
-```text
-LoopStart0:
-  LoadLocal Counter
-  ConstInt32 3
-  CompareLessThanInt32
-  JumpIfFalse LoopEnd0
-  ...
-  Jump LoopStart0
-LoopEnd0:
-```
-
-### Runqemu default behaviour in 0.2.6
-
-`./Runqemu.sh` now runs headless by default and captures serial output to each stage build folder as `Qemu.serial.log`. After QEMU exits or times out, the script prints the captured serial log back to the terminal with `[SERIAL]` prefixes.
-
-The default stage selector remains `All`, so a plain run builds the compiler once, then runs Stage1 followed by Stage2 without rebuilding the compiler between stages.
-
-Use these overrides when needed:
-
-```bash
-./Runqemu.sh Stage1
-./Runqemu.sh Stage2
-ORYN_QEMU_DISPLAY=headed ./Runqemu.sh Stage2
-ORYN_SKIP_QEMU=1 ./Runqemu.sh Stage2
-```
-
-## Stage 2 part 1
-
-Version `0.2.1` starts the Stage 2 line. Stage 2 part 1 adds a separate Stage 2 OS source tree and lets the root run script select which stage to build.
-
-```bash
-./Runqemu.sh Stage2
-./Runqemu.sh Stage1
-```
-
-`Stage3` is now the default when no argument is supplied. Stage 2 remains available explicitly for comparison with the assembly-backed path.
-
-A C# literal such as `0` may be represented as `ConstInt32 0` in the IR because C# `int` is a 32-bit language type. The backend can still choose a compact x64 encoding for the value.
-
-
-## Stage 2 phase 3 compiler separation
-
-Version `0.2.6` moves compiler logic out of `Program.cs` and into the first real compiler component layout:
-
-```text
-Source/Core/Oryn.Compiler/
-  Frontend/
-    CSharpParser/
-    SafeSubsetValidator/
-    SemanticModel/
-  KernelModel/
-    KernelAst/
-    SymbolTable/
-  IR/
-    OrynIr/
-    ControlFlowGraph/
-    TypeLowering/
-  Backends/
-    Native/
-      X64/
-      Object/
-```
-
-`Program.cs` is now only the small process entry point. The command line, source loading, validation, parsing, semantic binding, IR lowering, CFG creation, backend emission, and output writing are handled by separate components.
-
-## RunQEMU handoff
-
-Version `0.1.1` adds `Runqemu.sh` at the repository root. After `update.sh` copies `ChangedFiles/`, commits, and attempts to push, it now launches:
-
-```bash
-./Runqemu.sh
-```
-
-`Runqemu.sh` performs the first end-to-end freestanding backend proof:
-
-```text
-1. Runs Oryn.Compiler against the Stage 1 test kernel source.
-2. Produces the Stage 1 backend assembly.
-3. Generates a small freestanding x86_64 boot harness.
-4. Builds native Diagnostics, Cpu, and Memory module objects.
-5. Links an ELF64 freestanding kernel image.
-6. Runs that kernel in qemu-system-x86_64.
-```
-
-The generated kernel intentionally halts forever after `Cpu.HaltForever()`, so `Runqemu.sh` treats the configured timeout as a successful proof that the kernel remained running. Set `ORYN_SKIP_QEMU=1` to build the freestanding kernel without launching QEMU.
-
-## Native backend target
-
-The first native backend target is:
-
-```text
-Architecture: x86_64
-Mode: Long Mode
-Object format: ELF64 relocatable object
-Kernel mode: freestanding
-```
-
-The first full native object writer should generate an object with:
-
-```text
-.text
-.rodata
-.symtab
-.strtab
-.rela.text
-```
-
-and native symbols such as:
-
-```text
-Kernel_Main
-Diagnostics_WriteOk
-Memory_Initialize
-Cpu_HaltForever
-```
-
-
-## Stage 1 limitations
-
-Stage 1 does not yet compile arbitrary C#. It intentionally accepts a narrow proof subset: `public static void Main()` containing approved static module API calls. It does not yet lower variables, branches, loops, structs, fields, arithmetic, or user-defined methods. Those belong to later compiler stages.
-
-## Update workflow
-
-Run `./update.sh` from anywhere after downloading an `Oryn-*.zip` archive. The updater extracts the latest archive from `~/Downloads` into a temporary directory, copies `ChangedFiles/` into `~/Dev/OrynFoundry`, stages the result, commits it, and then attempts to push to GitHub.
-
-The updater does not expect `ChangedFiles/` to already exist inside `~/Dev/OrynFoundry`.
-
-
-## Update behaviour
-
-`update.sh` extracts the selected `Oryn-*.zip` archive into `/tmp`, finds `ChangedFiles/`, copies those files into `~/Dev/OrynFoundry`, initialises Git there when the folder exists but has no `.git/`, sets the origin remote to `https://github.com/Liberation26/CS-2-FSOS-Compiler.git`, commits the copied files, and then attempts to push.
-
-Existing non-Git target folders are no longer treated as fatal errors.
-
-
-## Stage 1 limitations
-
-Stage 1 does not yet compile arbitrary C#. It intentionally accepts a narrow proof subset: `public static void Main()` containing approved static module API calls. It does not yet lower variables, branches, loops, structs, fields, arithmetic, or user-defined methods. Those belong to later compiler stages.
-
-## Update workflow 0.0.4
-
-`update.sh` prints its own version at startup, extracts the selected `Oryn-*.zip` archive into `/tmp`, copies `ChangedFiles/` into `~/Dev/OrynFoundry`, initialises Git in place when needed, commits the update, and attempts to push to the configured GitHub remote.
-
-### 0.0.4 updater behaviour
-
-`update.sh` selects the highest versioned `Oryn-x.y.z.zip` from `~/Downloads` when no path is supplied and self-resets from the selected archive if that archive contains a different updater.
-
-## Stage 1 limitations
-
-Stage 1 does not yet compile arbitrary C#. It intentionally accepts a narrow proof subset: `public static void Main()` containing approved static module API calls. It does not yet lower variables, branches, loops, structs, fields, arithmetic, or user-defined methods. Those belong to later compiler stages.
-
-## Update workflow 0.0.5
-
-`update.sh` now uses the GitHub remote `https://github.com/Liberation26/CS-2-FSOS-Compiler.git`.
-
-The updater continues to display its own version number, choose the highest semantic `Oryn-x.y.z.zip` from `~/Downloads`, extract to `/tmp`, reset itself when a different archive updater is present, copy `ChangedFiles/` into `~/Dev/OrynFoundry`, commit the copied files, and attempt to push.
-
-## Version 0.1.2 build fix
-
-`Source/Core/Oryn.Compiler/Tests/**/*.cs` files are compiler input samples, not part of the .NET compiler application. The compiler project excludes those files from normal SDK compilation so `Runqemu.sh` can pass them to `Oryn.Compiler compile` without `.NET` trying to resolve `Oryn.Kernel.*` namespaces as project references.
-
-## Version 0.1.3 QEMU launch fix
-
-`Runqemu.sh` now starts QEMU in headed mode by default so the freestanding kernel run has a visible QEMU window. Set `ORYN_QEMU_DISPLAY=headless` or `ORYN_QEMU_HEADLESS=1` to restore the previous non-graphical mode.
-
-The QEMU launch remains bounded by `ORYN_QEMU_TIMEOUT` because the generated proof kernel intentionally reaches `Cpu.HaltForever()`. A timeout is therefore treated as a successful boot-and-halt proof, not as a failed run.
-
-
-## Stage 1 OS source location
-
-As of `0.1.4`, the visible Stage 1 kernel source is written under:
-
-```text
-OSes/Stage1/Source/Kernel.cs
-```
-
-`Runqemu.sh` uses that file by default, emits backend/build output under `OSes/Stage1/Build/Runqemu/`, links the freestanding kernel, and then runs it in QEMU.
-
-The compiler test file under `Source/Core/Oryn.Compiler/Tests/Stage0/Kernel.stage0.cs` is only a compiler test fixture.
-
-## Version 0.1.6 compiler and runtime diagnostics
-
-`Oryn.Compiler compile` now writes an explicit compiler diagnostics log next to the Stage 1 backend outputs:
-
-```text
-OSes/Stage1/Build/Runqemu/Kernel.stage1.diagnostics.log
-```
-
-The log records each lowered call and states which `Diagnostics.Write*` calls will become runtime kernel diagnostics. The native Diagnostics module now writes DEBUG builds to both QEMU serial and VGA text memory, so the generated Stage 1 kernel should visibly emit lines such as:
-
-```text
-[ OK ] [ KERNEL   ] Stage1 kernel entered
-[ OK ] [ KERNEL   ] Stage1 memory module initialized
-[ OK ] [ KERNEL   ] Stage1 kernel is halting forever
-```
-
-`Runqemu.sh` fails early if the compiler diagnostics log is not produced.
-
-## Version 0.1.6 x86_64 QEMU boot path
-
-`Runqemu.sh` now boots the generated x86_64 freestanding kernel through a GRUB ISO.
-
-The generated kernel remains an ELF64 image:
-
-```text
-OSes/Stage1/Build/Runqemu/OrynKernel.elf
-```
-
-The script now creates and boots:
-
-```text
-OSes/Stage1/Build/Runqemu/OrynKernel.iso
-```
-
-This avoids QEMU's direct `-kernel` ELF loader rejecting the 64-bit image.
-
-Required extra host tool for the ISO path:
-
-```text
-grub-mkrescue
-```
-
-`xorriso` may also be required by the host `grub-mkrescue` installation.
-
-## Version 0.2.1 Stage 2 part 1
-
-`Runqemu.sh` now accepts a stage selector:
-
-```bash
-./Runqemu.sh Stage1
-./Runqemu.sh Stage2
-```
-
-When no stage is supplied, the script defaults to `Stage2`.
-
-Stage 2 part 1 adds:
-
-```text
-OSes/Stage2/Source/Kernel.cs
-OSes/Stage2/README.md
-Tests/Compiler/Stage2/README.md
-```
-
-This first Stage 2 delivery deliberately keeps the known-good Stage 1 native call backend while establishing the Stage 2 source tree and build path. The next Stage 2 compiler work is to add real IR records for locals/constants, then assignments, arithmetic, branches, loops, and helper methods.
-
-
-## Running stages
-
-Run every currently packaged compiler/kernel stage:
-
-```bash
-./Runqemu.sh
-./Runqemu.sh All
-```
-
-Run a single stage explicitly:
-
-```bash
-./Runqemu.sh Stage1
-./Runqemu.sh Stage2
-```
-
-The default is now `All`, so Stage1 remains a regression proof and Stage2 runs after it.
-
-Stage2 0.2.1 also adds a boot-level serial proof before `Kernel_Main` and waits for COM1 transmitter readiness before writing diagnostics bytes.
-
-
-## 0.2.6 compiler structure
-
-Stage 2 phase 3 separates `Oryn.Compiler` into frontend parsing, safe-subset validation, semantic binding, kernel model, IR lowering, CFG construction, and native x64 backend emission. `Program.cs` is now only the small CLI entry point.
-
-
-### 0.3.3 Stage 3 verification and ELF64 object inspection
-
-Version `0.3.3` adds the Stage 3 verification pack. The Stage 3 tests now inspect the generated `Kernel.stage3.o` directly rather than only checking that the kernel boots. The checks cover the ELF64 header, x86-64 relocatable object type, required sections, symbols, relocation records, and the no-automatic-compiler-rebuild policy.
-
-### 0.3.2 Runqemu compiler build policy
-
-`Runqemu.sh` no longer builds `Oryn.Compiler` automatically. It uses the existing compiler DLL from `Source/Core/Oryn.Compiler/bin/<Configuration>/<Framework>/Oryn.Compiler.dll` or the path supplied in `ORYN_COMPILER_DLL`.
-
-Build the compiler only when that is explicitly required:
-
-```bash
-ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage3
-```
-
-The build log is still written to `Build/Oryn.Compiler.build.log` when an explicit compiler build is requested. Set `ORYN_COMPILER_BUILD_TIMEOUT=<seconds>` to change the default 240 second compiler build timeout.
-
-## 0.2.6 Stage 2 Phase 3 real Oryn IR
-
-Version `0.2.6` adds the first real Stage 2 Oryn intermediate representation.
-
-The compiler now lowers safe kernel C# statements into explicit IR instructions instead of preserving only call records. The minimum IR set is:
-
-```text
-Label
-Jump
-JumpIfFalse
-Return
-Call
-DeclareLocal
-LoadLocal
-StoreLocal
-ConstInt32
-ConstString
-AddInt32
-SubInt32
-CompareEqualInt32
-CompareLessThanInt32
-```
-
-Example lowering shape:
-
-```csharp
-int Counter = 0;
-Counter = Counter + 1;
-Diagnostics.WriteOk("Done");
-```
-
-```text
-DeclareLocal Counter
-ConstInt32 0
-StoreLocal Counter
-LoadLocal Counter
-ConstInt32 1
-AddInt32
-StoreLocal Counter
-ConstString "Done"
-Call Diagnostics.WriteOk -> Diagnostics_WriteOk
-Return
-```
-
-The Stage 2 compiler now accepts simple Int32 locals, assignments, `if` / `else`, `while`, `return;`, Int32 arithmetic, Int32 comparisons, and approved module calls.
-
-The generated manifest is now named:
-
-```text
-<output>.stage2.ir.json
-```
-
-## Version 0.2.8 Stage 2 CFG visibility
-
-Version `0.2.8` keeps the Stage 2 CFG implementation from `0.2.7`, but makes the proof lines visible during normal runs. After Stage 2 lowering, the compiler now prints lines such as:
-
-```text
-[ OK ] [ CFG      ] Basic blocks: 5
-[ OK ] [ CFG      ] LoopStart0 -> LoopEnd0, Block1
-```
-
-`Runqemu.sh` also prints the CFG proof lines from the generated compiler diagnostics log before continuing to the native build and QEMU run.
-
-## Version 0.2.9 Stage 2 Phase 5 real x64 backend
-
-Version `0.2.9` adds the Stage 2 Phase 5 backend path. Oryn IR now lowers to real x64 assembly in `Kernel.stage2.generated.S`; `Runqemu.sh` assembles that file with `clang -c`, links it with the native diagnostics, CPU, memory, and boot modules, creates `OrynKernel.elf`, builds the GRUB ISO, and boots it in QEMU.
-
-The generated C file remains as a readable reference artifact, but Stage 2 no longer depends on generated C for the kernel body. The direct ELF64 object writer is implemented in Stage 3.
-
-
-## Version 0.2.10 Stage 2 Phase 5 syntax fix
-
-Version `0.2.10` fixes the C# syntax errors in `X64AssemblyEmitter.cs` reported after the `0.2.9` Phase 5 package. The issue was caused by incorrectly escaped string literals inside interpolated diagnostic messages. The backend now stores those fallback names in local variables before constructing the exception messages, keeping the real x64 backend behaviour unchanged.
-
-
-## Stage 2 Phase 6
-
-The Stage 2 x64 backend now has a simple stack/local variable model. Integer locals are lowered to 64-bit rbp-relative stack slots, and generated assembly uses a conventional `push %rbp`, `mov %rsp, %rbp`, local-frame reservation, `leave`, and `ret` shape.
-
-## Version 0.2.12 Stage 2 string literal table
-
-Version `0.2.12` adds the Stage 2 x64 string literal table. The backend now emits distinct source string literals once into `.section .rodata` as `.LstrN` labels and lowers approved string module calls to RIP-relative argument loads such as `lea .Lstr0(%rip), %rdi` before `call Diagnostics_WriteOk`.
-
-The Phase 6 stack/local model remains in place: integer locals still use 64-bit rbp-relative slots, and the generated method keeps the conventional prologue and epilogue.
-
-
-## Version 0.2.13 Stage 2 static helper methods
-
-Version `0.2.13` adds static helper method support to the Stage 2 compiler. A kernel can now call helper methods such as `WriteBanner();` from `Main()` and the compiler lowers those methods to generated x64 symbols such as `Kernel_WriteBanner`.
-
-Each generated method receives its own conventional rbp stack frame and local-slot table. The existing `.rodata` string literal table and approved native module bindings remain in place, so helper methods can call diagnostics safely with immutable freestanding string data.
-
-## Version 0.2.14 Stage 2 JSON module bindings
-
-Version `0.2.14` moves Stage 2 module binding information out of the compiler source and into JSON files under:
-
-```text
-Source/Sdk/Bindings/
-```
-
-The starter binding files are:
-
-```text
-Source/Sdk/Bindings/Diagnostics.binding.json
-Source/Sdk/Bindings/Cpu.binding.json
-Source/Sdk/Bindings/Memory.binding.json
-```
-
-The compiler now loads approved calls such as `Diagnostics.WriteOk`, `Memory.Initialize`, and `Cpu.HaltForever` from those JSON records. This keeps module expansion out of `Program.cs` and out of the compiler's binding catalogue implementation. The intended module expansion path is now: add an API DLL, add binding JSON, add a native implementation, and add tests.
-
-During this Stage 2 compiler phase, `Runqemu.sh` defaults to running only the second kernel. The legacy `All` selector also maps to Stage 2-only execution so the older Stage 1 kernel is not launched first.
-
-## Version 0.2.16 Stage 2 test kernel
-
-Version `0.2.16` adds the dedicated Stage 2 test kernel under:
-
-```text
-OSes/Stage2/
-```
-
-The kernel proves the current Stage 2 subset at runtime: diagnostics calls, memory initialization, integer locals, arithmetic, `while`, `if` / `else`, static helper methods, and the final CPU halt path. Diagnostics accepts string literals only for now, so the loop prints a repeated proof line instead of formatted counter values.
-
-`Runqemu.sh` now defaults to Stage 3. The Stage 2 path remains available explicitly, and explicit Stage 1 selectors are rejected by the script.
-
-## Version 0.2.16 Stage 2 boot/output fix
-
-Version `0.2.16` fixes the Stage 2 no-output run by tightening the freestanding boot proof path and backend call emission. The x64 backend now emits each native/helper call once, the GRUB ISO boot entry uses the Multiboot v1 path, and `Runqemu.sh` captures both COM1 serial and QEMU debugcon output. Early boot and native diagnostics now mirror proof lines to debugcon so the run script can still show useful output if the serial file is unexpectedly empty.
-
-
-
-## Version 0.2.17 Stage 2 tests
-
-Version `0.2.17` adds the dedicated Stage 2 compiler and boot test suite under:
-
-```text
-Tests/Compiler/Stage2/
-```
-
-The suite contains:
-
-```text
-01-compile-stage2-kernel.sh
-02-ir-output-check.sh
-03-assembly-output-check.sh
-04-qemu-stage2-boot.sh
-```
-
-These tests check that the compiler exits successfully, the IR and assembly files exist, the ELF and ISO are created, QEMU reaches the expected diagnostics, and timeout after the halt loop is treated as success.
-
-The documentation now states the stage boundary explicitly: Stage 1 proves approved calls can become a bootable freestanding kernel; Stage 2 proves Oryn can compile a useful C# subset with variables, branches, loops, helper methods, and module calls.
-
-## Version 0.3.0 Stage 3 direct ELF64 object writer
-
-Version `0.3.0` introduces Stage 3. Stage 3 writes a real ELF64 relocatable object directly from Oryn IR and links that object into the bootable freestanding x86_64 kernel.
-
-The compiler still writes readable generated C and generated `.S` artifacts for inspection, but the Stage 3 build does not assemble the generated `.S` file for the kernel body. It links the `.o` written directly by Oryn.
-
-Stage 3 output includes:
-
-```text
-Kernel.stage3.stage3.ir.json
-Kernel.stage3.generated.c
-Kernel.stage3.generated.S
-Kernel.stage3.o
-Kernel.stage3.diagnostics.log
-OrynKernel.elf
-OrynKernel.iso
-```
-
-Run Stage 3 with:
-
-```bash
-./Runqemu.sh Stage3
-```
-
-or run compile/link/ISO only with:
-
-```bash
-ORYN_SKIP_QEMU=1 ./Runqemu.sh Stage3
-```
-
-## Version 0.3.1 Stage 3 QEMU proof correction
-
-Version `0.3.1` corrects the shared Runqemu proof checks so Stage 3 looks for `Stage3` kernel diagnostics instead of the older Stage 2 proof strings. The Stage 3 QEMU test now also checks the exact Stage 3 entry, memory, loop, branch, helper-method, and halt diagnostics.
-
-
-### 0.3.4 Stage 3 feature parity proof
-
-Version `0.3.4` expands the Stage 3 kernel and test suite so the direct ELF64 object writer proves parity with the Stage 2 language subset. The Stage 3 runtime proof now exercises integer locals, addition, subtraction, equality comparison, less-than comparison, branches, loops, helper methods, explicit returns, approved module calls, string constants, integer constants, and the final halt path.
-
-The new parity test is:
-
-```text
-Tests/Compiler/Stage3/09-stage3-feature-parity-check.sh
-```
-
-The parity test inspects the generated IR and readable assembly reference to ensure the expected methods, calls, strings, and IR opcodes are present before the QEMU boot proof runs.
+Current version: `0.4.0`.

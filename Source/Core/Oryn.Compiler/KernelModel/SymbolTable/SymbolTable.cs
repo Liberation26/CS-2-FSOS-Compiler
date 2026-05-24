@@ -6,7 +6,14 @@ internal sealed class SymbolTable
 
     public SymbolTable(IEnumerable<BindingRecord> Bindings)
     {
-        BindingsByManagedName = Bindings.ToDictionary(Binding => Binding.ManagedName, StringComparer.Ordinal);
+        Dictionary<string, BindingRecord> Records = new(StringComparer.Ordinal);
+        foreach (BindingRecord Binding in Bindings)
+        {
+            Records[Binding.ManagedName] = Binding;
+            Records[Binding.FullyQualifiedManagedName] = Binding;
+        }
+
+        BindingsByManagedName = Records;
     }
 
     public bool TryResolve(string ManagedName, out BindingRecord? Binding)
@@ -14,5 +21,5 @@ internal sealed class SymbolTable
         return BindingsByManagedName.TryGetValue(ManagedName, out Binding);
     }
 
-    public IReadOnlyCollection<BindingRecord> Bindings => BindingsByManagedName.Values.ToList();
+    public IReadOnlyCollection<BindingRecord> Bindings => BindingsByManagedName.Values.Distinct().OrderBy(Binding => Binding.ModuleName, StringComparer.Ordinal).ThenBy(Binding => Binding.ManagedName, StringComparer.Ordinal).ToList();
 }

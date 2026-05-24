@@ -43,19 +43,20 @@ internal sealed class CompilerCli
         Output.WriteLine("  oryn compiler modules");
         Output.WriteLine("  oryn compiler compile <source.cs> --target x64-elf --output <output.o>");
         Output.WriteLine();
-        Output.WriteLine("Stage 3 compile output:");
-        Output.WriteLine("  <output>.stage2.ir.json or <output>.stage3.ir.json lowered Oryn IR and backend manifest");
+        Output.WriteLine("Stage 4 compile output:");
+        Output.WriteLine("  <output>.stage2.ir.json, <output>.stage3.ir.json, or <output>.stage4.ir.json lowered Oryn IR and backend manifest");
         Output.WriteLine("  <output>.generated.c     freestanding C backend snippet");
         Output.WriteLine("  <output>.generated.S     readable x64 assembly reference artifact");
-        Output.WriteLine("  <output>                 real ELF64 relocatable object written directly by Oryn");
+        Output.WriteLine("  <output>                 real ELF64 relocatable object written directly by Oryn after approved-module validation");
     }
 
     private void PrintModules()
     {
-        Output.WriteLine("[ OK ] Available starter modules:");
+        Output.WriteLine("[ OK ] Stage 4 approved module catalogue:");
         foreach (BindingRecord Binding in BindingCatalog.CreateDefault().Bindings)
         {
-            Output.WriteLine($"  {Binding.ModuleName,-12} namespace=Oryn.Kernel.{Binding.ModuleName,-12} native={Binding.NativeSymbol}");
+            string Approval = Binding.AllowedInKernel ? "approved" : "blocked";
+            Output.WriteLine($"  {Binding.ModuleName,-12} {Approval,-8} namespace={Binding.NamespaceName} type={Binding.TypeName} method={Binding.MethodName} signature=\"{Binding.Signature}\" native={Binding.NativeSymbol}");
         }
     }
 

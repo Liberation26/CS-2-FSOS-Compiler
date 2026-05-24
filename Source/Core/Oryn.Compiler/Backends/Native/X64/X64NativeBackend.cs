@@ -19,7 +19,7 @@ internal sealed class X64NativeBackend
         string BaseName = Path.GetFileNameWithoutExtension(FullOutputPath);
         Directory.CreateDirectory(OutputDirectory);
 
-        string StageTag = BaseName.Contains("stage3", StringComparison.OrdinalIgnoreCase) ? "stage3" : "stage2";
+        string StageTag = BaseName.Contains("stage4", StringComparison.OrdinalIgnoreCase) ? "stage4" : (BaseName.Contains("stage3", StringComparison.OrdinalIgnoreCase) ? "stage3" : "stage2");
         string ManifestPath = Path.Combine(OutputDirectory, BaseName + "." + StageTag + ".ir.json");
         string CPath = Path.Combine(OutputDirectory, BaseName + ".generated.c");
         string AssemblyPath = Path.Combine(OutputDirectory, BaseName + ".generated.S");
@@ -35,7 +35,7 @@ internal sealed class X64NativeBackend
             IrModule.Methods,
             ControlFlowGraph,
             ControlFlowGraph.Blocks.Count,
-            "Stage 3 writes a real ELF64 relocatable object directly from Oryn IR while still emitting readable C and assembly reference artifacts for diagnostics. The direct object contains .text, .rodata, .rela.text, .symtab, .strtab, .shstrtab, and .note.GNU-stack sections.");
+            StageTag == "stage4" ? "Stage 4 validates safe user-facing C# calls against the approved Oryn module catalogue before lowering to IR, then writes a real ELF64 relocatable object directly from approved Oryn IR." : "Stage 3 writes a real ELF64 relocatable object directly from Oryn IR while still emitting readable C and assembly reference artifacts for diagnostics. The direct object contains .text, .rodata, .rela.text, .symtab, .strtab, .shstrtab, and .note.GNU-stack sections.");
 
         return new BackendResult(
             ManifestPath,
