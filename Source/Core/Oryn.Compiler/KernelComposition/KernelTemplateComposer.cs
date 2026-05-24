@@ -9,10 +9,22 @@ internal sealed record KernelCompositionCommand(
     string TemplatePath,
     string OutputPath,
     int MaximumStage,
-    IReadOnlyList<string> SelectedModuleNames);
+    string OsName,
+    string KernelName,
+    IReadOnlyList<string> SelectedModuleNames,
+    IReadOnlyList<string> MandatoryModuleNames);
 
 internal sealed class KernelTemplateComposer
 {
+    private static readonly string[] DefaultMandatoryModuleNames =
+    {
+        "Runtime",
+        "Diagnostics",
+        "Panic",
+        "Cpu",
+        "ManifestLoader"
+    };
+
     private readonly string Version;
     private readonly ModuleManifestCatalog ModuleManifestCatalog;
     private readonly BindingCatalog BindingCatalog;
@@ -38,9 +50,21 @@ internal sealed class KernelTemplateComposer
             throw new OrynCompileException($"Kernel template not found: {Command.TemplatePath}");
         }
 
-        IReadOnlyList<ModuleManifestRecord> SelectedModules = ResolveSelectedModules(Command);
+        IReadOnlyList<ModuleManifestRecord> LinkedModules = ResolveLinkedModules(Command);
+        IReadOnlySet<string> MandatoryNames = Command.MandatoryModuleNames.ToHashSet(StringComparer.Ordinal);
+        IReadOnlyList<ModuleManifestRecord> UserSelectedModules = LinkedModules
+            .Where(Module => !MandatoryNames.Contains(Module.ModuleName))
+            .OrderBy(Module => Module.InitializeOrder)
+            .ThenBy(Module => Module.ModuleName, StringComparer.Ordinal)
+            .ToList();
+        IReadOnlyList<ModuleManifestRecord> MandatoryModules = LinkedModules
+            .Where(Module => MandatoryNames.Contains(Module.ModuleName))
+            .OrderBy(Module => Module.InitializeOrder)
+            .ThenBy(Module => Module.ModuleName, StringComparer.Ordinal)
+            .ToList();
+
         string TemplateText = File.ReadAllText(Command.TemplatePath);
-        string GeneratedSource = ApplyTemplate(TemplateText, SelectedModules);
+        string GeneratedSource = ApplyTemplate(TemplateText, Command, LinkedModules, MandatoryModules, UserSelectedModules);
 
         ValidateGeneratedSource(Command, GeneratedSource);
 
@@ -51,31 +75,49 @@ internal sealed class KernelTemplateComposer
         List<string> Messages = new()
         {
             $"[ OK ] [ COMPOSE  ] Oryn kernel template composer version {Version}",
+            $"[ OK ] [ COMPOSE  ] OS name: {Command.OsName}",
+            $"[ OK ] [ COMPOSE  ] Kernel name: {Command.KernelName}",
             $"[ OK ] [ COMPOSE  ] Template: {Command.TemplatePath}",
             $"[ OK ] [ COMPOSE  ] Output: {Command.OutputPath}",
-            $"[ OK ] [ COMPOSE  ] Selected modules: {string.Join(", ", SelectedModules.Select(Module => Module.ModuleName))}"
+            $"[ OK ] [ COMPOSE  ] Mandatory kernel modules: {string.Join(", ", MandatoryModules.Select(Module => Module.ModuleName))}",
+            $"[ OK ] [ COMPOSE  ] User-selected modules: {(UserSelectedModules.Count == 0 ? "<none>" : string.Join(", ", UserSelectedModules.Select(Module => Module.ModuleName)))}",
+            $"[ OK ] [ COMPOSE  ] Linked module closure: {string.Join(", ", LinkedModules.Select(Module => Module.ModuleName))}"
         };
 
-        foreach (ModuleManifestRecord Module in SelectedModules)
+        foreach (ModuleManifestRecord Module in LinkedModules)
         {
             string Initializer = string.IsNullOrWhiteSpace(Module.InitializerManagedName) ? "<native/none>" : Module.InitializerManagedName;
             string Dependencies = Module.DependsOn.Count == 0 ? "<none>" : string.Join(", ", Module.DependsOn);
-            Messages.Add($"[ OK ] [ COMPOSE  ] module={Module.ModuleName} namespace={Module.NamespaceName} initializer={Initializer} dependsOn={Dependencies}");
+            string SelectionKind = MandatoryNames.Contains(Module.ModuleName) ? "mandatory" : "user-selected";
+            Messages.Add($"[ OK ] [ COMPOSE  ] module={Module.ModuleName} kind={SelectionKind} namespace={Module.NamespaceName} initializer={Initializer} dependsOn={Dependencies}");
         }
 
         Messages.Add("[ OK ] [ COMPOSE  ] Generated kernel source passed safe-subset and approved-call validation before backend/native compilation.");
         return Messages;
     }
 
-    private IReadOnlyList<ModuleManifestRecord> ResolveSelectedModules(KernelCompositionCommand Command)
+    private IReadOnlyList<ModuleManifestRecord> ResolveLinkedModules(KernelCompositionCommand Command)
     {
         IReadOnlyDictionary<string, ModuleManifestRecord> ByName = ModuleManifestCatalog.Manifests
             .Where(Module => Module.AllowedInKernel && Module.LinkByDefault && Module.Stage <= Command.MaximumStage)
             .ToDictionary(Module => Module.ModuleName, Module => Module, StringComparer.Ordinal);
 
-        IReadOnlyList<string> RequestedNames = Command.SelectedModuleNames.Count == 0
-            ? ByName.Values.OrderBy(Module => Module.InitializeOrder).ThenBy(Module => Module.ModuleName, StringComparer.Ordinal).Select(Module => Module.ModuleName).ToList()
-            : Command.SelectedModuleNames;
+        IReadOnlyList<string> RequestedNames;
+        if (Command.SelectedModuleNames.Count == 0 && Command.MandatoryModuleNames.Count == 0)
+        {
+            RequestedNames = ByName.Values
+                .OrderBy(Module => Module.InitializeOrder)
+                .ThenBy(Module => Module.ModuleName, StringComparer.Ordinal)
+                .Select(Module => Module.ModuleName)
+                .ToList();
+        }
+        else
+        {
+            RequestedNames = Command.MandatoryModuleNames
+                .Concat(Command.SelectedModuleNames)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+        }
 
         Dictionary<string, ModuleManifestRecord> Closure = new(StringComparer.Ordinal);
         foreach (string RequestedName in RequestedNames)
@@ -111,9 +153,14 @@ internal sealed class KernelTemplateComposer
         Closure.Add(ModuleName, Module);
     }
 
-    private string ApplyTemplate(string TemplateText, IReadOnlyList<ModuleManifestRecord> SelectedModules)
+    private string ApplyTemplate(
+        string TemplateText,
+        KernelCompositionCommand Command,
+        IReadOnlyList<ModuleManifestRecord> LinkedModules,
+        IReadOnlyList<ModuleManifestRecord> MandatoryModules,
+        IReadOnlyList<ModuleManifestRecord> UserSelectedModules)
     {
-        string Usings = string.Join(Environment.NewLine, SelectedModules
+        string Usings = string.Join(Environment.NewLine, LinkedModules
             .Select(Module => Module.NamespaceName)
             .Where(NamespaceName => !string.IsNullOrWhiteSpace(NamespaceName))
             .Distinct(StringComparer.Ordinal)
@@ -121,45 +168,58 @@ internal sealed class KernelTemplateComposer
             .Select(NamespaceName => $"using {NamespaceName};"));
 
         List<string> BootLines = new();
-        BootLines.Add("        Diagnostics.WriteOk(\"Stage9 generated kernel template composition reached kernel code\");");
-        BootLines.Add($"        Diagnostics.WriteOk(\"Stage9 selected module count: {SelectedModules.Count}\");");
-        foreach (ModuleManifestRecord Module in SelectedModules)
+        BootLines.Add($"        Diagnostics.WriteOk(\"{EscapeForStringLiteral(Command.OsName)} generated kernel template composition reached kernel code\");");
+        BootLines.Add($"        Diagnostics.WriteOk(\"{EscapeForStringLiteral(Command.OsName)} mandatory kernel module count: {MandatoryModules.Count}\");");
+        foreach (ModuleManifestRecord Module in MandatoryModules)
         {
-            BootLines.Add($"        Diagnostics.WriteOk(\"Stage9 selected module: {EscapeForStringLiteral(Module.ModuleName)}\");");
+            BootLines.Add($"        Diagnostics.WriteOk(\"{EscapeForStringLiteral(Command.OsName)} mandatory kernel module: {EscapeForStringLiteral(Module.ModuleName)}\");");
         }
 
-        string InitializerCalls = BuildInitializerCalls(SelectedModules);
+        BootLines.Add($"        Diagnostics.WriteOk(\"{EscapeForStringLiteral(Command.OsName)} user-selected module count: {UserSelectedModules.Count}\");");
+        foreach (ModuleManifestRecord Module in UserSelectedModules)
+        {
+            BootLines.Add($"        Diagnostics.WriteOk(\"{EscapeForStringLiteral(Command.OsName)} user-selected module: {EscapeForStringLiteral(Module.ModuleName)}\");");
+        }
+
+        if (UserSelectedModules.Count == 0)
+        {
+            BootLines.Add($"        Diagnostics.WriteOk(\"{EscapeForStringLiteral(Command.OsName)} user-selected modules: <none>\");");
+        }
+
+        string InitializerCalls = BuildInitializerCalls(Command, LinkedModules);
 
         return TemplateText
             .Replace("__ORYN_GENERATED_USINGS__", Usings, StringComparison.Ordinal)
             .Replace("__ORYN_KERNEL_BOOT_PROOF_LINES__", string.Join(Environment.NewLine, BootLines), StringComparison.Ordinal)
             .Replace("__ORYN_MODULE_INITIALIZATION_CALLS__", InitializerCalls, StringComparison.Ordinal)
-            .Replace("__ORYN_COMPILER_VERSION__", Version, StringComparison.Ordinal);
+            .Replace("__ORYN_COMPILER_VERSION__", Version, StringComparison.Ordinal)
+            .Replace("__ORYN_OS_NAME__", EscapeForStringLiteral(Command.OsName), StringComparison.Ordinal)
+            .Replace("__ORYN_KERNEL_NAME__", EscapeForStringLiteral(Command.KernelName), StringComparison.Ordinal);
     }
 
-    private string BuildInitializerCalls(IReadOnlyList<ModuleManifestRecord> SelectedModules)
+    private string BuildInitializerCalls(KernelCompositionCommand Command, IReadOnlyList<ModuleManifestRecord> LinkedModules)
     {
-        ModuleManifestRecord? ManifestLoader = SelectedModules.FirstOrDefault(Module => Module.ModuleName.Equals("ManifestLoader", StringComparison.Ordinal));
+        ModuleManifestRecord? ManifestLoader = LinkedModules.FirstOrDefault(Module => Module.ModuleName.Equals("ManifestLoader", StringComparison.Ordinal));
         if (ManifestLoader is not null && !string.IsNullOrWhiteSpace(ManifestLoader.InitializerManagedName))
         {
-            return $"        Diagnostics.WriteOk(\"Stage9 initializing selected modules through generated manifest glue\");{Environment.NewLine}        {ManifestLoader.InitializerManagedName}();";
+            return $"        Diagnostics.WriteOk(\"{EscapeForStringLiteral(Command.OsName)} initializing linked modules through generated manifest glue\");{Environment.NewLine}        {ManifestLoader.InitializerManagedName}();";
         }
 
         List<string> Lines = new();
-        foreach (ModuleManifestRecord Module in SelectedModules)
+        foreach (ModuleManifestRecord Module in LinkedModules)
         {
             if (string.IsNullOrWhiteSpace(Module.InitializerManagedName))
             {
                 continue;
             }
 
-            Lines.Add($"        Diagnostics.WriteOk(\"Stage9 initializing module: {EscapeForStringLiteral(Module.ModuleName)}\");");
+            Lines.Add($"        Diagnostics.WriteOk(\"{EscapeForStringLiteral(Command.OsName)} initializing module: {EscapeForStringLiteral(Module.ModuleName)}\");");
             Lines.Add($"        {Module.InitializerManagedName}();");
         }
 
         if (Lines.Count == 0)
         {
-            Lines.Add("        Diagnostics.WriteOk(\"Stage9 no managed module initializers selected\");");
+            Lines.Add($"        Diagnostics.WriteOk(\"{EscapeForStringLiteral(Command.OsName)} no managed module initializers selected\");");
         }
 
         return string.Join(Environment.NewLine, Lines);
@@ -171,7 +231,7 @@ internal sealed class KernelTemplateComposer
         IReadOnlyList<string> ValidationFailures = Validator.Validate(GeneratedSource);
         if (ValidationFailures.Count > 0)
         {
-            throw new OrynCompileException("Stage 9 generated kernel template failed safe-subset validation before compilation: " + string.Join(" | ", ValidationFailures));
+            throw new OrynCompileException($"{Command.OsName} generated kernel template failed safe-subset validation before compilation: " + string.Join(" | ", ValidationFailures));
         }
 
         KernelAst Ast = new CSharpKernelParser().Parse(Command.OutputPath, GeneratedSource);
@@ -189,6 +249,9 @@ internal sealed class KernelTemplateComposer
         string? OutputPath = ReadOption(Args, "--output");
         string StageText = ReadOption(Args, "--stage") ?? "9";
         string ModulesText = ReadOption(Args, "--modules") ?? string.Empty;
+        string MandatoryModulesText = ReadOption(Args, "--mandatory-modules") ?? string.Empty;
+        string OsName = ReadOption(Args, "--os-name") ?? "Stage9";
+        string KernelName = ReadOption(Args, "--kernel-name") ?? "Kernel";
 
         if (string.IsNullOrWhiteSpace(TemplatePath))
         {
@@ -202,7 +265,13 @@ internal sealed class KernelTemplateComposer
 
         int MaximumStage = ParseStage(StageText);
         IReadOnlyList<string> Modules = ModulesText.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        return new KernelCompositionCommand(TemplatePath, OutputPath, MaximumStage, Modules);
+        IReadOnlyList<string> MandatoryModules = MandatoryModulesText.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (MandatoryModulesText.Length == 0 && Modules.Count > 0)
+        {
+            MandatoryModules = DefaultMandatoryModuleNames;
+        }
+
+        return new KernelCompositionCommand(TemplatePath, OutputPath, MaximumStage, OsName, KernelName, Modules, MandatoryModules);
     }
 
     private static int ParseStage(string StageText)

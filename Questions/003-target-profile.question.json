@@ -1,0 +1,10 @@
+{
+  "Id": "target-profile",
+  "Order": 3,
+  "Prompt": "Which target should Oryn generate for?",
+  "AnswerKey": "Target",
+  "Type": "choice",
+  "Required": true,
+  "Default": "x64-elf",
+  "Choices": ["x64-elf"]
+}

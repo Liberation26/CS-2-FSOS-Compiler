@@ -46,10 +46,10 @@ internal sealed class CompilerCli
     {
         Output.WriteLine("Usage:");
         Output.WriteLine("  oryn compiler modules");
-        Output.WriteLine("  oryn compiler compose-kernel --stage Stage9 --template <template.cs> --output <generated.cs> [--modules Runtime,Diagnostics,Memory,Panic,Cpu,ManifestLoader]");
+        Output.WriteLine("  oryn compiler compose-kernel --stage Stage9 --template <template.cs> --output <generated.cs> [--os-name <name>] [--kernel-name <name>] [--modules Memory] [--mandatory-modules Runtime,Diagnostics,Panic,Cpu,ManifestLoader]");
         Output.WriteLine("  oryn compiler compile <source.cs> --target x64-elf --output <output.o>");
         Output.WriteLine();
-        Output.WriteLine("Stage 9 compile output:");
+        Output.WriteLine("1.0.0 compile output:");
         Output.WriteLine("  <output>.stage2.ir.json through <output>.stage9.ir.json lowered Oryn IR and backend manifest");
         Output.WriteLine("  <output>.generated.c     freestanding C backend snippet");
         Output.WriteLine("  <output>.generated.S     readable x64 assembly reference artifact");

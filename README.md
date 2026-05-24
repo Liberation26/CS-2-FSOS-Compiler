@@ -1,137 +1,96 @@
 # Oryn
 
-Oryn is a C# to freestanding operating-system compiler project from Oryn Foundry.
+Oryn is a C# to freestanding operating-system compiler and generator project from Oryn Foundry.
 
-The goal is to let developers write an Oryn-safe subset of C# and compile it into native freestanding output that can be linked into a bootable kernel. Oryn is not a general .NET runtime and is not intended to compile arbitrary C# applications. Oryn compiles a controlled, kernel-safe subset into native code for operating-system development.
+Current version: **1.0.0**
 
-## Version
+## 1.0.0 milestone
 
-Current version: **0.9.3**
+Oryn 1.0.0 is the first end-user OS generation milestone.
 
-## Stage 9 status
+It proves that a user can:
 
-Stage 9 is complete. Oryn now proves **generated kernel template composition from selected modules**.
+1. generate a named OS folder,
+2. save OS generation answers as JSON,
+3. create a generated kernel template and source tree,
+4. keep mandatory kernel modules separate from user-selected modules,
+5. compose a freestanding-safe C# kernel,
+6. validate approved module calls,
+7. compile to native freestanding x64 output,
+8. link a bootable kernel ISO,
+9. boot it in QEMU,
+10. see deterministic diagnostics proving the generated OS ran.
 
-Stage 8 proved that C# calls must match explicit API contracts before they can bind to native module symbols. Stage 9 keeps that rule and adds a generator step before compilation: selected module manifests are resolved, a kernel template is filled in, the generated C# source is validated, and only then is it lowered to IR and native output.
+## Important module policy
 
-## The Stage 9 rule
+The user-facing selected module list excludes modules needed to get the kernel running.
 
-A generated Oryn kernel is accepted only when all of these pass before backend/native compilation:
+Mandatory kernel modules are linked automatically:
 
-1. selected module manifests exist and are approved for kernel use,
-2. dependencies are included and resolved in dependency-safe order,
-3. the kernel template placeholders are expanded into C# source,
-4. generated `using` statements refer only to approved `Oryn.Kernel.*` namespaces,
-5. generated module calls pass safe-subset validation,
-6. generated module calls match approved bindings and API contracts,
-7. invalid calls fail without creating generated C, generated assembly, or ELF64 object artifacts.
+- Runtime
+- Diagnostics
+- Panic
+- Cpu
+- ManifestLoader
 
-## Template composition flow
+Diagnostics and Panic are always enabled. They are not optional user-selected modules.
 
-```text
-selected module manifests
-    ↓
-dependency-resolved module set
-    ↓
-OSes/Stage9/Templates/Kernel.template.cs
-    ↓
-OSes/Stage9/Build/Runqemu/Generated/Kernel.Generated.cs
-    ↓
-safe-subset validation
-    ↓
-approved-call/API-contract validation
-    ↓
-Oryn IR and CFG
-    ↓
-direct ELF64 relocatable object writer
-    ↓
-resolved native module linking
-    ↓
-freestanding bootable kernel
-```
+For 1.0.0, the only user-selectable module is:
 
-## Template placeholders
+- Memory
 
-Stage 9 templates use these placeholders:
+Future modules must not become selectable until they have concrete passing test records.
 
-```text
-__ORYN_GENERATED_USINGS__
-__ORYN_KERNEL_BOOT_PROOF_LINES__
-__ORYN_MODULE_INITIALIZATION_CALLS__
-__ORYN_COMPILER_VERSION__
-```
-
-The compiler command is:
+## Generate your first OS
 
 ```bash
-dotnet Source/Core/Oryn.Compiler/bin/Debug/net8.0/Oryn.Compiler.dll compose-kernel \
-  --stage Stage9 \
-  --template OSes/Stage9/Templates/Kernel.template.cs \
-  --output OSes/Stage9/Build/Runqemu/Generated/Kernel.Generated.cs
+./Oryn.sh generate --os-name MyOrynOS --kernel-name MyOrynKernel --modules Memory
 ```
 
-`Runqemu.sh Stage9` runs this composition step automatically before invoking the normal compiler backend.
-
-## What each stage proves
-
-| Stage | Proof |
-| --- | --- |
-| Stage 1 | Approved calls can become a bootable freestanding kernel. |
-| Stage 2 | Oryn can compile variables, branches, loops, helper methods, and module calls into useful IR and native output. |
-| Stage 3 | Oryn can write a real ELF64 relocatable object directly. |
-| Stage 4 | Safe user-facing C# calls are checked against the approved module boundary. |
-| Stage 5 | Runtime, diagnostics, memory, panic, and CPU bindings form a minimal freestanding runtime contract. |
-| Stage 6 | Service/module manifests drive module exposure, native linking, and manifest glue initialization. |
-| Stage 7 | Module dependencies are validated, missing dependencies and cycles are rejected, and modules initialize in dependency-safe order. |
-| Stage 8 | Module API contracts approve exactly which C# calls may bind to native module symbols. |
-| Stage 9 | A kernel source file is generated from a selected module template and validated before backend/native compilation. |
-
-## Running Stage 9
-
-From the repository root:
-
-```bash
-ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage9
-```
-
-Expected proof lines include:
+This creates:
 
 ```text
-[ OK ] [ COMPOSE  ] Oryn kernel template composer version 0.9.3
-[ OK ] [ COMPOSE  ] Selected modules: Runtime, Diagnostics, Memory, Panic, Cpu, ManifestLoader
-[SERIAL] [ OK ] [ KERNEL   ] Stage9 native pre-kernel handoff reached
-[SERIAL] [ OK ] [ KERNEL   ] Stage9 generated kernel entered
-[SERIAL] [ OK ] [ KERNEL   ] Stage9 generated kernel template composition reached kernel code
-[SERIAL] [ OK ] [ MANIFEST ] Stage9 dependency graph loading started
-[SERIAL] [ OK ] [ COMPOSE ] Stage9 generated template composition runtime proof completed
-[SERIAL] [ OK ] [ KERNEL   ] Stage9 generated kernel is halting forever
+OSes/MyOrynOS/
+  Answers/MyOrynOS.answers.json
+  Source/Kernel.cs
+  Templates/Kernel.template.cs
+  Build/
+  README.md
+  manifest.json
 ```
 
-The kernel intentionally halts forever after proving the stage. The QEMU timeout is treated as success.
-
-## Running tests
+## Build the generated OS
 
 ```bash
-./Tests/Compiler/Stage9/run.sh
+./Oryn.sh build MyOrynOS
 ```
 
-The Stage 9 tests check template composition, generated-kernel compilation, invalid-call rejection before backend/native compilation, and QEMU boot proof output.
+## Run the generated OS
 
-## Important directories
+```bash
+./Oryn.sh run MyOrynOS
+```
+
+The generated OS should print diagnostics containing the OS name, kernel name, mandatory modules, user-selected modules, and halt proof.
+
+## Development stages
+
+Stage 9 remains the internal compiler proof for generated kernel template composition. Oryn 1.0.0 uses that proof as the engine behind the user-facing generated OS workflow.
+
+```bash
+./Runqemu.sh Stage9
+```
+
+## Tests
+
+Generator milestone tests live under:
 
 ```text
-Source/Core/Oryn.Compiler/KernelComposition/
-                                      Stage 9 kernel template composer
-Source/Core/Oryn.Compiler/Frontend/ApiContracts/
-                                      API contract catalogue loader
-Source/Core/Oryn.Compiler/Manifests/
-                                      Manifest dependency resolver
-Source/Sdk/Bindings/              Safe C# API to native symbol bindings
-Source/Sdk/ApiContracts/          Approved C# API contracts
-Source/Sdk/ModuleManifests/       Module metadata and dependency declarations
-Source/Native/Modules/            Freestanding native module implementations
-OSes/Stage9/                      Stage 9 generated-template proof kernel
-Tests/Compiler/Stage9/            Stage 9 automated tests
-Documents/ReleaseNotes/0.9.3.md   Stage 9 API contract catalog compile fix
-Documents/ReleaseNotes/0.9.0.md   Stage 9 release notes
+Tests/Generator/1.0.0/
+```
+
+Run them with:
+
+```bash
+Tests/Generator/1.0.0/run.sh
 ```

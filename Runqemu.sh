@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.9.3"
+RUNQEMU_VERSION="1.0.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -80,6 +80,13 @@ RunOneStage() {
     ORYN_STAGE="$SELECTED_STAGE" "$0" "$SELECTED_STAGE"
 }
 
+ORYN_USER_OS_MODE=0
+if [ -d "$PROJECT_ROOT/OSes/$REQUESTED_STAGE" ] && [[ ! "$REQUESTED_STAGE" =~ ^[Ss]tage[0-9]+$ ]]; then
+    ORYN_USER_OS_MODE=1
+    STAGE_NAME="$REQUESTED_STAGE"
+    STAGE_LABEL="$(printf '%s' "$REQUESTED_STAGE" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]_-')"
+    DIRECT_OBJECT_LINK=1
+else
 case "$REQUESTED_STAGE" in
     all|All|ALL)
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
@@ -134,13 +141,14 @@ case "$REQUESTED_STAGE" in
         DIRECT_OBJECT_LINK=1
         ;;
     *)
-        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, Stage5, Stage6, Stage7, Stage8, or Stage9.\n' "$REQUESTED_STAGE"
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage or generated OS: %s. Use All, Stage2, Stage3, Stage4, Stage5, Stage6, Stage7, Stage8, Stage9, or a folder under OSes/.\n' "$REQUESTED_STAGE"
         exit 1
         ;;
 esac
+fi
 BUILD_ROOT="${ORYN_BUILD_ROOT:-$PROJECT_ROOT/OSes/$STAGE_NAME/Build/Runqemu}"
 SOURCE_FILE="${ORYN_KERNEL_SOURCE:-$PROJECT_ROOT/OSes/$STAGE_NAME/Source/Kernel.cs}"
-if [ "$STAGE_NAME" = "Stage9" ] && [ -z "${ORYN_KERNEL_SOURCE:-}" ]; then
+if { [ "$STAGE_NAME" = "Stage9" ] || [ "$ORYN_USER_OS_MODE" = "1" ]; } && [ -z "${ORYN_KERNEL_SOURCE:-}" ]; then
     SOURCE_FILE="$BUILD_ROOT/Generated/Kernel.Generated.cs"
 fi
 KERNEL_TEMPLATE_FILE="${ORYN_KERNEL_TEMPLATE:-$PROJECT_ROOT/OSes/$STAGE_NAME/Templates/Kernel.template.cs}"
@@ -175,7 +183,11 @@ RequireTool() {
 
 info "Runqemu.sh version ${RUNQEMU_VERSION}"
 info "Project root: ${PROJECT_ROOT}"
-info "Selected stage: ${STAGE_NAME}"
+if [ "$ORYN_USER_OS_MODE" = "1" ]; then
+    info "Selected generated OS: ${STAGE_NAME}"
+else
+    info "Selected stage: ${STAGE_NAME}"
+fi
 info "Build root: ${BUILD_ROOT}"
 info "Kernel source: ${SOURCE_FILE}"
 
@@ -183,8 +195,10 @@ RequireTool dotnet
 RequireTool tee
 RequireTool clang
 RequireTool ld
-RequireTool qemu-system-x86_64
-RequireTool timeout
+if [ "${ORYN_SKIP_QEMU:-0}" != "1" ]; then
+    RequireTool qemu-system-x86_64
+    RequireTool timeout
+fi
 
 if [ "$QEMU_BOOT_MODE" = "iso" ]; then
     RequireTool grub-mkrescue
@@ -193,14 +207,18 @@ fi
 rm -rf "$BUILD_ROOT"
 mkdir -p "$BUILD_ROOT"
 
-if [ "$STAGE_NAME" = "Stage9" ]; then
+if [ "$STAGE_NAME" = "Stage9" ] || [ "$ORYN_USER_OS_MODE" = "1" ]; then
     [ -f "$KERNEL_TEMPLATE_FILE" ] || fail "Kernel template not found: $KERNEL_TEMPLATE_FILE"
     info "Generating ${STAGE_NAME} kernel source from selected module template"
     EnsureCompilerAvailable
+    COMPOSE_OS_NAME="${ORYN_OS_NAME:-$STAGE_NAME}"
+    COMPOSE_KERNEL_NAME="${ORYN_KERNEL_NAME:-Kernel}"
+    COMPOSE_STAGE="${ORYN_COMPOSE_STAGE:-Stage9}"
+    COMPOSE_MANDATORY_MODULES="${ORYN_MANDATORY_MODULES:-Runtime,Diagnostics,Panic,Cpu,ManifestLoader}"
     if [ -n "${ORYN_COMPOSE_MODULES:-}" ]; then
-        dotnet "$ORYN_COMPILER_DLL" compose-kernel --stage Stage9 --template "$KERNEL_TEMPLATE_FILE" --output "$SOURCE_FILE" --modules "$ORYN_COMPOSE_MODULES"
+        dotnet "$ORYN_COMPILER_DLL" compose-kernel --stage "$COMPOSE_STAGE" --template "$KERNEL_TEMPLATE_FILE" --output "$SOURCE_FILE" --os-name "$COMPOSE_OS_NAME" --kernel-name "$COMPOSE_KERNEL_NAME" --mandatory-modules "$COMPOSE_MANDATORY_MODULES" --modules "$ORYN_COMPOSE_MODULES"
     else
-        dotnet "$ORYN_COMPILER_DLL" compose-kernel --stage Stage9 --template "$KERNEL_TEMPLATE_FILE" --output "$SOURCE_FILE"
+        dotnet "$ORYN_COMPILER_DLL" compose-kernel --stage "$COMPOSE_STAGE" --template "$KERNEL_TEMPLATE_FILE" --output "$SOURCE_FILE" --os-name "$COMPOSE_OS_NAME" --kernel-name "$COMPOSE_KERNEL_NAME"
     fi
 fi
 
@@ -715,7 +733,7 @@ elif [ "$STAGE_NAME" = "Stage7" ]; then
     CompileManifestModules 7
 elif [ "$STAGE_NAME" = "Stage8" ]; then
     CompileManifestModules 8
-elif [ "$STAGE_NAME" = "Stage9" ]; then
+elif [ "$STAGE_NAME" = "Stage9" ] || [ "$ORYN_USER_OS_MODE" = "1" ]; then
     CompileManifestModules 9
 else
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$DIAGNOSTICS_SOURCE" -o "$BUILD_ROOT/Diagnostics.Runtime.o"
@@ -731,7 +749,7 @@ if [ "${DIRECT_OBJECT_LINK:-0}" = "1" ]; then
     KERNEL_LINK_OBJECT="$KERNEL_OBJECT"
 fi
 
-if [ "$STAGE_NAME" = "Stage6" ] || [ "$STAGE_NAME" = "Stage7" ] || [ "$STAGE_NAME" = "Stage8" ] || [ "$STAGE_NAME" = "Stage9" ]; then
+if [ "$STAGE_NAME" = "Stage6" ] || [ "$STAGE_NAME" = "Stage7" ] || [ "$STAGE_NAME" = "Stage8" ] || [ "$STAGE_NAME" = "Stage9" ] || [ "$ORYN_USER_OS_MODE" = "1" ]; then
     ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
         "$BUILD_ROOT/Boot.o" \
         "$KERNEL_LINK_OBJECT" \
@@ -893,12 +911,22 @@ elif [ "$STAGE_NAME" = "Stage6" ]; then
         fi
     done
 else
-    if ! grep -q "${STAGE_NAME} kernel entered" "$PROOF_LOG"; then
-        fail "Expected ${STAGE_NAME} kernel entry proof was not found in: $PROOF_LOG"
-    fi
+    if [ "$ORYN_USER_OS_MODE" = "1" ]; then
+        if ! grep -q "${STAGE_NAME} generated kernel entered" "$PROOF_LOG"; then
+            fail "Expected generated OS kernel entry proof was not found for ${STAGE_NAME} in: $PROOF_LOG"
+        fi
 
-    if ! grep -q "${STAGE_NAME} kernel is halting forever" "$PROOF_LOG"; then
-        fail "Expected ${STAGE_NAME} halt proof was not found in: $PROOF_LOG"
+        if ! grep -q "${STAGE_NAME} generated kernel is halting forever" "$PROOF_LOG"; then
+            fail "Expected generated OS halt proof was not found for ${STAGE_NAME} in: $PROOF_LOG"
+        fi
+    else
+        if ! grep -q "${STAGE_NAME} kernel entered" "$PROOF_LOG"; then
+            fail "Expected ${STAGE_NAME} kernel entry proof was not found in: $PROOF_LOG"
+        fi
+
+        if ! grep -q "${STAGE_NAME} kernel is halting forever" "$PROOF_LOG"; then
+            fail "Expected ${STAGE_NAME} halt proof was not found in: $PROOF_LOG"
+        fi
     fi
 fi
 

@@ -1,28 +1,57 @@
 # Oryn Manual
 
-Oryn is a C# to freestanding operating-system compiler project from Oryn Foundry.
+Oryn 1.0.0 introduces the first end-user OS generation workflow.
 
-Current version: **0.9.3**
+## What Oryn 1.0.0 does
 
-## Current proof stage
+Oryn can now create a named OS folder from JSON-backed answers, generate a kernel template and source tree, compose the final kernel from approved modules, build a bootable freestanding x64 kernel, and run it through QEMU.
 
-Stage 9 proves generated kernel template composition from selected modules.
+## User-selected modules versus mandatory modules
 
-The Stage 9 composer reads module manifests, resolves dependencies, fills `OSes/Stage9/Templates/Kernel.template.cs`, validates the generated C# source against the safe subset and API contracts, and only then lets the backend emit IR, diagnostics, reference C/assembly, and direct ELF64 output.
+User-selected modules are optional modules chosen by the generated OS owner.
 
-Invalid calls are blocked before backend/native compilation. The Stage 9 invalid-call test confirms no generated C, generated assembly, or ELF64 object is produced when an unapproved call is present.
+They do not include modules needed to get the kernel running.
 
-## Useful commands
+Mandatory modules are linked automatically:
+
+- Runtime
+- Diagnostics
+- Panic
+- Cpu
+- ManifestLoader
+
+Diagnostics and Panic are always enabled and are never optional user choices.
+
+For 1.0.0, Memory is the only user-selectable module.
+
+## Generate
 
 ```bash
-ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage9
-./Tests/Compiler/Stage9/run.sh
+./Oryn.sh generate --os-name MyOrynOS --kernel-name MyOrynKernel --modules Memory
 ```
 
-See also:
+## Build
 
-- `README.md`
-- `OSes/Stage9/README.md`
-- `Documents/Stages/Stage9.md`
-- `Documents/ReleaseNotes/0.9.2.md`
-- `Documents/ReleaseNotes/0.9.0.md`
+```bash
+./Oryn.sh build MyOrynOS
+```
+
+## Run
+
+```bash
+./Oryn.sh run MyOrynOS
+```
+
+## Files created for a generated OS
+
+```text
+OSes/<OsName>/
+  Answers/<OsName>.answers.json
+  Source/Kernel.cs
+  Templates/Kernel.template.cs
+  Build/
+  README.md
+  manifest.json
+```
+
+The manifest separates `MandatoryKernelModules` from `UserSelectedModules` so the user's selections are not polluted by kernel boot requirements.

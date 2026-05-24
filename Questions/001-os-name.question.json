@@ -1,0 +1,9 @@
+{
+  "Id": "os-name",
+  "Order": 1,
+  "Prompt": "What is the name of the OS?",
+  "AnswerKey": "OsName",
+  "Type": "string",
+  "Required": true,
+  "Default": "MyOrynOS"
+}

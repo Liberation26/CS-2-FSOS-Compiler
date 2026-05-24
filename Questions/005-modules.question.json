@@ -1,0 +1,11 @@
+{
+  "Id": "user-selected-modules",
+  "Order": 5,
+  "Prompt": "Which optional user-selectable modules should be included?",
+  "AnswerKey": "UserSelectedModules",
+  "Type": "multi-choice",
+  "Required": false,
+  "Default": ["Memory"],
+  "Choices": ["Memory"],
+  "Policy": "Do not list mandatory kernel modules here. Runtime, Diagnostics, Panic, Cpu, and ManifestLoader are linked automatically. Diagnostics and Panic are always enabled."
+}

@@ -1,0 +1,9 @@
+{
+  "Id": "kernel-name",
+  "Order": 2,
+  "Prompt": "What is the generated kernel called?",
+  "AnswerKey": "KernelName",
+  "Type": "string",
+  "Required": false,
+  "Default": "<OsName>Kernel"
+}
