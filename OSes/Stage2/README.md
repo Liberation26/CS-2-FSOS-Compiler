@@ -1,14 +1,18 @@
-# Oryn Stage 2 OS
+# Oryn Stage 2 Test Kernel
 
-Stage 2 is the compiler-backed freestanding kernel proof.
-
-The source kernel lives at:
+Stage 2 is the compiler-backed freestanding kernel proof. Its source lives at:
 
 ```text
 OSes/Stage2/Source/Kernel.cs
 ```
 
 Run it with:
+
+```bash
+./Runqemu.sh
+```
+
+or explicitly:
 
 ```bash
 ./Runqemu.sh Stage2
@@ -20,60 +24,66 @@ For a compile-only proof without launching QEMU:
 ORYN_SKIP_QEMU=1 ./Runqemu.sh Stage2
 ```
 
-## Stage 2 Phase 3 in version 0.2.7
+## What the Stage 2 kernel proves
 
-Stage 2 now has real Oryn IR. The compiler no longer treats the kernel body as a flat list of native calls. It parses a small safe C# subset into statement/expression AST nodes, binds locals and approved module calls, and lowers the result into an explicit stack-style IR stream.
+The Stage 2 test kernel intentionally exercises the currently supported compiler and module path:
 
-The Stage 2 sample kernel now exercises:
+- `Diagnostics.WriteOk("...")` approved module calls,
+- `Memory.Initialize()` approved module call,
+- `Cpu.HaltForever()` approved module call,
+- integer local variables using rbp-relative stack slots,
+- integer arithmetic through `Counter = Counter + 1`,
+- `while` loop lowering to labels and jumps,
+- `if` / `else` branch lowering,
+- static helper methods through `WriteBanner()`,
+- string literal table emission through `.rodata` and `.LstrN` labels.
 
-- diagnostics calls,
-- memory initialization,
-- an `int Counter` local,
-- a `while` loop,
-- Int32 addition,
-- Int32 less-than and equality comparisons,
-- an `if` / `else` branch,
-- and a final CPU halt call.
+Diagnostics currently accepts string literals only, so the loop prints a repeated proof line instead of formatting the counter value.
 
-The IR manifest is written as:
-
-```text
-OSes/Stage2/Build/Runqemu/Kernel.stage2.stage2.ir.json
-```
-
-The generated backend files are:
+Expected serial proof lines include:
 
 ```text
-OSes/Stage2/Build/Runqemu/Kernel.stage2.generated.S
-OSes/Stage2/Build/Runqemu/Kernel.stage2.generated.c
-OSes/Stage2/Build/Runqemu/Kernel.stage2.diagnostics.log
+[ OK ] Stage2 kernel entered
+[ OK ] Stage2 memory initialized
+[ OK ] Stage2 loop tick
+[ OK ] Stage2 loop tick
+[ OK ] Stage2 loop tick
+[ OK ] Stage2 branch worked
+[ OK ] Stage2 helper method worked
+[ OK ] Stage2 kernel is halting forever
 ```
 
+## Generated backend files
 
-Version 0.2.7 proves Stage 2 control-flow graph generation by compiling a loop and branch into explicit labels, jumps, basic blocks, and successor edges.
+The Stage 2 compiler/run pipeline writes generated files under:
 
-## Stage 2 Phase 5 backend proof
+```text
+OSes/Stage2/Build/Runqemu/
+```
 
-The Stage 2 kernel is compiled through the real x64 backend. Oryn.Compiler lowers `Source/Kernel.cs` into Oryn IR, emits `Kernel.stage2.generated.S`, and `Runqemu.sh` assembles that file with clang before linking the final freestanding ELF64 kernel.
+Important outputs are:
 
-The generated C file is still produced for readability only; the linked Stage 2 kernel body comes from the generated assembly.
+```text
+Kernel.stage2.generated.S
+Kernel.stage2.generated.c
+Kernel.stage2.stage2.ir.json
+Kernel.stage2.diagnostics.log
+OrynKernel.elf
+OrynKernel.iso
+Qemu.serial.log
+```
 
+## Current Stage 2 capabilities
 
-## Stage 2 Phase 6 stack/local proof
+Stage 2 now has:
 
-Stage 2 now emits a simple x64 stack-frame model for generated kernels. Integer locals are assigned 64-bit rbp-relative slots, starting at `-8(%rbp)`, and generated methods use `push %rbp`, `mov %rsp, %rbp`, frame reservation, `leave`, and `ret`.
+- real Oryn IR,
+- control-flow graph diagnostics,
+- clang/as-compatible x64 assembly emission,
+- rbp-based 64-bit local stack slots,
+- `.rodata` string literal tables,
+- static helper method symbols such as `Kernel_WriteBanner`,
+- JSON-loaded module bindings from `Source/Sdk/Bindings/`,
+- and a dedicated Stage 2 test kernel that proves the supported subset at runtime.
 
-## Stage 2 string literal proof
-
-Stage 2 generated assembly now contains a real `.rodata` string literal table. Diagnostics message arguments are emitted as `.asciz` records under `.LstrN` labels and loaded with RIP-relative addressing before the approved native diagnostics calls.
-
-
-## Stage 2 static helper method proof
-
-The Stage 2 sample kernel now calls `WriteBanner();` from `Main()`. The compiler emits a separate `Kernel_WriteBanner` x64 function and a `call Kernel_WriteBanner` instruction from `Kernel_Main`, proving that user kernel code is no longer forced to keep every statement inside `Main()`.
-
-## Stage 2 JSON module binding proof
-
-Stage 2 approved module calls are now loaded from JSON files under `Source/Sdk/Bindings/` instead of a hardcoded compiler binding table. The current starter files bind Diagnostics, Cpu, and Memory calls to their native symbols. This lets future modules be added by adding API DLLs, binding JSON, native implementations, and tests rather than editing compiler source for each module.
-
-`Runqemu.sh` now defaults to Stage 2 and its legacy `All` selector runs only the second kernel during this compiler stage.
+Direct ELF64 object writing remains a Stage 3 task.

@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.2.7`
+Current version: `0.2.15`
 
 ## Core idea
 
@@ -609,3 +609,15 @@ Source/Sdk/Bindings/Memory.binding.json
 The compiler now loads approved calls such as `Diagnostics.WriteOk`, `Memory.Initialize`, and `Cpu.HaltForever` from those JSON records. This keeps module expansion out of `Program.cs` and out of the compiler's binding catalogue implementation. The intended module expansion path is now: add an API DLL, add binding JSON, add a native implementation, and add tests.
 
 During this Stage 2 compiler phase, `Runqemu.sh` defaults to running only the second kernel. The legacy `All` selector also maps to Stage 2-only execution so the older Stage 1 kernel is not launched first.
+
+## Version 0.2.15 Stage 2 test kernel
+
+Version `0.2.15` adds the dedicated Stage 2 test kernel under:
+
+```text
+OSes/Stage2/
+```
+
+The kernel proves the current Stage 2 subset at runtime: diagnostics calls, memory initialization, integer locals, arithmetic, `while`, `if` / `else`, static helper methods, and the final CPU halt path. Diagnostics accepts string literals only for now, so the loop prints a repeated proof line instead of formatted counter values.
+
+`Runqemu.sh` remains focused on Stage 2 during this compiler phase. The `All` selector runs only the second kernel, and explicit Stage 1 selectors are rejected by the script.
