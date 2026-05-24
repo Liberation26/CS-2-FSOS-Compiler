@@ -12,14 +12,14 @@ internal sealed class X64NativeBackend
     private readonly NativeElf64ObjectEmitter ObjectEmitter = new();
     private readonly NativeDiagnosticsEmitter DiagnosticsEmitter = new();
 
-    public BackendResult Emit(string Version, CompilerCommand Command, BoundKernelModel BoundModel, OrynIrModule IrModule, OrynControlFlowGraph ControlFlowGraph)
+    public BackendResult Emit(string Version, CompilerCommand Command, BoundKernelModel BoundModel, OrynIrModule IrModule, OrynControlFlowGraph ControlFlowGraph, IReadOnlyList<ModuleManifestRecord> ModuleManifests)
     {
         string FullOutputPath = Path.GetFullPath(Command.OutputPath);
         string OutputDirectory = Path.GetDirectoryName(FullOutputPath) ?? Directory.GetCurrentDirectory();
         string BaseName = Path.GetFileNameWithoutExtension(FullOutputPath);
         Directory.CreateDirectory(OutputDirectory);
 
-        string StageTag = BaseName.Contains("stage5", StringComparison.OrdinalIgnoreCase) ? "stage5" : (BaseName.Contains("stage4", StringComparison.OrdinalIgnoreCase) ? "stage4" : (BaseName.Contains("stage3", StringComparison.OrdinalIgnoreCase) ? "stage3" : "stage2"));
+        string StageTag = BaseName.Contains("stage6", StringComparison.OrdinalIgnoreCase) ? "stage6" : (BaseName.Contains("stage5", StringComparison.OrdinalIgnoreCase) ? "stage5" : (BaseName.Contains("stage4", StringComparison.OrdinalIgnoreCase) ? "stage4" : (BaseName.Contains("stage3", StringComparison.OrdinalIgnoreCase) ? "stage3" : "stage2")));
         string ManifestPath = Path.Combine(OutputDirectory, BaseName + "." + StageTag + ".ir.json");
         string CPath = Path.Combine(OutputDirectory, BaseName + ".generated.c");
         string AssemblyPath = Path.Combine(OutputDirectory, BaseName + ".generated.S");
@@ -35,7 +35,8 @@ internal sealed class X64NativeBackend
             IrModule.Methods,
             ControlFlowGraph,
             ControlFlowGraph.Blocks.Count,
-            StageTag == "stage5" ? "Stage 5 proves the runtime contract: safe C# enters through approved Runtime, Diagnostics, Memory, Panic, and Cpu modules; Oryn still emits direct ELF64 relocatable output plus inspectable IR, CFG, C, assembly, and diagnostics artifacts." : (StageTag == "stage4" ? "Stage 4 validates safe user-facing C# calls against the approved Oryn module catalogue before lowering to IR, then writes a real ELF64 relocatable object directly from approved Oryn IR." : "Stage 3 writes a real ELF64 relocatable object directly from Oryn IR while still emitting readable C and assembly reference artifacts for diagnostics. The direct object contains .text, .rodata, .rela.text, .symtab, .strtab, .shstrtab, and .note.GNU-stack sections."));
+            ModuleManifests,
+            StageTag == "stage6" ? "Stage 6 proves service/module manifest loading: JSON module manifests define what is exposed to safe kernel code, linked into the freestanding image, and initialized through generated manifest glue before the kernel halts." : (StageTag == "stage5" ? "Stage 5 proves the runtime contract: safe C# enters through approved Runtime, Diagnostics, Memory, Panic, and Cpu modules; Oryn still emits direct ELF64 relocatable output plus inspectable IR, CFG, C, assembly, and diagnostics artifacts." : (StageTag == "stage4" ? "Stage 4 validates safe user-facing C# calls against the approved Oryn module catalogue before lowering to IR, then writes a real ELF64 relocatable object directly from approved Oryn IR." : "Stage 3 writes a real ELF64 relocatable object directly from Oryn IR while still emitting readable C and assembly reference artifacts for diagnostics. The direct object contains .text, .rodata, .rela.text, .symtab, .strtab, .shstrtab, and .note.GNU-stack sections.")));
 
         return new BackendResult(
             ManifestPath,

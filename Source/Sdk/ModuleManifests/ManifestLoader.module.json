@@ -1,0 +1,13 @@
+{
+  "module": "ManifestLoader",
+  "namespace": "Oryn.Kernel.ManifestLoader",
+  "stage": 6,
+  "allowedInKernel": true,
+  "linkByDefault": true,
+  "initializeOrder": 5,
+  "initializerManagedName": "ManifestLoader.InitializeSelected",
+  "initializerNativeSymbol": "ModuleManifest_InitializeSelected",
+  "nativeSource": "Build/Generated/ModuleManifest.Generated.c",
+  "bindingPath": "Source/Sdk/Bindings/ManifestLoader.binding.json",
+  "summary": "Generated glue that initializes selected modules from the Stage 6 manifest set."
+}

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.5.0"
+RUNQEMU_VERSION="0.6.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
 COMPILER_FRAMEWORK="${ORYN_COMPILER_FRAMEWORK:-net8.0}"
 COMPILER_DLL="$PROJECT_ROOT/Source/Core/Oryn.Compiler/bin/${COMPILER_CONFIGURATION}/${COMPILER_FRAMEWORK}/Oryn.Compiler.dll"
-REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage5}}"
+REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage6}}"
 
 info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
 warn() { printf '[WARN] [ RUNQEMU  ] %s\n' "$1"; }
@@ -84,13 +84,13 @@ case "$REQUESTED_STAGE" in
     all|All|ALL)
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
         info "Selected stage set: All"
-        info "Stage 5 development mode is active; running the runtime contract kernel."
-        RunOneStage Stage5
-        info "Requested Stage 5 kernel completed."
+        info "Stage 6 development mode is active; running the service/module manifest kernel."
+        RunOneStage Stage6
+        info "Requested Stage 6 kernel completed."
         exit 0
         ;;
     1|stage1|Stage1|STAGE1)
-        printf '[FAIL] [ RUNQEMU  ] Stage 5 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, Stage4, or Stage5.\n'
+        printf '[FAIL] [ RUNQEMU  ] Stage 6 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, Stage4, Stage5, or Stage6.\n'
         exit 1
         ;;
     2|stage2|Stage2|STAGE2)
@@ -113,8 +113,13 @@ case "$REQUESTED_STAGE" in
         STAGE_LABEL="stage5"
         DIRECT_OBJECT_LINK=1
         ;;
+    6|stage6|Stage6|STAGE6)
+        STAGE_NAME="Stage6"
+        STAGE_LABEL="stage6"
+        DIRECT_OBJECT_LINK=1
+        ;;
     *)
-        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, or Stage5.\n' "$REQUESTED_STAGE"
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, Stage5, or Stage6.\n' "$REQUESTED_STAGE"
         exit 1
         ;;
 esac
@@ -442,6 +447,95 @@ SECTIONS
 }
 EOF_LINK
 
+GenerateStage6ManifestGlue() {
+    local GlueSource="$BUILD_ROOT/ModuleManifest.Generated.c"
+    local ManifestDir="$PROJECT_ROOT/Source/Sdk/ModuleManifests"
+    [ -d "$ManifestDir" ] || fail "Module manifest directory not found: $ManifestDir"
+
+    python3 - "$PROJECT_ROOT" "$ManifestDir" "$GlueSource" <<'PY_MANIFEST'
+import json
+import pathlib
+import sys
+
+project_root = pathlib.Path(sys.argv[1])
+manifest_dir = pathlib.Path(sys.argv[2])
+glue = pathlib.Path(sys.argv[3])
+records = []
+for path in sorted(manifest_dir.glob('*.module.json')):
+    with path.open('r', encoding='utf-8') as handle:
+        item = json.load(handle)
+    if not item.get('allowedInKernel', False) or not item.get('linkByDefault', False):
+        continue
+    if int(item.get('stage', 0)) > 6:
+        continue
+    records.append(item)
+
+records.sort(key=lambda item: (int(item.get('initializeOrder', 0)), item.get('module', '')))
+lines = []
+lines.append('#include "Diagnostics.Native.h"')
+lines.append('#include "Runtime.Native.h"')
+lines.append('#include "Memory.Native.h"')
+lines.append('')
+for item in records:
+    symbol = item.get('initializerNativeSymbol') or ''
+    if symbol:
+        lines.append(f'extern void {symbol}(void);')
+lines.append('')
+lines.append('void ModuleManifest_InitializeSelected(void)')
+lines.append('{')
+for item in records:
+    name = item.get('module', 'Unknown')
+    source = item.get('nativeSource', '')
+    symbol = item.get('initializerNativeSymbol') or ''
+    lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] linked {name}: {source}");')
+    if symbol:
+        lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] initializing {name}");')
+        lines.append(f'    {symbol}();')
+lines.append('}')
+lines.append('')
+glue.write_text('\n'.join(lines), encoding='utf-8')
+print('[ OK ] [ MANIFEST ] Generated Stage 6 manifest glue: ' + str(glue))
+for item in records:
+    print('[ OK ] [ MANIFEST ] selected module={module} source={nativeSource} order={initializeOrder}'.format(**item))
+PY_MANIFEST
+}
+
+CompileStage6ManifestModules() {
+    GenerateStage6ManifestGlue
+    local ManifestDir="$PROJECT_ROOT/Source/Sdk/ModuleManifests"
+    python3 - "$PROJECT_ROOT" "$ManifestDir" "$BUILD_ROOT/Stage6.manifest.sources" <<'PY_SOURCES'
+import json
+import pathlib
+import sys
+root = pathlib.Path(sys.argv[1])
+manifest_dir = pathlib.Path(sys.argv[2])
+out = pathlib.Path(sys.argv[3])
+records = []
+for path in sorted(manifest_dir.glob('*.module.json')):
+    item = json.loads(path.read_text(encoding='utf-8'))
+    if item.get('allowedInKernel') and item.get('linkByDefault') and int(item.get('stage', 0)) <= 6:
+        records.append(item)
+records.sort(key=lambda item: (int(item.get('initializeOrder', 0)), item.get('module', '')))
+with out.open('w', encoding='utf-8') as handle:
+    for item in records:
+        source = item.get('nativeSource', '')
+        if source == 'Build/Generated/ModuleManifest.Generated.c':
+            handle.write(str(root / 'OSes' / 'Stage6' / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
+        else:
+            handle.write(str(root / source) + '\n')
+PY_SOURCES
+    STAGE6_NATIVE_OBJECTS=()
+    local Index=0
+    while IFS= read -r NativeSource; do
+        [ -f "$NativeSource" ] || fail "Stage 6 selected native module source not found: $NativeSource"
+        local ObjectPath="$BUILD_ROOT/Stage6.Module.${Index}.o"
+        info "Compiling Stage 6 manifest-selected native module: $NativeSource"
+        clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -I"$PROJECT_ROOT/Source/Native/Modules/Diagnostics" -I"$PROJECT_ROOT/Source/Native/Modules/Runtime" -I"$PROJECT_ROOT/Source/Native/Modules/Memory" -I"$PROJECT_ROOT/Source/Native/Modules/Panic" -I"$PROJECT_ROOT/Source/Native/Modules/Cpu" -c "$NativeSource" -o "$ObjectPath"
+        STAGE6_NATIVE_OBJECTS+=("$ObjectPath")
+        Index=$((Index + 1))
+    done < "$BUILD_ROOT/Stage6.manifest.sources"
+}
+
 info "Compiling freestanding x86_64 kernel objects"
 clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$BOOT_SOURCE" -o "$BUILD_ROOT/Boot.o"
 if [ "${DIRECT_OBJECT_LINK:-0}" = "1" ]; then
@@ -449,11 +543,15 @@ if [ "${DIRECT_OBJECT_LINK:-0}" = "1" ]; then
 else
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$GENERATED_ASM" -o "$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real"
 fi
-clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$DIAGNOSTICS_SOURCE" -o "$BUILD_ROOT/Diagnostics.Runtime.o"
-clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$RUNTIME_SOURCE" -o "$BUILD_ROOT/Runtime.Native.o"
-clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$PANIC_SOURCE" -o "$BUILD_ROOT/Panic.Native.o"
-clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Cpu/Cpu.Native.c" -o "$BUILD_ROOT/Cpu.Native.o"
-clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Memory/Memory.Native.c" -o "$BUILD_ROOT/Memory.Native.o"
+if [ "$STAGE_NAME" = "Stage6" ]; then
+    CompileStage6ManifestModules
+else
+    clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$DIAGNOSTICS_SOURCE" -o "$BUILD_ROOT/Diagnostics.Runtime.o"
+    clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$RUNTIME_SOURCE" -o "$BUILD_ROOT/Runtime.Native.o"
+    clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$PANIC_SOURCE" -o "$BUILD_ROOT/Panic.Native.o"
+    clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Cpu/Cpu.Native.c" -o "$BUILD_ROOT/Cpu.Native.o"
+    clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -c "$PROJECT_ROOT/Source/Native/Modules/Memory/Memory.Native.c" -o "$BUILD_ROOT/Memory.Native.o"
+fi
 
 info "Linking x86_64 freestanding ELF kernel: $KERNEL_ELF"
 KERNEL_LINK_OBJECT="$BUILD_ROOT/Kernel.${STAGE_LABEL}.o.real"
@@ -461,14 +559,21 @@ if [ "${DIRECT_OBJECT_LINK:-0}" = "1" ]; then
     KERNEL_LINK_OBJECT="$KERNEL_OBJECT"
 fi
 
-ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
-    "$BUILD_ROOT/Boot.o" \
-    "$KERNEL_LINK_OBJECT" \
-    "$BUILD_ROOT/Diagnostics.Runtime.o" \
-    "$BUILD_ROOT/Runtime.Native.o" \
-    "$BUILD_ROOT/Panic.Native.o" \
-    "$BUILD_ROOT/Cpu.Native.o" \
-    "$BUILD_ROOT/Memory.Native.o"
+if [ "$STAGE_NAME" = "Stage6" ]; then
+    ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
+        "$BUILD_ROOT/Boot.o" \
+        "$KERNEL_LINK_OBJECT" \
+        "${STAGE6_NATIVE_OBJECTS[@]}"
+else
+    ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
+        "$BUILD_ROOT/Boot.o" \
+        "$KERNEL_LINK_OBJECT" \
+        "$BUILD_ROOT/Diagnostics.Runtime.o" \
+        "$BUILD_ROOT/Runtime.Native.o" \
+        "$BUILD_ROOT/Panic.Native.o" \
+        "$BUILD_ROOT/Cpu.Native.o" \
+        "$BUILD_ROOT/Memory.Native.o"
+fi
 
 [ -f "$KERNEL_ELF" ] || fail "Kernel ELF was not produced: $KERNEL_ELF"
 info "x86_64 freestanding kernel created: $KERNEL_ELF"
@@ -593,6 +698,12 @@ if [ "$STAGE_NAME" = "Stage4" ]; then
     if ! grep -q "Stage4 kernel is halting forever" "$PROOF_LOG" && ! grep -q "Stage4 approved Diagnostics.WriteOk call worked" "$PROOF_LOG"; then
         fail "Expected Stage4 approved module boundary completion proof was not found in: $PROOF_LOG"
     fi
+elif [ "$STAGE_NAME" = "Stage6" ]; then
+    for Required in         "Stage6 kernel entered"         "Stage6 module manifest loading started"         "[ MANIFEST ] initializing Runtime"         "[ MANIFEST ] initializing Memory"         "Stage6 selected modules initialized from manifest metadata"         "Stage6 kernel is halting forever"; do
+        if ! grep -Fq "$Required" "$PROOF_LOG"; then
+            fail "Expected Stage6 manifest proof was not found: $Required in $PROOF_LOG"
+        fi
+    done
 else
     if ! grep -q "${STAGE_NAME} kernel entered" "$PROOF_LOG"; then
         fail "Expected ${STAGE_NAME} kernel entry proof was not found in: $PROOF_LOG"

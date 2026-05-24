@@ -1,0 +1,18 @@
+{
+  "module": "ManifestLoader",
+  "namespace": "Oryn.Kernel.ManifestLoader",
+  "stage": 6,
+  "methods": [
+    {
+      "managedName": "ManifestLoader.InitializeSelected",
+      "signature": "void InitializeSelected()",
+      "nativeSymbol": "ModuleManifest_InitializeSelected",
+      "allowedInKernel": true,
+      "summary": "Initializes the modules selected by the Stage 6 module manifest set through generated freestanding native glue.",
+      "argumentCount": 0,
+      "typeName": "ManifestLoader",
+      "methodName": "InitializeSelected",
+      "argumentTypes": []
+    }
+  ]
+}

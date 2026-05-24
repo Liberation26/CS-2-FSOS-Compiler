@@ -1,0 +1,13 @@
+{
+  "module": "Memory",
+  "namespace": "Oryn.Kernel.Memory",
+  "stage": 4,
+  "allowedInKernel": true,
+  "linkByDefault": true,
+  "initializeOrder": 30,
+  "initializerManagedName": "Memory.Initialize",
+  "initializerNativeSymbol": "Memory_Initialize",
+  "nativeSource": "Source/Native/Modules/Memory/Memory.Native.c",
+  "bindingPath": "Source/Sdk/Bindings/Memory.binding.json",
+  "summary": "Memory module selected for early freestanding kernels."
+}

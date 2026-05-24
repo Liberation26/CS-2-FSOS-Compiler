@@ -1,28 +1,26 @@
-Oryn archive version: 0.5.0
+Oryn archive version: 0.6.0
 
 Archive layout:
 - FullSource/ contains the complete Oryn source tree for this version.
 - ChangedFiles/ contains only the files changed for this delivery.
 - update.sh applies ChangedFiles to ~/Dev/OrynFoundry and pushes to the configured GitHub remote.
 
-Changed in 0.5.0:
+Changed in 0.6.0:
 - VERSION
 - README.md
 - ARCHIVE_MANIFEST.txt
 - update.sh
 - Runqemu.sh
 - Source/Core/Oryn.Compiler/Program.cs
+- Source/Core/Oryn.Compiler/CompilerCli.cs
 - Source/Core/Oryn.Compiler/CompilerPipeline.cs
+- Source/Core/Oryn.Compiler/Frontend/SemanticModel/ModuleManifestCatalog.cs
+- Source/Core/Oryn.Compiler/Backends/Native/Object/BackendResult.cs
 - Source/Core/Oryn.Compiler/Backends/Native/X64/X64NativeBackend.cs
-- Source/Sdk/Apis/Oryn.Kernel.Runtime/
-- Source/Sdk/Apis/Oryn.Kernel.Panic/
-- Source/Sdk/Bindings/Runtime.binding.json
-- Source/Sdk/Bindings/Panic.binding.json
-- Source/Native/Modules/Runtime/
-- Source/Native/Modules/Panic/
-- Modules/Runtime/README.md
-- Modules/Panic/README.md
-- OSes/Stage5/
-- Tests/Compiler/Stage5/
-- Documents/Stages/Stage5.md
-- Documents/ReleaseNotes/0.5.0.md
+- Source/Sdk/Apis/Oryn.Kernel.ManifestLoader/
+- Source/Sdk/Bindings/ManifestLoader.binding.json
+- Source/Sdk/ModuleManifests/
+- OSes/Stage6/
+- Tests/Compiler/Stage6/
+- Documents/Stages/Stage6.md
+- Documents/ReleaseNotes/0.6.0.md

@@ -1,0 +1,13 @@
+{
+  "module": "Panic",
+  "namespace": "Oryn.Kernel.Panic",
+  "stage": 5,
+  "allowedInKernel": true,
+  "linkByDefault": true,
+  "initializeOrder": 40,
+  "initializerManagedName": "",
+  "initializerNativeSymbol": "",
+  "nativeSource": "Source/Native/Modules/Panic/Panic.Native.c",
+  "bindingPath": "Source/Sdk/Bindings/Panic.binding.json",
+  "summary": "Panic stop/reporting module."
+}

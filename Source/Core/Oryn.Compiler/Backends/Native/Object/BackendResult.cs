@@ -12,6 +12,7 @@ internal sealed record CompilerManifest(
     IReadOnlyList<OrynIrMethod> Methods,
     OrynControlFlowGraph ControlFlowGraph,
     int BasicBlockCount,
+    IReadOnlyList<ModuleManifestRecord> ModuleManifests,
     string Notes);
 
 internal sealed record BackendResult(

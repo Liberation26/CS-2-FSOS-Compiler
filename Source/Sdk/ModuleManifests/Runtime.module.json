@@ -1,0 +1,13 @@
+{
+  "module": "Runtime",
+  "namespace": "Oryn.Kernel.Runtime",
+  "stage": 5,
+  "allowedInKernel": true,
+  "linkByDefault": true,
+  "initializeOrder": 10,
+  "initializerManagedName": "Runtime.Initialize",
+  "initializerNativeSymbol": "Runtime_Initialize",
+  "nativeSource": "Source/Native/Modules/Runtime/Runtime.Native.c",
+  "bindingPath": "Source/Sdk/Bindings/Runtime.binding.json",
+  "summary": "Runtime lifecycle contract."
+}

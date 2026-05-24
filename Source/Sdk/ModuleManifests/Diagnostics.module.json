@@ -1,0 +1,13 @@
+{
+  "module": "Diagnostics",
+  "namespace": "Oryn.Kernel.Diagnostics",
+  "stage": 4,
+  "allowedInKernel": true,
+  "linkByDefault": true,
+  "initializeOrder": 20,
+  "initializerManagedName": "",
+  "initializerNativeSymbol": "",
+  "nativeSource": "Source/Native/Modules/Diagnostics/Diagnostics.Native.c",
+  "bindingPath": "Source/Sdk/Bindings/Diagnostics.binding.json",
+  "summary": "Serial/debug diagnostics and status output."
+}

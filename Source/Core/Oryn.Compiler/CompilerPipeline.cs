@@ -15,6 +15,7 @@ internal sealed class CompilerPipeline
     private readonly KernelIrLowerer IrLowerer;
     private readonly ControlFlowGraphBuilder ControlFlowGraphBuilder;
     private readonly X64NativeBackend Backend;
+    private readonly ModuleManifestCatalog ModuleManifestCatalog;
 
     public CompilerPipeline(
         string Version,
@@ -23,7 +24,8 @@ internal sealed class CompilerPipeline
         SemanticAnalyzer SemanticAnalyzer,
         KernelIrLowerer IrLowerer,
         ControlFlowGraphBuilder ControlFlowGraphBuilder,
-        X64NativeBackend Backend)
+        X64NativeBackend Backend,
+        ModuleManifestCatalog ModuleManifestCatalog)
     {
         this.Version = Version;
         this.Validator = Validator;
@@ -32,11 +34,13 @@ internal sealed class CompilerPipeline
         this.IrLowerer = IrLowerer;
         this.ControlFlowGraphBuilder = ControlFlowGraphBuilder;
         this.Backend = Backend;
+        this.ModuleManifestCatalog = ModuleManifestCatalog;
     }
 
     public static CompilerPipeline CreateDefault(string Version)
     {
         BindingCatalog Bindings = BindingCatalog.CreateDefault();
+        ModuleManifestCatalog ModuleManifests = ModuleManifestCatalog.CreateDefault();
         return new CompilerPipeline(
             Version,
             new SafeSubsetValidator(Bindings.ApprovedNamespaces),
@@ -44,7 +48,8 @@ internal sealed class CompilerPipeline
             new SemanticAnalyzer(Bindings),
             new KernelIrLowerer(),
             new ControlFlowGraphBuilder(),
-            new X64NativeBackend());
+            new X64NativeBackend(),
+            ModuleManifests);
     }
 
     public CompilerResult Compile(CompilerCommand Command)
@@ -76,7 +81,7 @@ internal sealed class CompilerPipeline
             BoundKernelModel BoundModel = SemanticAnalyzer.Bind(KernelAst);
             OrynIrModule IrModule = IrLowerer.Lower(BoundModel);
             OrynControlFlowGraph ControlFlowGraph = ControlFlowGraphBuilder.Build(IrModule);
-            BackendResult BackendResult = Backend.Emit(Version, Command, BoundModel, IrModule, ControlFlowGraph);
+            BackendResult BackendResult = Backend.Emit(Version, Command, BoundModel, IrModule, ControlFlowGraph, ModuleManifestCatalog.ApprovedKernelModules);
             Backend.Write(BackendResult);
 
             Messages.Add($"[ OK ] Parsed source: {Command.SourcePath}");
@@ -84,6 +89,14 @@ internal sealed class CompilerPipeline
             if (Command.SourcePath.Contains("Stage5", StringComparison.OrdinalIgnoreCase))
             {
                 Messages.Add("[ OK ] Stage 5 runtime contract validation passed.");
+            }
+            if (Command.SourcePath.Contains("Stage6", StringComparison.OrdinalIgnoreCase))
+            {
+                Messages.Add("[ OK ] [ MANIFEST ] Stage 6 service/module manifest loading validation passed.");
+                foreach (ModuleManifestRecord Manifest in ModuleManifestCatalog.ApprovedKernelModules)
+                {
+                    Messages.Add($"[ OK ] [ MANIFEST ] expose={Manifest.ModuleName} stage={Manifest.Stage} order={Manifest.InitializeOrder} native={Manifest.NativeSource}");
+                }
             }
             Messages.Add($"[ OK ] Approved module calls: {BoundModel.ApprovedModuleCallCount}");
             Messages.Add($"[ OK ] Lowered IR instructions: {IrModule.Instructions.Count}");
