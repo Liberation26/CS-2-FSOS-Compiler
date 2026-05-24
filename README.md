@@ -192,7 +192,7 @@ Version `0.1.0` provides the first working compiler proof. The `compile` command
 2. Validates that unsupported runtime-heavy constructs are not present.
 3. Finds `public static void Main()`.
 4. Lowers approved SDK calls such as `Diagnostics.WriteOk`, `Memory.Initialize`, and `Cpu.HaltForever` into Oryn IR records.
-5. Emits a backend manifest, a freestanding C backend snippet, and an x64 assembly backend sketch.
+5. Emits a backend manifest, a freestanding C backend reference snippet, and real x64 assembly that clang/as assembles into the linked kernel object.
 ```
 
 Example:
@@ -560,3 +560,9 @@ Version `0.2.8` keeps the Stage 2 CFG implementation from `0.2.7`, but makes the
 ```
 
 `Runqemu.sh` also prints the CFG proof lines from the generated compiler diagnostics log before continuing to the native build and QEMU run.
+
+## Version 0.2.9 Stage 2 Phase 5 real x64 backend
+
+Version `0.2.9` adds the Stage 2 Phase 5 backend path. Oryn IR now lowers to real x64 assembly in `Kernel.stage2.generated.S`; `Runqemu.sh` assembles that file with `clang -c`, links it with the native diagnostics, CPU, memory, and boot modules, creates `OrynKernel.elf`, builds the GRUB ISO, and boots it in QEMU.
+
+The generated C file remains as a readable reference artifact, but Stage 2 no longer depends on generated C for the kernel body. The direct ELF64 object writer is intentionally left for Stage 3.

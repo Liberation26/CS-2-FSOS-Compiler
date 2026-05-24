@@ -26,6 +26,7 @@ Documents/ReleaseNotes/0.2.5.md
 Documents/ReleaseNotes/0.2.6.md
 Documents/ReleaseNotes/0.2.7.md
 Documents/ReleaseNotes/0.2.8.md
+Documents/ReleaseNotes/0.2.9.md
 Documents/Stages/Stage2.md
 LICENSE
 Manual/.gitkeep

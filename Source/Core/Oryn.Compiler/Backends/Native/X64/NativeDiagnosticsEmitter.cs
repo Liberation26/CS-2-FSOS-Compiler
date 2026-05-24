@@ -8,7 +8,7 @@ internal sealed class NativeDiagnosticsEmitter
     public string Emit(CompilerManifest Manifest, IReadOnlyList<IrInstruction> Instructions, string CPath, string AssemblyPath)
     {
         StringBuilder Builder = new();
-        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 2 phase 4 diagnostics");
+        Builder.AppendLine("[ OK ] [ COMPILER ] Oryn.Compiler Stage 2 phase 5 diagnostics");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Version: {Manifest.CompilerVersion}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Source: {Manifest.SourcePath}");
         Builder.AppendLine($"[ OK ] [ COMPILER ] Target: {Manifest.Target}");
@@ -30,9 +30,9 @@ internal sealed class NativeDiagnosticsEmitter
         }
 
         Builder.AppendLine($"[ OK ] [ BACKEND  ] C output: {CPath}");
-        Builder.AppendLine($"[ OK ] [ BACKEND  ] x64 assembly output: {AssemblyPath}");
-        Builder.AppendLine("[ OK ] [ BACKEND  ] Diagnostics.Write* calls lower through ConstString plus Call instructions.");
-        Builder.AppendLine("[ OK ] [ BACKEND  ] Runtime diagnostics write to QEMU serial and VGA when built with DEBUG=1.");
+        Builder.AppendLine($"[ OK ] [ BACKEND  ] real x64 assembly output: {AssemblyPath}");
+        Builder.AppendLine("[ OK ] [ BACKEND  ] Stage 2 Phase 5 lowers Oryn IR directly to clang/as-compatible x64 assembly.");
+        Builder.AppendLine("[ OK ] [ BACKEND  ] Runtime diagnostics write to QEMU serial and VGA when built with DEBUG=1; ELF64 object writing is deferred to Stage 3.");
         return Builder.ToString();
     }
 

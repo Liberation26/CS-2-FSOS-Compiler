@@ -51,3 +51,9 @@ OSes/Stage2/Build/Runqemu/Kernel.stage2.diagnostics.log
 
 
 Version 0.2.7 proves Stage 2 control-flow graph generation by compiling a loop and branch into explicit labels, jumps, basic blocks, and successor edges.
+
+## Stage 2 Phase 5 backend proof
+
+The Stage 2 kernel is compiled through the real x64 backend. Oryn.Compiler lowers `Source/Kernel.cs` into Oryn IR, emits `Kernel.stage2.generated.S`, and `Runqemu.sh` assembles that file with clang before linking the final freestanding ELF64 kernel.
+
+The generated C file is still produced for readability only; the linked Stage 2 kernel body comes from the generated assembly.

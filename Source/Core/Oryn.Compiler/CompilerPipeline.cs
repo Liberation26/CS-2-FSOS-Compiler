@@ -92,9 +92,9 @@ internal sealed class CompilerPipeline
             Messages.Add($"[ OK ] Backend target: {Command.Target}");
             Messages.Add($"[ OK ] Wrote IR manifest: {BackendResult.ManifestPath}");
             Messages.Add($"[ OK ] Wrote C backend: {BackendResult.CPath}");
-            Messages.Add($"[ OK ] Wrote x64 backend sketch: {BackendResult.AssemblyPath}");
+            Messages.Add($"[ OK ] Wrote real x64 assembly backend: {BackendResult.AssemblyPath}");
             Messages.Add($"[ OK ] Wrote compiler diagnostics: {BackendResult.DiagnosticsPath}");
-            Messages.Add($"[ OK ] Wrote object placeholder: {BackendResult.ObjectPath}");
+            Messages.Add($"[ OK ] Wrote Stage 3 ELF object placeholder: {BackendResult.ObjectPath}");
             return new CompilerResult(0, Messages);
         }
         catch (OrynCompileException Exception)

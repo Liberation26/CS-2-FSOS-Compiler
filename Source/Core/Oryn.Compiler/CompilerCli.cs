@@ -46,8 +46,8 @@ internal sealed class CompilerCli
         Output.WriteLine("Stage 2 compile output:");
         Output.WriteLine("  <output>.stage2.ir.json lowered Oryn IR and backend manifest");
         Output.WriteLine("  <output>.generated.c     freestanding C backend snippet");
-        Output.WriteLine("  <output>.generated.S     x64 assembly backend sketch");
-        Output.WriteLine("  <output>                 text placeholder for the future ELF64 object");
+        Output.WriteLine("  <output>.generated.S     real x64 assembly for clang/as");
+        Output.WriteLine("  <output>                 Stage 3 text placeholder for the future direct ELF64 object writer");
     }
 
     private void PrintModules()

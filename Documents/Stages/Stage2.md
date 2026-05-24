@@ -111,7 +111,7 @@ The compiler writes the lowered manifest to:
 <output>.stage2.ir.json
 ```
 
-The generated C and x64 assembly backend sketches now consume the same IR stream.
+The generated C reference output and real x64 assembly backend now consume the same IR stream.
 
 ## 0.2.8 CFG proof visibility
 
@@ -121,3 +121,22 @@ The CFG proof lines are now printed in two places:
 - `Runqemu.sh`, by echoing the `[ OK ] [ CFG      ]` lines from `Kernel.stage2.diagnostics.log`.
 
 This means a normal Stage 2 run should visibly show the generated basic blocks and successor edges without opening the JSON manifest or diagnostics log manually.
+
+## 0.2.9 Stage 2 Phase 5: Real x64 backend
+
+Stage 2 Phase 5 generates real x64 assembly from Oryn IR. The backend emits `Kernel.generated.S` using a simple stack-style evaluation model, stack-frame backed local variables, labels, jumps, conditional jumps, integer arithmetic, integer comparisons, and calls to the native runtime symbols exposed by the binding catalogue.
+
+The current build flow is:
+
+```text
+Kernel.cs
+  -> Oryn IR
+  -> Kernel.generated.S
+  -> clang -c Kernel.generated.S
+  -> link with native modules
+  -> OrynKernel.elf
+  -> GRUB ISO
+  -> QEMU
+```
+
+The C backend remains useful for inspection, but the Stage 2 kernel object now comes from the generated assembly. Writing ELF64 object files directly is reserved for Stage 3.

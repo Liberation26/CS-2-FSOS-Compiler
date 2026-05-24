@@ -13,8 +13,8 @@ internal sealed class NativeObjectPlaceholderEmitter
         Builder.AppendLine($"Target: {Manifest.Target}");
         Builder.AppendLine($"EntrySymbol: {Manifest.EntrySymbol}");
         Builder.AppendLine();
-        Builder.AppendLine("This file intentionally is not a linkable ELF64 object yet.");
-        Builder.AppendLine("Use the generated .c or .S backend output for the current backend proof.");
+        Builder.AppendLine("This file intentionally is not a direct-writer ELF64 object yet.");
+        Builder.AppendLine("Stage 2 Phase 5 uses clang/as to assemble the generated .S file into a real object.");
         return Builder.ToString();
     }
 }

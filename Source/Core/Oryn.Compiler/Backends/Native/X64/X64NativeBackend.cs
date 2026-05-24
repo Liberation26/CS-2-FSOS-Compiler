@@ -33,7 +33,7 @@ internal sealed class X64NativeBackend
             IrModule.Instructions,
             ControlFlowGraph,
             ControlFlowGraph.Blocks.Count,
-            "Stage 2 phase 4 adds a real readable control-flow graph over the Stage 2 IR. If and while lower to explicit labels, conditional jumps, unconditional jumps, and basic blocks with successor edges. No optimiser is used yet; reliability and readable output are the goal.");
+            "Stage 2 phase 5 emits real clang/as-compatible x64 assembly from Oryn IR, while keeping the generated C file as a readable reference artifact. Direct ELF64 object writing remains a Stage 3 task.");
 
         return new BackendResult(
             ManifestPath,
