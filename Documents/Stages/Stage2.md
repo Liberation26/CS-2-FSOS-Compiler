@@ -164,3 +164,22 @@ Kernel_Main:
 ```
 
 Local slot examples are emitted as readable assembly comments and instructions, such as `Counter -> -8(%rbp)`.
+
+## String literal table
+
+Stage 2 now emits string literals into a dedicated `.rodata` table in the generated x64 assembly. Distinct literals are assigned stable assembler-local labels in first-use order:
+
+```asm
+.section .rodata
+.Lstr0:
+    .asciz "Stage2 kernel entered"
+```
+
+Approved module calls that take a string, such as diagnostics calls, load the literal address with RIP-relative addressing before calling the native module binding:
+
+```asm
+lea .Lstr0(%rip), %rdi
+call Diagnostics_WriteOk
+```
+
+This keeps Stage 2 freestanding: generated kernels do not depend on hosted string storage, and native module calls receive explicit pointers to immutable kernel text data.

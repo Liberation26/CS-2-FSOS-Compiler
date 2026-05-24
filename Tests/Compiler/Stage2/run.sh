@@ -33,4 +33,10 @@ grep -q -- '-8(%rbp)' "$OUTPUT_DIR/Kernel.generated.S"
 grep -q 'movq \$0, -8(%rbp)' "$OUTPUT_DIR/Kernel.generated.S"
 grep -q 'leave' "$OUTPUT_DIR/Kernel.generated.S"
 
-printf '[ OK ] Stage 2 CFG and stack/local proof outputs written to: %s\n' "$OUTPUT_DIR"
+grep -q '^\.section \.rodata' "$OUTPUT_DIR/Kernel.generated.S"
+grep -q '^\.Lstr0:' "$OUTPUT_DIR/Kernel.generated.S"
+grep -q '\.[a]sciz "Stage2 phase6 kernel entered"' "$OUTPUT_DIR/Kernel.generated.S"
+grep -q 'lea \.Lstr0(%rip), %rdi' "$OUTPUT_DIR/Kernel.generated.S"
+grep -q 'call Diagnostics_WriteOk' "$OUTPUT_DIR/Kernel.generated.S"
+
+printf '[ OK ] Stage 2 CFG, stack/local, and string literal proof outputs written to: %s\n' "$OUTPUT_DIR"

@@ -6,6 +6,7 @@ namespace Oryn.Compiler.Backends.Native.X64;
 internal sealed class X64AssemblyEmitter
 {
     private sealed record LocalSlot(string Name, int Offset);
+    private sealed record StringLiteral(string Value, string Symbol);
 
     private readonly Dictionary<string, string> LabelNames = new(StringComparer.Ordinal);
 
@@ -13,13 +14,16 @@ internal sealed class X64AssemblyEmitter
     {
         LabelNames.Clear();
         Dictionary<string, LocalSlot> LocalSlots = AllocateLocals(Instructions);
+        IReadOnlyList<StringLiteral> StringLiterals = BuildStringLiteralTable(Instructions);
+        Dictionary<string, string> StringSymbols = StringLiterals.ToDictionary(Literal => Literal.Value, Literal => Literal.Symbol, StringComparer.Ordinal);
         int LocalFrameSize = AlignTo(LocalSlots.Count * 8, 16);
         int EvaluationStackDepth = 0;
 
         StringBuilder Builder = new();
-        Builder.AppendLine("# Oryn Stage 2 Phase 6 real x64 backend output.");
+        Builder.AppendLine("# Oryn Stage 2 string-literal-table x64 backend output.");
         Builder.AppendLine("# This file is assembled by clang/as and linked with native runtime modules.");
         Builder.AppendLine("# Locals use 64-bit stack slots addressed from rbp, for example Counter -> -8(%rbp).");
+        Builder.AppendLine("# String literals are emitted once into .rodata as .LstrN labels.");
         Builder.AppendLine(".section .text");
         Builder.AppendLine(".global Kernel_Main");
         Builder.AppendLine(".type Kernel_Main, @function");
@@ -31,9 +35,17 @@ internal sealed class X64AssemblyEmitter
             Builder.AppendLine($"    sub ${LocalFrameSize}, %rsp");
         }
 
-        foreach (IrInstruction Instruction in Instructions)
+        for (int InstructionIndex = 0; InstructionIndex < Instructions.Count; InstructionIndex++)
         {
+            IrInstruction Instruction = Instructions[InstructionIndex];
             Builder.AppendLine($"    # IR {Instruction.Index:D3}: {FormatComment(Instruction)}");
+
+            if (CanFoldStringLiteralIntoFollowingCall(Instructions, InstructionIndex))
+            {
+                Builder.AppendLine("    # folded into following call argument load");
+                continue;
+            }
+
             switch (Instruction.OpCode)
             {
                 case "DeclareLocal":
@@ -47,7 +59,7 @@ internal sealed class X64AssemblyEmitter
                     break;
 
                 case "ConstString":
-                    Builder.AppendLine($"    lea {StringSymbol(Instruction)}(%rip), %rax");
+                    Builder.AppendLine($"    lea {StringSymbol(StringSymbols, Instruction.StringValue)}(%rip), %rax");
                     Builder.AppendLine("    push %rax");
                     EvaluationStackDepth++;
                     break;
@@ -108,7 +120,8 @@ internal sealed class X64AssemblyEmitter
                     break;
 
                 case "Call":
-                    EvaluationStackDepth = EmitCall(Builder, Instruction, EvaluationStackDepth);
+                    bool PreviousFoldedString = InstructionIndex > 0 && CanFoldStringLiteralIntoFollowingCall(Instructions, InstructionIndex - 1);
+                    EvaluationStackDepth = EmitCall(Builder, Instruction, EvaluationStackDepth, StringSymbols, PreviousFoldedString);
                     break;
 
                 case "Label":
@@ -139,10 +152,10 @@ internal sealed class X64AssemblyEmitter
         Builder.AppendLine(".size Kernel_Main, .-Kernel_Main");
         Builder.AppendLine();
         Builder.AppendLine(".section .rodata");
-        foreach (IrInstruction Instruction in Instructions.Where(Instruction => Instruction.OpCode == "ConstString"))
+        foreach (StringLiteral Literal in StringLiterals)
         {
-            Builder.AppendLine($"{StringSymbol(Instruction)}:");
-            Builder.AppendLine($"    .asciz \"{NativeTextEscaper.EscapeCString(Instruction.StringValue ?? string.Empty)}\"");
+            Builder.AppendLine($"{Literal.Symbol}:");
+            Builder.AppendLine($"    .asciz \"{NativeTextEscaper.EscapeCString(Literal.Value)}\"");
         }
 
         Builder.AppendLine();
@@ -170,13 +183,39 @@ internal sealed class X64AssemblyEmitter
         return Slots;
     }
 
+    private static IReadOnlyList<StringLiteral> BuildStringLiteralTable(IReadOnlyList<IrInstruction> Instructions)
+    {
+        List<StringLiteral> Literals = new();
+        HashSet<string> Seen = new(StringComparer.Ordinal);
+        foreach (IrInstruction Instruction in Instructions)
+        {
+            if (Instruction.OpCode != "ConstString")
+            {
+                continue;
+            }
+
+            string Value = Instruction.StringValue ?? string.Empty;
+            if (Seen.Add(Value))
+            {
+                Literals.Add(new StringLiteral(Value, $".Lstr{Literals.Count}"));
+            }
+        }
+
+        return Literals;
+    }
+
     private static void EmitDeclareLocal(StringBuilder Builder, IrInstruction Instruction, Dictionary<string, LocalSlot> LocalSlots)
     {
         LocalSlot Slot = RequireLocal(LocalSlots, Instruction.Operand, Instruction.OpCode);
         Builder.AppendLine($"    movq $0, {Slot.Offset}(%rbp)");
     }
 
-    private static int EmitCall(StringBuilder Builder, IrInstruction Instruction, int EvaluationStackDepth)
+    private static int EmitCall(
+        StringBuilder Builder,
+        IrInstruction Instruction,
+        int EvaluationStackDepth,
+        IReadOnlyDictionary<string, string> StringSymbols,
+        bool PreviousFoldedString)
     {
         string CallName = Instruction.ManagedName ?? Instruction.Operand ?? "<unknown>";
         string NativeSymbol = Instruction.NativeSymbol ?? throw new OrynCompileException($"Call IR instruction is missing native symbol for {CallName}.");
@@ -193,9 +232,16 @@ internal sealed class X64AssemblyEmitter
 
         if (ArgumentCount == 1)
         {
-            RequireStack(EvaluationStackDepth, Instruction.OpCode);
-            Builder.AppendLine("    pop %rdi");
-            EvaluationStackDepth--;
+            if (PreviousFoldedString)
+            {
+                Builder.AppendLine($"    lea {StringSymbol(StringSymbols, Instruction.Arguments[0])}(%rip), %rdi");
+            }
+            else
+            {
+                RequireStack(EvaluationStackDepth, Instruction.OpCode);
+                Builder.AppendLine("    pop %rdi");
+                EvaluationStackDepth--;
+            }
         }
 
         bool NeedsAlignmentSlot = (EvaluationStackDepth % 2) != 0;
@@ -256,9 +302,29 @@ internal sealed class X64AssemblyEmitter
         return Symbol;
     }
 
-    private static string StringSymbol(IrInstruction Instruction)
+    private static string StringSymbol(IReadOnlyDictionary<string, string> StringSymbols, string? Value)
     {
-        return $"Oryn_String_{Instruction.Index:D3}";
+        string LiteralValue = Value ?? string.Empty;
+        if (!StringSymbols.TryGetValue(LiteralValue, out string? Symbol))
+        {
+            throw new OrynCompileException($"String literal was not registered in the Stage 2 x64 literal table: {LiteralValue}");
+        }
+
+        return Symbol;
+    }
+
+    private static bool CanFoldStringLiteralIntoFollowingCall(IReadOnlyList<IrInstruction> Instructions, int InstructionIndex)
+    {
+        IrInstruction Instruction = Instructions[InstructionIndex];
+        if (Instruction.OpCode != "ConstString" || InstructionIndex + 1 >= Instructions.Count)
+        {
+            return false;
+        }
+
+        IrInstruction NextInstruction = Instructions[InstructionIndex + 1];
+        return NextInstruction.OpCode == "Call" &&
+            NextInstruction.Arguments.Count == 1 &&
+            string.Equals(Instruction.StringValue ?? string.Empty, NextInstruction.Arguments[0], StringComparison.Ordinal);
     }
 
     private static string SanitizeSymbol(string Value)

@@ -576,3 +576,9 @@ Version `0.2.10` fixes the C# syntax errors in `X64AssemblyEmitter.cs` reported 
 ## Stage 2 Phase 6
 
 The Stage 2 x64 backend now has a simple stack/local variable model. Integer locals are lowered to 64-bit rbp-relative stack slots, and generated assembly uses a conventional `push %rbp`, `mov %rsp, %rbp`, local-frame reservation, `leave`, and `ret` shape.
+
+## Version 0.2.12 Stage 2 string literal table
+
+Version `0.2.12` adds the Stage 2 x64 string literal table. The backend now emits distinct source string literals once into `.section .rodata` as `.LstrN` labels and lowers approved string module calls to RIP-relative argument loads such as `lea .Lstr0(%rip), %rdi` before `call Diagnostics_WriteOk`.
+
+The Phase 6 stack/local model remains in place: integer locals still use 64-bit rbp-relative slots, and the generated method keeps the conventional prologue and epilogue.

@@ -62,3 +62,7 @@ The generated C file is still produced for readability only; the linked Stage 2 
 ## Stage 2 Phase 6 stack/local proof
 
 Stage 2 now emits a simple x64 stack-frame model for generated kernels. Integer locals are assigned 64-bit rbp-relative slots, starting at `-8(%rbp)`, and generated methods use `push %rbp`, `mov %rsp, %rbp`, frame reservation, `leave`, and `ret`.
+
+## Stage 2 string literal proof
+
+Stage 2 generated assembly now contains a real `.rodata` string literal table. Diagnostics message arguments are emitted as `.asciz` records under `.LstrN` labels and loaded with RIP-relative addressing before the approved native diagnostics calls.
