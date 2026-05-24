@@ -1,6 +1,6 @@
 # Oryn Manual
 
-Current version: **2.0.2**
+Current version: **2.0.3**
 
 ## Start here
 
@@ -46,3 +46,10 @@ From inside a generated OS project directory, the OS name/path can be omitted:
 ./Oryn.sh build
 ./Oryn.sh run
 ```
+
+
+## Forms-based configuration
+
+Oryn 2.0.3 uses `Applications/OrynVisualConfigurator` as a forms-based configurator. The app reads `Questions/*.question.json`, displays every known question, pre-fills saved answers for existing OS projects, and guesses safe defaults for new projects.
+
+Use `./Oryn.sh configure <OS>` to reopen the form deliberately. Build and run commands reuse saved answers and do not ask the same questions again unless the current SDK has a missing required answer.

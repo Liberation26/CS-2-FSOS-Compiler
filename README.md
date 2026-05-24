@@ -4,11 +4,11 @@ Oryn is a C# to freestanding operating-system compiler and OS generation platfor
 
 Oryn lets a developer configure an operating-system project, generate a freestanding kernel, compile the approved Oryn-safe C# subset into native output, link a bootable kernel, and run it in a virtual machine.
 
-Current version: **2.0.2**
+Current version: **2.0.3**
 
-## What 2.0.2 means
+## What 2.0.3 means
 
-Oryn 2.0.2 is the first **visual-first OS project configuration** milestone.
+Oryn 2.0.3 is the first **visual-first OS project configuration** milestone.
 
 The major change is that OS setup is no longer treated as a one-time terminal questionnaire. Oryn now has a project configuration application:
 
@@ -299,7 +299,7 @@ The visual configurator is the normal path. The old terminal generator remains a
 ```
 
 
-## 2.0.2 visual configurator fix
+## 2.0.3 visual configurator fix
 
 OrynVisualConfigurator now opens a local browser-based visual configuration UI rather than presenting the normal question flow only in the terminal. It still reads the current version's `Questions/*.question.json` files, so the question set remains version-driven. Known-choice questions are rendered as dropdowns or check boxes, while `OS Title`, `OS Name`, and `Kernel Name` remain the only typed fields.
 
@@ -309,9 +309,9 @@ The terminal fallback is still available for automation:
 ORYN_VISUALCFG_TERMINAL=1 ./Oryn.sh new
 ```
 
-## Version 2.0.2 summary
+## Version 2.0.3 summary
 
-Oryn 2.0.2 adds:
+Oryn 2.0.3 adds:
 
 ```text
 - Applications/OrynVisualConfigurator
@@ -322,5 +322,14 @@ Oryn 2.0.2 adds:
 - strict no-space OS and kernel identifiers
 - saved answers as reusable project profiles
 - automatic configurator launch only when needed
-- README rewritten for the 2.0.2 product flow
+- README rewritten for the 2.0.3 product flow
 ```
+
+
+## Oryn 2.0.3 visual forms configurator
+
+`OrynVisualConfigurator` is now the normal OS configuration surface. It reads the current `Questions/*.question.json` files and renders one forms-based page for the project.
+
+The form pre-fills answers from the saved OS profile when an existing OS is opened. For a new OS, it guesses sensible defaults from the current directory and the current question defaults. OS Title is friendly display text and may contain spaces. OS Name and Kernel Name are strict generated identifiers, so the form auto-suggests safe no-space values from the OS Title.
+
+Build and run commands use saved answers. They do not reopen the visual configurator just because an older project lacks the `VisualConfiguratorCompleted` marker. The configurator opens automatically only when required answers are genuinely missing or invalid, or when the end user explicitly runs `./Oryn.sh configure`.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ORYN_VERSION="2.0.2"
+ORYN_VERSION="2.0.3"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GENERATOR_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Generator/Oryn.Generator.csproj"
 CONFIGURATOR_PROJECT="$PROJECT_ROOT/Applications/OrynVisualConfigurator/OrynVisualConfigurator.csproj"
@@ -82,10 +82,10 @@ for question_path in sorted(glob.glob(os.path.join(root, 'Questions', '*.questio
         if key not in data or data.get(key) in (None, ''):
             print('yes')
             sys.exit(0)
-if not data.get('VisualConfiguratorCompleted', False):
-    print('yes')
-else:
-    print('no')
+# Older projects may not contain VisualConfiguratorCompleted. Do not re-open
+# the configurator just because the marker is absent; only new required
+# questions or invalid/missing answers should force the visual form.
+print('no')
 PY
 }
 
@@ -105,7 +105,7 @@ Usage:
   ./Oryn.sh modules
   ./Oryn.sh sdk
 
-Oryn 2.0.2 is visual-first. New OS configuration is handled by Applications/OrynVisualConfigurator.
+Oryn 2.0.3 is visual-first. New OS configuration is handled by Applications/OrynVisualConfigurator.
 The visual configurator reads the current version's Questions/*.question.json files, shows all questions, and renders known choices as browser dropdowns or check boxes.
 
 Path handling:

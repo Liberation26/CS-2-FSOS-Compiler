@@ -10,7 +10,7 @@ internal sealed record Question(string Id, int Order, string Prompt, string Answ
 
 internal static class Program
 {
-    private const string Version = "2.0.2";
+    private const string Version = "2.0.3";
     private const string Cyan = "\u001b[96m";
     private const string Yellow = "\u001b[93m";
     private const string Green = "\u001b[92m";
@@ -219,10 +219,11 @@ internal static class Program
     private static string RenderQuestionForm(BrowserSession Session, Dictionary<string, object>? ExistingAnswers, string? ProjectPath = null)
     {
         Dictionary<string, object> CurrentAnswers = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object>? SeedAnswers = ExistingAnswers ?? GuessInitialAnswers(Session.ProjectRoot);
         StringBuilder Fields = new();
         foreach (Question Question in Session.Questions.OrderBy(Question => Question.Order))
         {
-            object? ExistingValue = GetExistingValue(ExistingAnswers, Question.AnswerKey);
+            object? ExistingValue = GetExistingValue(SeedAnswers, Question.AnswerKey);
             string Default = ResolveDefault(Question.Default, CurrentAnswers, ExistingValue);
             CurrentAnswers[Question.AnswerKey] = Default;
             Fields.Append(RenderQuestionField(Question, Default, ExistingValue));
@@ -230,11 +231,15 @@ internal static class Program
 
         string Heading = ProjectPath is null ? "Create New OS" : "Configure OS Project";
         string ProjectInfo = ProjectPath is null ? string.Empty : $"<p>Project path: <code>{HtmlEscape(ProjectPath)}</code></p>";
+        string Lead = ProjectPath is null
+            ? "<p>This is a form. Oryn has guessed safe defaults from the current folder and the current question files. Change only what you want, then save.</p>"
+            : "<p>Saved answers are loaded into the form. Change only what you want; unchanged answers are kept.</p>";
         string Body = $@"
 <h1>{Heading}</h1>
 {ProjectInfo}
+{Lead}
 <p>Only OS Title is free display text. OS Name and Kernel Name are strict identifiers and cannot contain spaces.</p>
-<form method='post' action='/save'>
+<form method='post' action='/save' id='oryn-config-form'>
 {Fields}
 <div class='actions'>
   <button type='submit'>Save and Generate</button>
@@ -249,29 +254,33 @@ internal static class Program
         string Current = ExistingValue is not null ? FormatExistingValue(ExistingValue) : Default;
         string Help = string.IsNullOrWhiteSpace(Question.ExpectedAnswer) ? string.Empty : $"<p class='help'>{HtmlEscape(Question.ExpectedAnswer)}</p>";
         string Required = Question.Required ? " required" : string.Empty;
+        string FieldId = "field-" + HtmlAttribute(Question.AnswerKey);
         string Input;
         if (Question.Type.Equals("choice", StringComparison.OrdinalIgnoreCase))
         {
             string Options = string.Join("", Question.Choices.Select(Choice => $"<option value='{HtmlAttribute(Choice)}'{(Choice.Equals(Current, StringComparison.OrdinalIgnoreCase) ? " selected" : string.Empty)}>{HtmlEscape(Choice)}</option>"));
-            Input = $"<select name='{HtmlAttribute(Question.AnswerKey)}'{Required}>{Options}</select>";
+            Input = $"<select id='{FieldId}' name='{HtmlAttribute(Question.AnswerKey)}'{Required}>{Options}</select>";
         }
         else if (Question.Type.Equals("multi-choice", StringComparison.OrdinalIgnoreCase))
         {
             string[] CurrentValues = Current.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             string Boxes = string.Join("", Question.Choices.Select(Choice => $"<label class='choice'><input type='checkbox' name='{HtmlAttribute(Question.AnswerKey)}' value='{HtmlAttribute(Choice)}'{(CurrentValues.Any(Value => Value.Equals(Choice, StringComparison.OrdinalIgnoreCase)) ? " checked" : string.Empty)}> {HtmlEscape(Choice)}</label>"));
-            Input = $"<div class='choices'>{Boxes}</div>";
+            Input = $"<div class='choices' id='{FieldId}'>{Boxes}</div>";
         }
         else
         {
             string Pattern = Question.AnswerKey.Equals("OsName", StringComparison.OrdinalIgnoreCase) || Question.AnswerKey.Equals("KernelName", StringComparison.OrdinalIgnoreCase)
                 ? " pattern='[A-Za-z][A-Za-z0-9]*'"
                 : string.Empty;
-            Input = $"<input type='text' name='{HtmlAttribute(Question.AnswerKey)}' value='{HtmlAttribute(Current)}'{Required}{Pattern}>";
+            string ReadOnlyHint = Question.AnswerKey.Equals("OsTitle", StringComparison.OrdinalIgnoreCase) || Question.AnswerKey.Equals("OsName", StringComparison.OrdinalIgnoreCase) || Question.AnswerKey.Equals("KernelName", StringComparison.OrdinalIgnoreCase)
+                ? string.Empty
+                : " readonly";
+            Input = $"<input type='text' id='{FieldId}' name='{HtmlAttribute(Question.AnswerKey)}' value='{HtmlAttribute(Current)}'{Required}{Pattern}{ReadOnlyHint}>";
         }
 
         return $@"
-<section class='question'>
-  <label><span>{HtmlEscape(Question.Prompt)}</span>{Input}</label>
+<section class='question' data-question-key='{HtmlAttribute(Question.AnswerKey)}'>
+  <label for='{FieldId}'><span>{HtmlEscape(Question.Prompt)}</span>{Input}</label>
   <p class='key'>Answer key: <code>{HtmlEscape(Question.AnswerKey)}</code></p>
   {Help}
 </section>";
@@ -358,6 +367,43 @@ li {{ margin-bottom: 14px; }}
 {NavigationHtml}
 {Body}
 </main>
+<script>
+(function () {{
+  const title = document.querySelector('[name="OsTitle"]');
+  const osName = document.querySelector('[name="OsName"]');
+  const kernelName = document.querySelector('[name="KernelName"]');
+  function sanitize(value) {{
+    let cleaned = (value || '').replace(/[^A-Za-z0-9]/g, '');
+    if (!cleaned) cleaned = 'MyOrynOS';
+    if (!/^[A-Za-z]/.test(cleaned)) cleaned = 'Oryn' + cleaned;
+    return cleaned;
+  }}
+  function autoFillFromTitle() {{
+    if (!title || !osName || !kernelName) return;
+    const generated = sanitize(title.value);
+    if (!osName.dataset.userEdited || osName.value === '' || osName.value === 'MyOrynOS') {{
+      osName.value = generated;
+    }}
+    if (!kernelName.dataset.userEdited || kernelName.value === '' || kernelName.value === 'MyOrynOSKernel' || kernelName.value.endsWith('Kernel')) {{
+      kernelName.value = osName.value + 'Kernel';
+    }}
+  }}
+  if (title) title.addEventListener('input', autoFillFromTitle);
+  if (osName) {{
+    osName.addEventListener('input', function () {{
+      osName.dataset.userEdited = '1';
+      osName.value = sanitize(osName.value);
+      if (kernelName && !kernelName.dataset.userEdited) kernelName.value = osName.value + 'Kernel';
+    }});
+  }}
+  if (kernelName) {{
+    kernelName.addEventListener('input', function () {{
+      kernelName.dataset.userEdited = '1';
+      kernelName.value = sanitize(kernelName.value);
+    }});
+  }}
+}})();
+</script>
 </body>
 </html>";
     }
@@ -690,6 +736,27 @@ li {{ margin-bottom: 14px; }}
         return Sanitized;
     }
 
+    private static Dictionary<string, object> GuessInitialAnswers(string ProjectRoot)
+    {
+        Dictionary<string, object> Answers = new(StringComparer.OrdinalIgnoreCase);
+        string BaseName = Path.GetFileName(Directory.GetCurrentDirectory());
+        if (string.IsNullOrWhiteSpace(BaseName) || BaseName.Equals("FullSource", StringComparison.OrdinalIgnoreCase) || BaseName.Equals("ChangedFiles", StringComparison.OrdinalIgnoreCase))
+        {
+            BaseName = "My Oryn OS";
+        }
+
+        string GuessedOsName = SanitizeStrictName(BaseName);
+        Answers["OsTitle"] = BaseName.Replace('-', ' ').Replace('_', ' ');
+        Answers["OsName"] = GuessedOsName;
+        Answers["KernelName"] = GuessedOsName + "Kernel";
+        Answers["Target"] = "x64-elf";
+        Answers["VmProfile"] = "RunQemu";
+        Answers["VmDisplayMode"] = "Headless";
+        Answers["UserSelectedModules"] = "None";
+        Answers["BuildMode"] = "Debug";
+        return Answers;
+    }
+
     private static object? GetExistingValue(Dictionary<string, object>? ExistingAnswers, string Key)
     {
         if (ExistingAnswers is null) return null;
@@ -714,7 +781,24 @@ li {{ margin-bottom: 14px; }}
         if (!File.Exists(JsonPath)) return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         using JsonDocument Document = JsonDocument.Parse(File.ReadAllText(JsonPath));
         Dictionary<string, object> Values = new(StringComparer.OrdinalIgnoreCase);
-        foreach (JsonProperty Property in Document.RootElement.EnumerateObject()) Values[Property.Name] = Property.Value.Clone();
+        foreach (JsonProperty Property in Document.RootElement.EnumerateObject())
+        {
+            Values[Property.Name] = Property.Value.Clone();
+        }
+        if (Document.RootElement.TryGetProperty("Answers", out JsonElement NestedAnswers) && NestedAnswers.ValueKind == JsonValueKind.Object)
+        {
+            foreach (JsonProperty Property in NestedAnswers.EnumerateObject())
+            {
+                if (Property.Value.ValueKind == JsonValueKind.Object && Property.Value.TryGetProperty("Value", out JsonElement NestedValue))
+                {
+                    Values[Property.Name] = NestedValue.Clone();
+                }
+                else
+                {
+                    Values[Property.Name] = Property.Value.Clone();
+                }
+            }
+        }
         return Values;
     }
 
