@@ -549,3 +549,14 @@ The generated manifest is now named:
 ```text
 <output>.stage2.ir.json
 ```
+
+## Version 0.2.8 Stage 2 CFG visibility
+
+Version `0.2.8` keeps the Stage 2 CFG implementation from `0.2.7`, but makes the proof lines visible during normal runs. After Stage 2 lowering, the compiler now prints lines such as:
+
+```text
+[ OK ] [ CFG      ] Basic blocks: 5
+[ OK ] [ CFG      ] LoopStart0 -> LoopEnd0, Block1
+```
+
+`Runqemu.sh` also prints the CFG proof lines from the generated compiler diagnostics log before continuing to the native build and QEMU run.

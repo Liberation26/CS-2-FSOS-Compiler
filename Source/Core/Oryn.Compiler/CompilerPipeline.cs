@@ -82,6 +82,13 @@ internal sealed class CompilerPipeline
             Messages.Add($"[ OK ] Parsed source: {Command.SourcePath}");
             Messages.Add("[ OK ] Safe-subset validation passed.");
             Messages.Add($"[ OK ] Lowered IR instructions: {IrModule.Instructions.Count}");
+            Messages.Add($"[ OK ] [ CFG      ] Basic blocks: {ControlFlowGraph.Blocks.Count}");
+            foreach (Oryn.Compiler.IR.ControlFlowGraph.OrynBasicBlock Block in ControlFlowGraph.Blocks)
+            {
+                string Successors = Block.Successors.Count == 0 ? "<none>" : string.Join(", ", Block.Successors);
+                Messages.Add($"[ OK ] [ CFG      ] {Block.Name} -> {Successors}");
+            }
+
             Messages.Add($"[ OK ] Backend target: {Command.Target}");
             Messages.Add($"[ OK ] Wrote IR manifest: {BackendResult.ManifestPath}");
             Messages.Add($"[ OK ] Wrote C backend: {BackendResult.CPath}");

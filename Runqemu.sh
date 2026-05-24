@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.2.6"
+RUNQEMU_VERSION="0.2.8"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -154,6 +154,8 @@ info "Oryn.Compiler backend completed for ${STAGE_NAME}"
 [ -f "$GENERATED_ASM" ] || fail "Compiler did not produce expected backend assembly: $GENERATED_ASM"
 [ -f "$COMPILER_DIAGNOSTICS_LOG" ] || fail "Compiler did not produce expected diagnostics log: $COMPILER_DIAGNOSTICS_LOG"
 info "Compiler diagnostics log: $COMPILER_DIAGNOSTICS_LOG"
+info "Compiler CFG proof lines from diagnostics log:"
+grep '\[ CFG      \]' "$COMPILER_DIAGNOSTICS_LOG" || fail "Compiler diagnostics log did not contain CFG proof lines: $COMPILER_DIAGNOSTICS_LOG"
 
 cat > "$BOOT_SOURCE" <<'EOF_BOOT'
 .set MB1_MAGIC, 0x1BADB002

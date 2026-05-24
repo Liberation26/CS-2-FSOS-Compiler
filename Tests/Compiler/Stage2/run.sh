@@ -6,7 +6,7 @@ OUTPUT_DIR="$ROOT_DIR/Build/Compiler/Stage2"
 mkdir -p "$OUTPUT_DIR"
 
 cd "$ROOT_DIR/Source/Core/Oryn.Compiler"
-dotnet run -- compile "$ROOT_DIR/OSes/Stage2/Source/Kernel.cs" --target x64-elf --output "$OUTPUT_DIR/Kernel.o"
+dotnet run -- compile "$ROOT_DIR/OSes/Stage2/Source/Kernel.cs" --target x64-elf --output "$OUTPUT_DIR/Kernel.o" | tee "$OUTPUT_DIR/Compiler.stdout.log"
 
 MANIFEST="$OUTPUT_DIR/Kernel.stage2.ir.json"
 DIAGNOSTICS="$OUTPUT_DIR/Kernel.diagnostics.log"
@@ -24,5 +24,6 @@ grep -q '"OpCode": "Jump"' "$MANIFEST"
 grep -q '"ControlFlowGraph"' "$MANIFEST"
 grep -q '"Successors"' "$MANIFEST"
 grep -q '\[ OK \] \[ CFG      \]' "$DIAGNOSTICS"
+grep -q '\[ OK \] \[ CFG      \]' "$OUTPUT_DIR/Compiler.stdout.log"
 
 printf '[ OK ] Stage 2 control-flow graph proof outputs written to: %s\n' "$OUTPUT_DIR"

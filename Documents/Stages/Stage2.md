@@ -112,3 +112,12 @@ The compiler writes the lowered manifest to:
 ```
 
 The generated C and x64 assembly backend sketches now consume the same IR stream.
+
+## 0.2.8 CFG proof visibility
+
+The CFG proof lines are now printed in two places:
+
+- compiler standard output, immediately after IR lowering;
+- `Runqemu.sh`, by echoing the `[ OK ] [ CFG      ]` lines from `Kernel.stage2.diagnostics.log`.
+
+This means a normal Stage 2 run should visibly show the generated basic blocks and successor edges without opening the JSON manifest or diagnostics log manually.
