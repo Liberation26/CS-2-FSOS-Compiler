@@ -85,7 +85,7 @@ for relocation in relocations:
     if relocation["type"] not in allowed_types:
         fail(f"unsupported relocation type {relocation['type']} for {relocation['symbol']}")
 
-required_symbols = ["Diagnostics_WriteOk", "Diagnostics_WriteFail", "Memory_Initialize", "Cpu_HaltForever", "Kernel_WriteBanner"]
+required_symbols = ["Diagnostics_WriteOk", "Diagnostics_WriteFail", "Memory_Initialize", "Cpu_HaltForever", "Kernel_WriteBanner", "Kernel_WriteReturnProof"]
 for name in required_symbols:
     if not any(r["symbol"] == name for r in relocations):
         fail(f"required relocation target missing: {name}")

@@ -27,6 +27,11 @@ The tests check:
 - Stage 3 uses only the supported relocation kinds currently emitted by Oryn: `R_X86_64_PC32` and `R_X86_64_PLT32`
 - compiler rebuilding is not performed unless `ORYN_BUILD_COMPILER=1` is explicitly set
 
+- Stage 3 IR contains the full Stage 2 parity opcode set
+- Stage 3 IR contains the expected helper methods and approved module calls
+- Stage 3 IR contains the expected string proof literals
+- QEMU reaches the Stage 3 parity proof diagnostics
+
 ## Test scripts
 
 ```text
@@ -38,6 +43,7 @@ The tests check:
 06-elf64-symbol-check.sh
 07-elf64-relocation-check.sh
 08-stage3-no-compiler-rebuild-check.sh
+09-stage3-feature-parity-check.sh
 run.sh
 ```
 
@@ -69,3 +75,8 @@ Run only the structural object checks after a Stage 3 compile:
 ./Tests/Compiler/Stage3/06-elf64-symbol-check.sh
 ./Tests/Compiler/Stage3/07-elf64-relocation-check.sh
 ```
+
+
+## Stage 3 feature parity
+
+`09-stage3-feature-parity-check.sh` proves the direct object path is fed by IR that covers the Stage 2 useful subset: locals, constants, arithmetic, comparisons, labels, jumps, conditional jumps, calls, helper methods, and returns. The QEMU boot proof then checks the runtime diagnostics emitted by that parity kernel.

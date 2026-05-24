@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UPDATE_VERSION="0.3.3"
+UPDATE_VERSION="0.3.4"
 REMOTE_URL="https://github.com/Liberation26/OrynFoundry"
 REPO_DIR="${ORYN_REPO_DIR:-$HOME/Dev/OrynFoundry}"
 DOWNLOADS_DIR="${ORYN_DOWNLOADS_DIR:-$HOME/Downloads}"

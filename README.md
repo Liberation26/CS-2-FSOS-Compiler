@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.3.3`
+Current version: `0.3.4`
 
 
 
@@ -744,3 +744,16 @@ ORYN_SKIP_QEMU=1 ./Runqemu.sh Stage3
 ## Version 0.3.1 Stage 3 QEMU proof correction
 
 Version `0.3.1` corrects the shared Runqemu proof checks so Stage 3 looks for `Stage3` kernel diagnostics instead of the older Stage 2 proof strings. The Stage 3 QEMU test now also checks the exact Stage 3 entry, memory, loop, branch, helper-method, and halt diagnostics.
+
+
+### 0.3.4 Stage 3 feature parity proof
+
+Version `0.3.4` expands the Stage 3 kernel and test suite so the direct ELF64 object writer proves parity with the Stage 2 language subset. The Stage 3 runtime proof now exercises integer locals, addition, subtraction, equality comparison, less-than comparison, branches, loops, helper methods, explicit returns, approved module calls, string constants, integer constants, and the final halt path.
+
+The new parity test is:
+
+```text
+Tests/Compiler/Stage3/09-stage3-feature-parity-check.sh
+```
+
+The parity test inspects the generated IR and readable assembly reference to ensure the expected methods, calls, strings, and IR opcodes are present before the QEMU boot proof runs.

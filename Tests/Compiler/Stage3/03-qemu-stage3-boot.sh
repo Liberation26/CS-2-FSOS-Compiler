@@ -31,6 +31,10 @@ grep -q 'Stage3 memory initialized' "$SERIAL_LOG" || fail "Stage3 memory proof m
 grep -q 'Stage3 loop tick' "$SERIAL_LOG" || fail "Stage3 loop proof missing from serial log"
 grep -q 'Stage3 branch worked' "$SERIAL_LOG" || fail "Stage3 branch proof missing from serial log"
 grep -q 'Stage3 helper method worked' "$SERIAL_LOG" || fail "Stage3 helper proof missing from serial log"
+grep -q 'Stage3 subtraction worked' "$SERIAL_LOG" || fail "Stage3 subtraction proof missing from serial log"
+grep -q 'Stage3 integer arithmetic worked' "$SERIAL_LOG" || fail "Stage3 integer arithmetic proof missing from serial log"
+grep -q 'Stage3 explicit return worked' "$SERIAL_LOG" || fail "Stage3 explicit return proof missing from serial log"
+grep -q 'Stage3 parity proof complete' "$SERIAL_LOG" || fail "Stage3 parity completion proof missing from serial log"
 grep -q 'Stage3 kernel is halting forever' "$SERIAL_LOG" || fail "Stage3 halt proof missing from serial log"
 grep -q 'QEMU timeout reached' "$LOG_FILE" || fail "Timeout-as-success proof missing from: $LOG_FILE"
 

@@ -66,7 +66,7 @@ for i in range(symtab["size"] // 24):
     symbols.append({"index": i, "name": name, "bind": st_info >> 4, "type": st_info & 0x0F, "shndx": st_shndx, "value": st_value, "size": st_size})
 
 by_symbol = {s["name"]: s for s in symbols if s["name"]}
-required_defined_functions = ["Kernel_Main", "Kernel_WriteBanner"]
+required_defined_functions = ["Kernel_Main", "Kernel_WriteBanner", "Kernel_WriteReturnProof"]
 for name in required_defined_functions:
     symbol = by_symbol.get(name)
     if not symbol:

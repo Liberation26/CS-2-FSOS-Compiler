@@ -69,3 +69,22 @@ To rebuild the compiler deliberately:
 ```bash
 ORYN_BUILD_COMPILER=1 Tests/Compiler/Stage3/run.sh
 ```
+
+
+## Stage 3 feature parity
+
+Oryn 0.3.4 adds a Stage 3 parity proof. The Stage 3 kernel now deliberately uses the useful Stage 2 subset while still compiling through the direct ELF64 object writer.
+
+The proof covers variables, integer constants, string constants, addition, subtraction, equality comparison, less-than comparison, loops, branches, helper methods, explicit returns, approved module calls, and the final halt path.
+
+Run the full proof with:
+
+```bash
+Tests/Compiler/Stage3/run.sh
+```
+
+Run only the parity inspection after a Stage 3 compile with:
+
+```bash
+Tests/Compiler/Stage3/09-stage3-feature-parity-check.sh
+```

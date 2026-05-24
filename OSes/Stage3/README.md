@@ -130,3 +130,37 @@ Run all Stage 3 tests with:
 ```bash
 Tests/Compiler/Stage3/run.sh
 ```
+
+
+## Stage 3 feature parity proof
+
+Oryn 0.3.4 expands the Stage 3 kernel into a parity proof for the useful Stage 2 subset. The kernel now proves:
+
+- integer local declarations and stores,
+- integer loads and assignments,
+- integer constants,
+- string constants,
+- addition and subtraction,
+- equality and less-than comparisons,
+- `while` loops,
+- `if` / `else` branches,
+- approved module calls,
+- static helper method calls,
+- explicit `return`,
+- final CPU halt.
+
+Expected runtime proof lines now include:
+
+```text
+[ OK ] Stage3 subtraction worked
+[ OK ] Stage3 integer arithmetic worked
+[ OK ] Stage3 helper method worked
+[ OK ] Stage3 explicit return worked
+[ OK ] Stage3 parity proof complete
+```
+
+The feature parity inspection script is:
+
+```bash
+Tests/Compiler/Stage3/09-stage3-feature-parity-check.sh
+```
