@@ -2,11 +2,11 @@
 
 Oryn is a C# to freestanding operating-system compiler and generator project from Oryn Foundry.
 
-Current version: **1.0.7**
+Current version: **1.0.8**
 
-## 1.0.7 milestone
+## 1.0.8 milestone
 
-Oryn 1.0.7 is the first end-user OS generation milestone.
+Oryn 1.0.8 is the first end-user OS generation milestone.
 
 It proves that a user can:
 
@@ -35,7 +35,7 @@ Mandatory kernel modules are linked automatically:
 
 Diagnostics and Panic are always enabled. They are not optional user-selected modules.
 
-For 1.0.7, the optional user-selectable choices are:
+For 1.0.8, the optional user-selectable choices are:
 
 - None
 - Memory
@@ -76,7 +76,7 @@ The generated OS should print diagnostics containing the OS name, kernel name, m
 
 ## Development stages
 
-Stage 9 remains the internal compiler proof for generated kernel template composition. Oryn 1.0.7 uses that proof as the engine behind the user-facing generated OS workflow.
+Stage 9 remains the internal compiler proof for generated kernel template composition. Oryn 1.0.8 uses that proof as the engine behind the user-facing generated OS workflow.
 
 ```bash
 ./Runqemu.sh Stage9
@@ -87,15 +87,17 @@ Stage 9 remains the internal compiler proof for generated kernel template compos
 Generator milestone tests live under:
 
 ```text
-Tests/Generator/1.0.7/
+Tests/Generator/1.0.8/
 ```
 
 Run them with:
 
 ```bash
-Tests/Generator/1.0.7/run.sh
+Tests/Generator/1.0.8/run.sh
 ```
 
-## 1.0.7 generated OS proof
+## 1.0.8 generated OS proof
 
 Generated kernels now print `Hello from <OsName>` during boot. The generation questions also ask whether QEMU should run in `Headless` mode or `Visual` mode, and the generated manifest records that choice as `VmDisplayMode`.
+
+Generator prompts show the accepted options on a separate `OPTIONS` line. In interactive terminals, those options are displayed in a different colour so the expected answers are easier to see.

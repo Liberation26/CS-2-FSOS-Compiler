@@ -9,5 +9,6 @@
   "Choices": [
     "None",
     "Memory"
-  ]
+  ],
+  "ExpectedAnswer": "None or Memory. Use None for no optional modules. Mandatory modules are automatic."
 }

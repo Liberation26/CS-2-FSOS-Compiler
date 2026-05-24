@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ORYN_VERSION="1.0.7"
+ORYN_VERSION="1.0.8"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GENERATOR_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Generator/Oryn.Generator.csproj"
 
@@ -39,7 +39,16 @@ Usage:
   ./Oryn.sh test <OsName>
   ./Oryn.sh modules
 
-Diagnostics and Panic are always enabled. User-selected modules exclude mandatory kernel modules needed to get the kernel running. Use --modules None for no optional modules. VM display mode can be Headless or Visual.
+Diagnostics and Panic are always enabled. User-selected modules exclude mandatory kernel modules needed to get the kernel running.
+
+Question answer guide:
+  OS name: any friendly OS name, for example My Oryn OS. Spaces are allowed.
+  Kernel name: letters, numbers, and underscores, for example MyOrynOSKernel.
+  Target architecture: x64-elf.
+  Virtual machine profile: RunQemu.
+  VM display mode: Headless or Visual. Headless closes automatically after the proof timeout. Visual stays open until you close the VM window.
+  Additional modules: None or Memory. Use None for no optional modules.
+  Build mode: Debug.
 USAGE
 }
 

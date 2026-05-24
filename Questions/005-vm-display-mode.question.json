@@ -9,5 +9,6 @@
   "Choices": [
     "Headless",
     "Visual"
-  ]
+  ],
+  "ExpectedAnswer": "Headless or Visual. Headless closes automatically after the proof timeout. Visual stays open until you close the VM window."
 }

@@ -8,5 +8,6 @@
   "Default": "Debug",
   "Choices": [
     "Debug"
-  ]
+  ],
+  "ExpectedAnswer": "Debug"
 }

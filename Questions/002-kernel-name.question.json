@@ -5,5 +5,6 @@
   "AnswerKey": "KernelName",
   "Type": "string",
   "Required": false,
-  "Default": "<OsName>Kernel"
+  "Default": "<OsName>Kernel",
+  "ExpectedAnswer": "Letters, numbers, and underscores. Press Enter for <OsName>Kernel."
 }

@@ -2,7 +2,7 @@ namespace Oryn.Compiler;
 
 internal static class Program
 {
-    private const string Version = "1.0.7";
+    private const string Version = "1.0.8";
 
     private static int Main(string[] Args)
     {

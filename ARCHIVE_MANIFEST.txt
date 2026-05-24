@@ -1,12 +1,11 @@
-Oryn 1.0.7
+Oryn 1.0.8
 
-Package layout:
-- FullSource/ contains the complete Oryn source tree for this delivery.
-- ChangedFiles/ contains only files changed for the 1.0.7 delivery.
+Archive layout:
+- FullSource/ contains the full source tree for this delivery.
+- ChangedFiles/ contains only files changed for the 1.0.8 delivery.
 
-1.0.7 focus:
-- Generated kernels print `Hello from <OsName>` during boot.
-- The generator asks whether the VM display should be Headless or Visual.
-- Generated manifests and answer files include VmDisplayMode.
-- Oryn.sh uses the generated manifest display mode when running the OS.
-- Runqemu.sh accepts visual/headed/gui aliases and validates the generated OS hello proof line.
+1.0.8 focus:
+- Visual VM mode stays open until the user closes QEMU.
+- Generator prompts show expected answers and defaults for every question.
+- Headless/Visual behaviour is documented in the CLI help, question metadata, manual, and release notes.
+- Question options are coloured in interactive terminals and documented.

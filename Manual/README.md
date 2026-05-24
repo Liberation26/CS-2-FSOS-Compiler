@@ -1,8 +1,8 @@
 # Oryn Manual
 
-Oryn 1.0.7 introduces the first end-user OS generation workflow.
+Oryn 1.0.8 introduces the first end-user OS generation workflow.
 
-## What Oryn 1.0.7 does
+## What Oryn 1.0.8 does
 
 Oryn can now create a named OS folder from JSON-backed answers, generate a kernel template and source tree, compose the final kernel from approved modules, build a bootable freestanding x64 kernel, and run it through QEMU.
 
@@ -22,7 +22,7 @@ Mandatory modules are linked automatically:
 
 Diagnostics and Panic are always enabled and are never optional user choices.
 
-For 1.0.7, choose `None` for no optional modules or `Memory` to include the optional Memory module.
+For 1.0.8, choose `None` for no optional modules or `Memory` to include the optional Memory module.
 
 ## Generate
 
@@ -56,6 +56,18 @@ OSes/<OsName>/
 
 The manifest separates `MandatoryKernelModules` from `UserSelectedModules` so the user's selections are not polluted by kernel boot requirements.
 
-## 1.0.7 generated OS proof
+## 1.0.8 generated OS proof
 
 Generated kernels now print `Hello from <OsName>` during boot. The generation questions also ask whether QEMU should run in `Headless` mode or `Visual` mode, and the generated manifest records that choice as `VmDisplayMode`.
+
+## VM display modes
+
+`Headless` mode is for automated proof runs. It closes automatically after the QEMU proof timeout when the generated kernel remains running/halted as expected.
+
+`Visual` mode is for end users who want to see the VM window. Oryn does not close QEMU in visual mode; the VM stays open until the user closes the window.
+
+## Question expectations
+
+Every generator question shows the expected answer and the default. Press Enter to accept the default.
+
+Generator prompts show the accepted options on a separate `OPTIONS` line. In interactive terminals, those options are displayed in a different colour so the expected answers are easier to see.

@@ -6,12 +6,15 @@ namespace Oryn.Generator;
 
 internal static class Program
 {
-    private const string Version = "1.0.7";
+    private const string Version = "1.0.8";
     private static readonly string[] MandatoryKernelModules = { "Runtime", "Diagnostics", "Panic", "Cpu", "ManifestLoader" };
     private static readonly string[] DefaultUserSelectedModules = Array.Empty<string>();
     private static readonly string[] AvailableUserSelectableModules = { "Memory" };
     private static readonly string[] DisplayUserSelectableModules = { "None", "Memory" };
     private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+    private const string AnsiReset = "\u001b[0m";
+    private const string AnsiOptionColour = "\u001b[96m";
+    private const string AnsiDefaultColour = "\u001b[93m";
 
     private static int Main(string[] Args)
     {
@@ -58,6 +61,7 @@ internal static class Program
         Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- modules");
         Console.WriteLine();
         Console.WriteLine("Diagnostics and Panic are always enabled. Mandatory kernel modules are not user-selected modules.");
+        Console.WriteLine("Headless VM mode closes automatically after the proof timeout. Visual VM mode stays open until the user closes the VM window.");
     }
 
     private static void PrintModules()
@@ -68,7 +72,7 @@ internal static class Program
             Console.WriteLine($"  [mandatory] {Module}");
         }
 
-        Console.WriteLine("[ OK ] User-selectable modules for 1.0.7:");
+        Console.WriteLine("[ OK ] User-selectable modules for 1.0.8:");
         Console.WriteLine("  [available] None");
         foreach (string Module in AvailableUserSelectableModules)
         {
@@ -83,21 +87,26 @@ internal static class Program
 
         bool NonInteractive = HasFlag(Args, "--non-interactive") || HasFlag(Args, "--defaults");
 
-        string OsName = ReadOption(Args, "--os-name") ?? ReadOption(Args, "--name") ?? Prompt("OS name", "My Oryn OS", NonInteractive);
-        string KernelName = ReadOption(Args, "--kernel-name") ?? Prompt("Kernel name", SanitizeIdentifier(OsName) + "Kernel", NonInteractive);
-        string Target = ReadOption(Args, "--target") ?? Prompt("Target architecture", "x64-elf", NonInteractive);
-        string VmProfile = ReadOption(Args, "--vm-profile") ?? Prompt("Virtual machine profile", "RunQemu", NonInteractive);
-        string VmDisplayMode = ReadOption(Args, "--vm-display-mode") ?? ReadOption(Args, "--display-mode") ?? ReadOption(Args, "--qemu-display") ?? Prompt("VM display mode", "Headless", NonInteractive);
+        PrintQuestionHelpBanner();
+
+        string OsName = ReadOption(Args, "--os-name") ?? ReadOption(Args, "--name") ?? Prompt("OS name", "My Oryn OS", "Type the name of the operating system to generate. Spaces are allowed; the folder name will remove spaces.", NonInteractive);
+        string KernelName = ReadOption(Args, "--kernel-name") ?? Prompt("Kernel name", SanitizeIdentifier(OsName) + "Kernel", "Type the generated kernel class/name. Use letters, numbers, and underscores; press Enter to accept the default.", NonInteractive);
+        string Target = ReadOption(Args, "--target") ?? Prompt("Target architecture", "x64-elf", "Valid answer: x64-elf", NonInteractive);
+        Target = NormalizeTarget(Target);
+        string VmProfile = ReadOption(Args, "--vm-profile") ?? Prompt("Virtual machine profile", "RunQemu", "Valid answer: RunQemu", NonInteractive);
+        VmProfile = NormalizeVmProfile(VmProfile);
+        string VmDisplayMode = ReadOption(Args, "--vm-display-mode") ?? ReadOption(Args, "--display-mode") ?? ReadOption(Args, "--qemu-display") ?? Prompt("VM display mode", "Headless", "Valid answers: Headless or Visual. Headless closes automatically after the proof timeout. Visual opens a QEMU window and stays open until you close it.", NonInteractive);
         VmDisplayMode = NormalizeVmDisplayMode(VmDisplayMode);
-        string BuildMode = ReadOption(Args, "--build-mode") ?? Prompt("Build mode", "Debug", NonInteractive);
+        string BuildMode = ReadOption(Args, "--build-mode") ?? Prompt("Build mode", "Debug", "Valid answer: Debug", NonInteractive);
+        BuildMode = NormalizeBuildMode(BuildMode);
 
         Console.WriteLine("[ OK ] [GENERATOR] Mandatory kernel modules are always linked and hidden from user selection:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", MandatoryKernelModules));
         Console.WriteLine("[ OK ] [GENERATOR] Diagnostics and Panic are always enabled.");
-        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.7:");
+        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.8:");
         Console.WriteLine("[ OK ] [GENERATOR]   None, " + string.Join(", ", AvailableUserSelectableModules));
 
-        string ModulesText = ReadOption(Args, "--modules") ?? Prompt("User-selected modules, comma-separated", FormatModuleDefault(DefaultUserSelectedModules), NonInteractive);
+        string ModulesText = ReadOption(Args, "--modules") ?? Prompt("Additional user-selected modules", FormatModuleDefault(DefaultUserSelectedModules), "Valid answers: None or Memory. Use comma-separated values only when more optional modules are available. Mandatory boot/kernel modules are linked automatically and must not be typed here.", NonInteractive);
 
         string SafeOsName = SanitizeFileName(OsName);
         if (string.IsNullOrWhiteSpace(SafeOsName))
@@ -140,15 +149,29 @@ internal static class Program
         Console.WriteLine($"[ OK ] [GENERATOR] User-selected modules: {(UserSelectedModules.Length == 0 ? "<none>" : string.Join(", ", UserSelectedModules))}");
     }
 
-    private static string Prompt(string Label, string DefaultValue, bool NonInteractive)
+    private static void PrintQuestionHelpBanner()
     {
+        Console.WriteLine("[ OK ] [GENERATOR] Each question shows its expected answer format, accepted options, and default.");
+        Console.WriteLine("[ OK ] [GENERATOR] Accepted options are shown in a different colour when the terminal supports ANSI colours.");
+        Console.WriteLine("[ OK ] [GENERATOR] Press Enter to accept the default shown in square brackets.");
+    }
+
+    private static string Prompt(string Label, string DefaultValue, string ExpectedAnswer, bool NonInteractive)
+    {
+        string ColouredExpectedAnswer = ColourOptionText(ExpectedAnswer);
+        string ColouredDefaultValue = ColourDefaultText(DefaultValue);
+
         if (NonInteractive)
         {
-            Console.WriteLine($"[ OK ] [QUESTION ] {Label}: {DefaultValue}");
+            Console.WriteLine($"[ OK ] [QUESTION ] {Label}");
+            Console.WriteLine($"[ OK ] [OPTIONS  ] {ColouredExpectedAnswer}");
+            Console.WriteLine($"[ OK ] [DEFAULT  ] {ColouredDefaultValue}");
             return DefaultValue;
         }
 
-        Console.Write($"[QUESTION] {Label} [{DefaultValue}]: ");
+        Console.WriteLine($"[QUESTION] {Label}");
+        Console.WriteLine($"[OPTIONS ] {ColouredExpectedAnswer}");
+        Console.Write($"[ANSWER  ] [{ColouredDefaultValue}]: ");
         string? Answer = Console.ReadLine();
         if (string.IsNullOrWhiteSpace(Answer))
         {
@@ -156,6 +179,48 @@ internal static class Program
         }
 
         return Answer.Trim();
+    }
+
+    private static string ColourOptionText(string Text)
+    {
+        if (!UseAnsiColour())
+        {
+            return Text;
+        }
+
+        return AnsiOptionColour + Text + AnsiReset;
+    }
+
+    private static string ColourDefaultText(string Text)
+    {
+        if (!UseAnsiColour())
+        {
+            return Text;
+        }
+
+        return AnsiDefaultColour + Text + AnsiReset;
+    }
+
+    private static bool UseAnsiColour()
+    {
+        if (Console.IsOutputRedirected)
+        {
+            return false;
+        }
+
+        string? NoColour = Environment.GetEnvironmentVariable("NO_COLOR");
+        if (!string.IsNullOrWhiteSpace(NoColour))
+        {
+            return false;
+        }
+
+        string? OrynNoColour = Environment.GetEnvironmentVariable("ORYN_NO_COLOR");
+        if (!string.IsNullOrWhiteSpace(OrynNoColour))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static void ValidateQuestionFiles(string ProjectRoot)
@@ -183,6 +248,40 @@ internal static class Program
         }
 
         Console.WriteLine($"[ OK ] [GENERATOR] Loaded JSON question files: {QuestionFiles.Length}");
+    }
+
+    private static string NormalizeTarget(string Value)
+    {
+        string Normalized = Value.Trim();
+        if (Normalized.Equals("x64-elf", StringComparison.OrdinalIgnoreCase))
+        {
+            return "x64-elf";
+        }
+
+        throw new InvalidOperationException("Unsupported target architecture: " + Value + ". Use x64-elf.");
+    }
+
+    private static string NormalizeVmProfile(string Value)
+    {
+        string Normalized = Value.Trim();
+        if (Normalized.Equals("RunQemu", StringComparison.OrdinalIgnoreCase) ||
+            Normalized.Equals("Qemu", StringComparison.OrdinalIgnoreCase))
+        {
+            return "RunQemu";
+        }
+
+        throw new InvalidOperationException("Unsupported virtual machine profile: " + Value + ". Use RunQemu.");
+    }
+
+    private static string NormalizeBuildMode(string Value)
+    {
+        string Normalized = Value.Trim();
+        if (Normalized.Equals("Debug", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Debug";
+        }
+
+        throw new InvalidOperationException("Unsupported build mode: " + Value + ". Use Debug.");
     }
 
     private static string NormalizeVmDisplayMode(string Value)
@@ -246,7 +345,7 @@ internal static class Program
 
             if (!Available.Contains(Module))
             {
-                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.7: {Module}");
+                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.8: {Module}");
             }
         }
     }
@@ -346,7 +445,7 @@ From the Oryn repository root:
 ./Oryn.sh run {OsName}
 ```
 
-The generated manifest records mandatory kernel modules separately from user-selected modules. Runtime, Diagnostics, Panic, Cpu, and ManifestLoader are linked automatically. Diagnostics and Panic are always enabled. The generated kernel prints `Hello from {OsName}` during boot. The VM display mode is chosen during generation and can be Headless or Visual.
+The generated manifest records mandatory kernel modules separately from user-selected modules. Runtime, Diagnostics, Panic, Cpu, and ManifestLoader are linked automatically. Diagnostics and Panic are always enabled. The generated kernel prints `Hello from {OsName}` during boot. The VM display mode is chosen during generation and can be Headless or Visual. Headless mode closes automatically after the proof timeout. Visual mode stays open until you close the VM window.
 """;
 
     private static string LocateProjectRoot()

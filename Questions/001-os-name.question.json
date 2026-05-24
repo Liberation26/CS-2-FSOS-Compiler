@@ -5,5 +5,6 @@
   "AnswerKey": "OsName",
   "Type": "string",
   "Required": true,
-  "Default": "MyOrynOS"
+  "Default": "MyOrynOS",
+  "ExpectedAnswer": "Any friendly OS name. Spaces are allowed; the generated folder removes spaces."
 }
