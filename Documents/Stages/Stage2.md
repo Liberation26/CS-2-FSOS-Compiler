@@ -140,3 +140,8 @@ Kernel.cs
 ```
 
 The C backend remains useful for inspection, but the Stage 2 kernel object now comes from the generated assembly. Writing ELF64 object files directly is reserved for Stage 3.
+
+
+## 0.2.10 Stage 2 Phase 5 syntax fix
+
+The `0.2.10` package corrects invalid C# string escaping in the Phase 5 x64 assembly emitter. The fix is intentionally small: it preserves the IR-to-x64 lowering path from `0.2.9` and only changes the diagnostic construction that prevented `Oryn.Compiler` from compiling.

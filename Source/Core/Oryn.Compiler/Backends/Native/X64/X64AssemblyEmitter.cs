@@ -177,7 +177,8 @@ internal sealed class X64AssemblyEmitter
 
     private static int EmitCall(StringBuilder Builder, IrInstruction Instruction, int EvaluationStackDepth)
     {
-        string NativeSymbol = Instruction.NativeSymbol ?? throw new OrynCompileException($"Call IR instruction is missing native symbol for {Instruction.ManagedName ?? Instruction.Operand ?? \"<unknown>\"}.");
+        string CallName = Instruction.ManagedName ?? Instruction.Operand ?? "<unknown>";
+        string NativeSymbol = Instruction.NativeSymbol ?? throw new OrynCompileException($"Call IR instruction is missing native symbol for {CallName}.");
         int ArgumentCount = Instruction.Arguments.Count;
         if (ArgumentCount == 0 && Instruction.ManagedName is not null && Instruction.ManagedName.StartsWith("Diagnostics.", StringComparison.Ordinal))
         {
@@ -227,7 +228,8 @@ internal sealed class X64AssemblyEmitter
     {
         if (string.IsNullOrWhiteSpace(Name) || !LocalSlots.TryGetValue(Name, out LocalSlot? Slot))
         {
-            throw new OrynCompileException($"Unknown local for {OpCode}: {Name ?? \"<null>\"}");
+            string LocalName = Name ?? "<null>";
+            throw new OrynCompileException($"Unknown local for {OpCode}: {LocalName}");
         }
 
         return Slot;

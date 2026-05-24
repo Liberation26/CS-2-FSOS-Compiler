@@ -566,3 +566,8 @@ Version `0.2.8` keeps the Stage 2 CFG implementation from `0.2.7`, but makes the
 Version `0.2.9` adds the Stage 2 Phase 5 backend path. Oryn IR now lowers to real x64 assembly in `Kernel.stage2.generated.S`; `Runqemu.sh` assembles that file with `clang -c`, links it with the native diagnostics, CPU, memory, and boot modules, creates `OrynKernel.elf`, builds the GRUB ISO, and boots it in QEMU.
 
 The generated C file remains as a readable reference artifact, but Stage 2 no longer depends on generated C for the kernel body. The direct ELF64 object writer is intentionally left for Stage 3.
+
+
+## Version 0.2.10 Stage 2 Phase 5 syntax fix
+
+Version `0.2.10` fixes the C# syntax errors in `X64AssemblyEmitter.cs` reported after the `0.2.9` Phase 5 package. The issue was caused by incorrectly escaped string literals inside interpolated diagnostic messages. The backend now stores those fallback names in local variables before constructing the exception messages, keeping the real x64 backend behaviour unchanged.
