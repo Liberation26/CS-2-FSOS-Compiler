@@ -30,3 +30,5 @@ Version 0.2.12 adds the Stage 2 string literal table proof. The generated assemb
 Version 0.2.13 adds the Stage 2 static helper method proof. The generated assembly should contain `Kernel_Main:`, `Kernel_WriteBanner:`, and `call Kernel_WriteBanner`, while the manifest should contain the helper method symbol metadata.
 
 Version 0.2.14 adds the JSON module binding proof. The Stage 2 test verifies that the binding JSON files exist, the compiler can still emit calls to Diagnostics, Memory, and Cpu through those bindings, and the generated C backend no longer contains a fixed starter-module extern table.
+
+Version 0.2.16 fixes the x64 backend duplicate call emission and the runtime boot proof capture path used by `Runqemu.sh`.

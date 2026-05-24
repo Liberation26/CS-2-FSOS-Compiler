@@ -53,6 +53,9 @@ grep -q '\.[a]sciz "Stage2 kernel is halting forever"' "$ASSEMBLY"
 grep -q 'lea \.Lstr[0-9][0-9]*(%rip), %rdi' "$ASSEMBLY"
 grep -q 'call Diagnostics_WriteOk' "$ASSEMBLY"
 grep -q 'call Memory_Initialize' "$ASSEMBLY"
+# Backend calls should be emitted once per IR call, not duplicated by the emitter itself.
+test "$(grep -c 'call Cpu_HaltForever' "$ASSEMBLY")" -eq 1
+test "$(grep -c 'call Kernel_WriteBanner' "$ASSEMBLY")" -eq 1
 
 test -f "$ROOT_DIR/Source/Sdk/Bindings/Diagnostics.binding.json"
 test -f "$ROOT_DIR/Source/Sdk/Bindings/Cpu.binding.json"

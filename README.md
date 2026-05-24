@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.2.15`
+Current version: `0.2.16`
 
 ## Core idea
 
@@ -610,9 +610,9 @@ The compiler now loads approved calls such as `Diagnostics.WriteOk`, `Memory.Ini
 
 During this Stage 2 compiler phase, `Runqemu.sh` defaults to running only the second kernel. The legacy `All` selector also maps to Stage 2-only execution so the older Stage 1 kernel is not launched first.
 
-## Version 0.2.15 Stage 2 test kernel
+## Version 0.2.16 Stage 2 test kernel
 
-Version `0.2.15` adds the dedicated Stage 2 test kernel under:
+Version `0.2.16` adds the dedicated Stage 2 test kernel under:
 
 ```text
 OSes/Stage2/
@@ -621,3 +621,8 @@ OSes/Stage2/
 The kernel proves the current Stage 2 subset at runtime: diagnostics calls, memory initialization, integer locals, arithmetic, `while`, `if` / `else`, static helper methods, and the final CPU halt path. Diagnostics accepts string literals only for now, so the loop prints a repeated proof line instead of formatted counter values.
 
 `Runqemu.sh` remains focused on Stage 2 during this compiler phase. The `All` selector runs only the second kernel, and explicit Stage 1 selectors are rejected by the script.
+
+## Version 0.2.16 Stage 2 boot/output fix
+
+Version `0.2.16` fixes the Stage 2 no-output run by tightening the freestanding boot proof path and backend call emission. The x64 backend now emits each native/helper call once, the GRUB ISO boot entry uses the Multiboot v1 path, and `Runqemu.sh` captures both COM1 serial and QEMU debugcon output. Early boot and native diagnostics now mirror proof lines to debugcon so the run script can still show useful output if the serial file is unexpectedly empty.
+

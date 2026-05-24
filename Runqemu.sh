@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.2.15"
+RUNQEMU_VERSION="0.2.16"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -102,6 +102,7 @@ ISO_ROOT="$BUILD_ROOT/IsoRoot"
 GRUB_CFG="$ISO_ROOT/boot/grub/grub.cfg"
 KERNEL_ISO="$BUILD_ROOT/OrynKernel.iso"
 SERIAL_LOG="$BUILD_ROOT/Qemu.serial.log"
+DEBUGCON_LOG="$BUILD_ROOT/Qemu.debugcon.log"
 QEMU_TIMEOUT="${ORYN_QEMU_TIMEOUT:-8}"
 QEMU_DISPLAY_MODE="${ORYN_QEMU_DISPLAY:-headless}"
 QEMU_BOOT_MODE="${ORYN_QEMU_BOOT:-iso}"
@@ -248,8 +249,16 @@ BootSerialWait32:
     jz 4b
     ret
 
+BootDebugConWriteChar32:
+    push %edx
+    mov $0x00E9, %dx
+    outb %al, %dx
+    pop %edx
+    ret
+
 BootSerialWriteChar32:
     push %eax
+    call BootDebugConWriteChar32
     call BootSerialWait32
     pop %eax
     mov $0x3F8, %dx
@@ -319,8 +328,16 @@ BootSerialWait:
     jz 1b
     ret
 
+BootDebugConWriteChar:
+    push %rdx
+    mov $0x00E9, %dx
+    outb %al, %dx
+    pop %rdx
+    ret
+
 BootSerialWriteChar:
     push %rax
+    call BootDebugConWriteChar
     call BootSerialWait
     pop %rax
     mov $0x3F8, %dx
@@ -430,7 +447,7 @@ set timeout=0
 set default=0
 
 menuentry "Oryn ${STAGE_NAME} x86_64 Kernel" {
-    multiboot2 /boot/OrynKernel.elf
+    multiboot /boot/OrynKernel.elf
     boot
 }
 EOF_GRUB
@@ -474,6 +491,8 @@ if [ "$QEMU_BOOT_MODE" = "iso" ]; then
         -cdrom "$KERNEL_ISO"
         -boot d
         -serial "file:$SERIAL_LOG"
+        -debugcon "file:$DEBUGCON_LOG"
+        -global isa-debugcon.iobase=0xe9
         -monitor none
         -no-reboot
         -no-shutdown
@@ -484,6 +503,8 @@ else
     QEMU_ARGS=(
         -kernel "$KERNEL_ELF"
         -serial "file:$SERIAL_LOG"
+        -debugcon "file:$DEBUGCON_LOG"
+        -global isa-debugcon.iobase=0xe9
         -monitor none
         -no-reboot
         -no-shutdown
@@ -497,7 +518,7 @@ if timeout --help 2>/dev/null | grep -q -- '--foreground'; then
     TIMEOUT_ARGS+=(--foreground)
 fi
 TIMEOUT_ARGS+=("$QEMU_TIMEOUT")
-rm -f "$SERIAL_LOG"
+rm -f "$SERIAL_LOG" "$DEBUGCON_LOG"
 
 info "Starting QEMU in ${QEMU_DISPLAY_MODE} mode using ${QEMU_BOOT_MODE} boot. The kernel intentionally halts forever; timeout is treated as success."
 set +e
@@ -508,12 +529,29 @@ set -e
 if [ -s "$SERIAL_LOG" ]; then
     info "QEMU serial output follows from: $SERIAL_LOG"
     sed 's/^/[SERIAL] /' "$SERIAL_LOG"
+    PROOF_LOG="$SERIAL_LOG"
+elif [ -s "$DEBUGCON_LOG" ]; then
+    warn "QEMU serial log was empty, but debugcon output was captured: $DEBUGCON_LOG"
+    sed 's/^/[DEBUGCON] /' "$DEBUGCON_LOG"
+    PROOF_LOG="$DEBUGCON_LOG"
 else
-    fail "QEMU serial log was empty: $SERIAL_LOG"
+    fail "QEMU serial and debugcon logs were empty: $SERIAL_LOG ; $DEBUGCON_LOG"
 fi
 
-if ! grep -q '\[ OK \] \[ BOOT32   \]' "$SERIAL_LOG"; then
-    fail "Expected BOOT32 serial proof was not found in: $SERIAL_LOG"
+if ! grep -q '\[ OK \] \[ BOOT32   \]' "$PROOF_LOG"; then
+    fail "Expected BOOT32 proof was not found in: $PROOF_LOG"
+fi
+
+if ! grep -q '\[ OK \] \[ BOOT     \]' "$PROOF_LOG"; then
+    fail "Expected long-mode boot proof was not found in: $PROOF_LOG"
+fi
+
+if ! grep -q 'Stage2 kernel entered' "$PROOF_LOG"; then
+    fail "Expected Stage2 kernel entry proof was not found in: $PROOF_LOG"
+fi
+
+if ! grep -q 'Stage2 kernel is halting forever' "$PROOF_LOG"; then
+    fail "Expected Stage2 halt proof was not found in: $PROOF_LOG"
 fi
 
 if [ "$QEMU_STATUS" -eq 124 ]; then

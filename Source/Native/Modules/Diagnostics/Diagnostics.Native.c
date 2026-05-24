@@ -19,6 +19,11 @@ static uint8_t InByte(uint16_t Port)
     return Value;
 }
 
+static void DebugConWriteChar(char Character)
+{
+    OutByte(0x00E9, (uint8_t)Character);
+}
+
 static void SerialWaitForTransmitReady(void)
 {
     while ((InByte(0x3F8 + 5) & 0x20) == 0)
@@ -52,8 +57,14 @@ static void SerialWriteChar(char Character)
 {
     if (Character == '\n')
     {
+        DebugConWriteChar('\r');
+        DebugConWriteChar('\n');
         SerialWaitForTransmitReady();
         OutByte(0x3F8, '\r');
+    }
+    else
+    {
+        DebugConWriteChar(Character);
     }
 
     SerialWaitForTransmitReady();
