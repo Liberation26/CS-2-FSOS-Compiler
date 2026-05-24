@@ -1,6 +1,6 @@
 Oryn archive manifest
-Version: 0.3.0
-Archive: Oryn-0.3.0.zip
+Version: 0.3.1
+Archive: Oryn-0.3.1.zip
 
 Stage 3 delivery:
 - Direct ELF64 relocatable object writer added.

@@ -26,7 +26,12 @@ fi
 [ -f "$SERIAL_LOG" ] || fail "Serial log missing: $SERIAL_LOG"
 grep -q '\[ OK \] \[ BOOT32' "$SERIAL_LOG" || fail "BOOT32 proof missing from serial log"
 grep -q '\[ OK \] \[ BOOT' "$SERIAL_LOG" || fail "Long-mode BOOT proof missing from serial log"
-grep -q '\[ OK \] \[ KERNEL' "$SERIAL_LOG" || fail "Kernel proof missing from serial log"
+grep -q 'Stage3 kernel entered' "$SERIAL_LOG" || fail "Stage3 entry proof missing from serial log"
+grep -q 'Stage3 memory initialized' "$SERIAL_LOG" || fail "Stage3 memory proof missing from serial log"
+grep -q 'Stage3 loop tick' "$SERIAL_LOG" || fail "Stage3 loop proof missing from serial log"
+grep -q 'Stage3 branch worked' "$SERIAL_LOG" || fail "Stage3 branch proof missing from serial log"
+grep -q 'Stage3 helper method worked' "$SERIAL_LOG" || fail "Stage3 helper proof missing from serial log"
+grep -q 'Stage3 kernel is halting forever' "$SERIAL_LOG" || fail "Stage3 halt proof missing from serial log"
 grep -q 'QEMU timeout reached' "$LOG_FILE" || fail "Timeout-as-success proof missing from: $LOG_FILE"
 
 info "Stage 3 QEMU boot proof passed"

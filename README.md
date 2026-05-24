@@ -8,7 +8,7 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.3.0`
+Current version: `0.3.1`
 
 
 
@@ -727,3 +727,7 @@ or run compile/link/ISO only with:
 ```bash
 ORYN_SKIP_QEMU=1 ./Runqemu.sh Stage3
 ```
+
+## Version 0.3.1 Stage 3 QEMU proof correction
+
+Version `0.3.1` corrects the shared Runqemu proof checks so Stage 3 looks for `Stage3` kernel diagnostics instead of the older Stage 2 proof strings. The Stage 3 QEMU test now also checks the exact Stage 3 entry, memory, loop, branch, helper-method, and halt diagnostics.
