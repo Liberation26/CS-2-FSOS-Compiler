@@ -81,7 +81,7 @@ internal sealed class ModuleApiContractCatalog
                 string TypeName = string.IsNullOrWhiteSpace(Method.TypeName) ? FileModel.Module : Method.TypeName;
                 string MethodName = string.IsNullOrWhiteSpace(Method.MethodName) ? ExtractMethodName(Method.ManagedName) : Method.MethodName;
                 string Signature = Method.Signature ?? $"void {MethodName}()";
-                IReadOnlyList<string> ArgumentTypes = Method.ArgumentTypes ?? Array.Empty<string>();
+                IReadOnlyList<string> ArgumentTypes = Method.ArgumentTypes is null ? new List<string>() : Method.ArgumentTypes;
 
                 Records.Add(new BindingRecord(
                     FileModel.Module,

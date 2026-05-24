@@ -1,8 +1,10 @@
-Oryn 0.9.2 ChangedFiles
+Oryn Archive Manifest
+Version: 0.9.3
 
-This delta fixes Stage9 running with a stale compiler DLL.
+Folders:
+- FullSource/ contains the complete Oryn source tree for this release.
+- ChangedFiles/ contains only files changed for this 0.9.3 delivery.
 
-Key files:
-- Runqemu.sh: version 0.9.2 and ORYN_BUILD_COMPILER defaults to 1.
-- Source/Core/Oryn.Compiler/Program.cs: compiler reports version 0.9.2.
-- Stage9 compiler composition files are included again so this update is self-healing if the previous Stage9 delta was only partially applied.
+Release focus:
+- Fix Stage 9 compiler build failure in ModuleApiContractCatalog argument type fallback.
+- Keep Stage 9 generated kernel template composition and invalid-call pre-compilation proof intact.

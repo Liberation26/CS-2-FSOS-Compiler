@@ -2,7 +2,7 @@
 
 Oryn is a C# to freestanding operating-system compiler project from Oryn Foundry.
 
-Current version: **0.9.2**
+Current version: **0.9.3**
 
 ## Current proof stage
 
