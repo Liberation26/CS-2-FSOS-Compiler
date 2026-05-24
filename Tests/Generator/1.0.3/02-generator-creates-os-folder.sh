@@ -7,4 +7,4 @@ rm -rf "$ROOT/OSes/$OS_NAME"
 [ -d "$ROOT/OSes/$OS_NAME" ] || { echo "[FAIL] OS folder was not created."; exit 1; }
 [ -f "$ROOT/OSes/$OS_NAME/Answers/$OS_NAME.answers.json" ] || { echo "[FAIL] Answers file was not created."; exit 1; }
 [ -f "$ROOT/OSes/$OS_NAME/manifest.json" ] || { echo "[FAIL] Manifest file was not created."; exit 1; }
-echo "[ OK ] 1.0.3 generator creates OS folder, answers, and manifest."
+echo "[ OK ] 1.0.4 generator creates OS folder, answers, and manifest."

@@ -6,10 +6,11 @@ namespace Oryn.Generator;
 
 internal static class Program
 {
-    private const string Version = "1.0.3";
+    private const string Version = "1.0.4";
     private static readonly string[] MandatoryKernelModules = { "Runtime", "Diagnostics", "Panic", "Cpu", "ManifestLoader" };
     private static readonly string[] DefaultUserSelectedModules = { "Memory" };
     private static readonly string[] AvailableUserSelectableModules = { "Memory" };
+    private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
     private static int Main(string[] Args)
     {
@@ -66,7 +67,7 @@ internal static class Program
             Console.WriteLine($"  [mandatory] {Module}");
         }
 
-        Console.WriteLine("[ OK ] User-selectable modules for 1.0.3:");
+        Console.WriteLine("[ OK ] User-selectable modules for 1.0.4:");
         foreach (string Module in AvailableUserSelectableModules)
         {
             Console.WriteLine($"  [available] {Module}");
@@ -89,7 +90,7 @@ internal static class Program
         Console.WriteLine("[ OK ] [GENERATOR] Mandatory kernel modules are always linked and hidden from user selection:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", MandatoryKernelModules));
         Console.WriteLine("[ OK ] [GENERATOR] Diagnostics and Panic are always enabled.");
-        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.3:");
+        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.4:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", AvailableUserSelectableModules));
 
         string ModulesText = ReadOption(Args, "--modules") ?? Prompt("User-selected modules, comma-separated", string.Join(',', DefaultUserSelectedModules), NonInteractive);
@@ -121,11 +122,11 @@ internal static class Program
         string ManifestPath = Path.Combine(OsRoot, "manifest.json");
         string ReadmePath = Path.Combine(OsRoot, "README.md");
 
-        File.WriteAllText(TemplatePath, BuildKernelTemplate(), Encoding.UTF8);
-        File.WriteAllText(SourcePath, BuildUncomposedKernelSource(OsName, SafeKernelName), Encoding.UTF8);
-        File.WriteAllText(AnswersPath, BuildAnswersJson(OsName, SafeKernelName, Target, VmProfile, BuildMode, UserSelectedModules), Encoding.UTF8);
-        File.WriteAllText(ManifestPath, BuildManifestJson(SafeOsName, SafeKernelName, Target, VmProfile, BuildMode, UserSelectedModules), Encoding.UTF8);
-        File.WriteAllText(ReadmePath, BuildOsReadme(SafeOsName, SafeKernelName), Encoding.UTF8);
+        File.WriteAllText(TemplatePath, BuildKernelTemplate(), Utf8NoBom);
+        File.WriteAllText(SourcePath, BuildUncomposedKernelSource(OsName, SafeKernelName), Utf8NoBom);
+        File.WriteAllText(AnswersPath, BuildAnswersJson(OsName, SafeKernelName, Target, VmProfile, BuildMode, UserSelectedModules), Utf8NoBom);
+        File.WriteAllText(ManifestPath, BuildManifestJson(SafeOsName, SafeKernelName, Target, VmProfile, BuildMode, UserSelectedModules), Utf8NoBom);
+        File.WriteAllText(ReadmePath, BuildOsReadme(SafeOsName, SafeKernelName), Utf8NoBom);
 
         Console.WriteLine($"[ OK ] [GENERATOR] OS folder created: {OsRoot}");
         Console.WriteLine($"[ OK ] [GENERATOR] Answers saved: {AnswersPath}");
@@ -192,7 +193,7 @@ internal static class Program
 
             if (!Available.Contains(Module))
             {
-                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.3: {Module}");
+                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.4: {Module}");
             }
         }
     }

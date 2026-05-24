@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="1.0.3"
+RUNQEMU_VERSION="1.0.4"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -524,7 +524,7 @@ class ManifestError(Exception):
 def read_records():
     loaded = []
     for path in sorted(manifest_dir.glob('*.module.json')):
-        with path.open('r', encoding='utf-8') as handle:
+        with path.open('r', encoding='utf-8-sig') as handle:
             item = json.load(handle)
         if not item.get('allowedInKernel', False) or not item.get('linkByDefault', False):
             continue
@@ -676,7 +676,7 @@ stage_limit = int(sys.argv[4])
 stage_name = sys.argv[5]
 records = []
 for path in sorted(manifest_dir.glob('*.module.json')):
-    item = json.loads(path.read_text(encoding='utf-8'))
+    item = json.loads(path.read_text(encoding='utf-8-sig'))
     if item.get('allowedInKernel') and item.get('linkByDefault') and int(item.get('stage', 0)) <= stage_limit:
         item['dependsOn'] = list(item.get('dependsOn') or [])
         records.append(item)
@@ -698,7 +698,7 @@ def visit(name):
     resolved.append(item)
 for item in sorted(records, key=lambda item: (int(item.get('initializeOrder', 0)), item.get('module', ''))):
     visit(item['module'])
-with out.open('w', encoding='utf-8') as handle:
+with out.open('w', encoding='utf-8-sig') as handle:
     if stage_limit >= 7:
         handle.write(str(root / 'OSes' / stage_name / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
     for item in resolved:

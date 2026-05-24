@@ -9,7 +9,7 @@ grep -Fq '"Panic"' "$MANIFEST" || { echo "[FAIL] Panic must be mandatory."; exit
 grep -Fq '"UserSelectedModules"' "$MANIFEST" || { echo "[FAIL] UserSelectedModules missing."; exit 1; }
 python3 - "$MANIFEST" <<'PY'
 import json, sys
-with open(sys.argv[1], 'r', encoding='utf-8') as handle:
+with open(sys.argv[1], 'r', encoding='utf-8-sig') as handle:
     data = json.load(handle)
 mandatory = set(data['MandatoryKernelModules'])
 selected = set(data['UserSelectedModules'])
@@ -17,4 +17,4 @@ intersection = mandatory & selected
 if intersection:
     raise SystemExit('[FAIL] Mandatory modules leaked into user-selected modules: ' + ', '.join(sorted(intersection)))
 PY
-echo "[ OK ] 1.0.3 mandatory modules are separated from user-selected modules."
+echo "[ OK ] 1.0.4 mandatory modules are separated from user-selected modules."

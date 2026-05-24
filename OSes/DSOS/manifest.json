@@ -1,0 +1,20 @@
+﻿{
+  "OrynVersion": "1.0.3",
+  "OsName": "DSOS",
+  "KernelName": "DSOSKernel",
+  "Target": "x64-elf",
+  "DefaultBootMode": "long-mode",
+  "VmProfile": "RunQemu",
+  "BuildMode": "Debug",
+  "MandatoryKernelModules": [
+    "Runtime",
+    "Diagnostics",
+    "Panic",
+    "Cpu",
+    "ManifestLoader"
+  ],
+  "UserSelectedModules": [
+    "Memory"
+  ],
+  "LinkedModulePolicy": "Mandatory kernel modules are linked automatically. User-selected modules exclude modules needed to get the kernel running. Diagnostics and Panic are always enabled."
+}
