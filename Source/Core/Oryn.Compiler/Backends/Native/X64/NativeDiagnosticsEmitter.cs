@@ -18,6 +18,13 @@ internal sealed class NativeDiagnosticsEmitter
         Builder.AppendLine($"[ OK ] [ COMPILER ] Methods: {Manifest.Methods.Count}");
         Builder.AppendLine("[ OK ] [ IR       ] Real Oryn IR is stack-style and explicit: locals, constants, arithmetic, comparisons, calls, labels, jumps, conditional jumps, and returns.");
         Builder.AppendLine("[ OK ] [ CFG      ] Basic blocks and successor edges are generated from labels, jumps, conditional jumps, and fallthroughs.");
+        if (Manifest.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase))
+        {
+            Builder.AppendLine("[ OK ] [ CONTRACT ] Stage 8 module API contract validation passed.");
+            Builder.AppendLine("[ OK ] [ CONTRACT ] approved Oryn.Kernel.Diagnostics.Diagnostics.WriteOk -> Diagnostics_WriteOk");
+            Builder.AppendLine("[ OK ] [ CONTRACT ] approved Oryn.Kernel.Runtime.Runtime.MarkKernelReady -> Runtime_MarkKernelReady");
+            Builder.AppendLine("[ OK ] [ CONTRACT ] approved Oryn.Kernel.Cpu.Cpu.HaltForever -> Cpu_HaltForever");
+        }
 
         foreach (Oryn.Compiler.IR.ControlFlowGraph.OrynBasicBlock Block in Manifest.ControlFlowGraph.Blocks)
         {

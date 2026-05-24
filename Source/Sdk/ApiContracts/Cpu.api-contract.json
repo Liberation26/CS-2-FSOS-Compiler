@@ -1,0 +1,20 @@
+{
+  "contractVersion": "0.8.0",
+  "module": "Cpu",
+  "namespace": "Oryn.Kernel.Cpu",
+  "minimumStage": 4,
+  "allowedInKernel": true,
+  "summary": "Stage 8 approved C# API contract for Cpu.",
+  "methods": [
+    {
+      "managedName": "Cpu.HaltForever",
+      "typeName": "Cpu",
+      "methodName": "HaltForever",
+      "signature": "void HaltForever()",
+      "nativeSymbol": "Cpu_HaltForever",
+      "allowedFromCSharpKernel": true,
+      "argumentTypes": [],
+      "summary": "Stops the processor in a halt loop."
+    }
+  ]
+}

@@ -16,6 +16,7 @@ internal sealed class CompilerPipeline
     private readonly ControlFlowGraphBuilder ControlFlowGraphBuilder;
     private readonly X64NativeBackend Backend;
     private readonly ModuleManifestCatalog ModuleManifestCatalog;
+    private readonly ModuleApiContractCatalog ApiContracts;
 
     public CompilerPipeline(
         string Version,
@@ -25,7 +26,8 @@ internal sealed class CompilerPipeline
         KernelIrLowerer IrLowerer,
         ControlFlowGraphBuilder ControlFlowGraphBuilder,
         X64NativeBackend Backend,
-        ModuleManifestCatalog ModuleManifestCatalog)
+        ModuleManifestCatalog ModuleManifestCatalog,
+        ModuleApiContractCatalog ApiContracts)
     {
         this.Version = Version;
         this.Validator = Validator;
@@ -35,21 +37,24 @@ internal sealed class CompilerPipeline
         this.ControlFlowGraphBuilder = ControlFlowGraphBuilder;
         this.Backend = Backend;
         this.ModuleManifestCatalog = ModuleManifestCatalog;
+        this.ApiContracts = ApiContracts;
     }
 
     public static CompilerPipeline CreateDefault(string Version)
     {
         BindingCatalog Bindings = BindingCatalog.CreateDefault();
         ModuleManifestCatalog ModuleManifests = ModuleManifestCatalog.CreateDefault();
+        ModuleApiContractCatalog ApiContracts = ModuleApiContractCatalog.CreateDefault();
         return new CompilerPipeline(
             Version,
             new SafeSubsetValidator(Bindings.ApprovedNamespaces),
             new CSharpKernelParser(),
-            new SemanticAnalyzer(Bindings),
+            new SemanticAnalyzer(Bindings, ApiContracts),
             new KernelIrLowerer(),
             new ControlFlowGraphBuilder(),
             new X64NativeBackend(),
-            ModuleManifests);
+            ModuleManifests,
+            ApiContracts);
     }
 
     public CompilerResult Compile(CompilerCommand Command)
@@ -81,7 +86,7 @@ internal sealed class CompilerPipeline
             BoundKernelModel BoundModel = SemanticAnalyzer.Bind(KernelAst);
             OrynIrModule IrModule = IrLowerer.Lower(BoundModel);
             OrynControlFlowGraph ControlFlowGraph = ControlFlowGraphBuilder.Build(IrModule);
-            IReadOnlyList<ModuleManifestRecord> SelectedModuleManifests = Command.SourcePath.Contains("Stage7", StringComparison.OrdinalIgnoreCase)
+            IReadOnlyList<ModuleManifestRecord> SelectedModuleManifests = (Command.SourcePath.Contains("Stage7", StringComparison.OrdinalIgnoreCase) || Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase))
                 ? ModuleManifestCatalog.ResolveApprovedKernelModules(7, ExcludeManifestLoaderFromGraph: true)
                 : ModuleManifestCatalog.ApprovedKernelModules;
             BackendResult BackendResult = Backend.Emit(Version, Command, BoundModel, IrModule, ControlFlowGraph, SelectedModuleManifests);
@@ -101,9 +106,17 @@ internal sealed class CompilerPipeline
                     Messages.Add($"[ OK ] [ MANIFEST ] expose={Manifest.ModuleName} stage={Manifest.Stage} order={Manifest.InitializeOrder} native={Manifest.NativeSource}");
                 }
             }
-            if (Command.SourcePath.Contains("Stage7", StringComparison.OrdinalIgnoreCase))
+            if (Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase))
             {
-                Messages.Add("[ OK ] [ MANIFEST ] Stage 7 dependency graph validation passed.");
+                Messages.Add("[ OK ] [ CONTRACT ] Stage 8 module API contract validation passed.");
+                foreach (BindingRecord Contract in ApiContracts.ApprovedCallContracts)
+                {
+                    Messages.Add($"[ OK ] [ CONTRACT ] approved {Contract.FullyQualifiedManagedName} -> {Contract.NativeSymbol}");
+                }
+            }
+            if (Command.SourcePath.Contains("Stage7", StringComparison.OrdinalIgnoreCase) || Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase))
+            {
+                Messages.Add(Command.SourcePath.Contains("Stage8", StringComparison.OrdinalIgnoreCase) ? "[ OK ] [ MANIFEST ] Stage 8 inherited dependency graph validation passed." : "[ OK ] [ MANIFEST ] Stage 7 dependency graph validation passed.");
                 foreach (ModuleManifestRecord Manifest in SelectedModuleManifests)
                 {
                     string Dependencies = Manifest.DependsOn.Count == 0 ? "<none>" : string.Join(", ", Manifest.DependsOn);

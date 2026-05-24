@@ -1,0 +1,30 @@
+{
+  "contractVersion": "0.8.0",
+  "module": "Runtime",
+  "namespace": "Oryn.Kernel.Runtime",
+  "minimumStage": 5,
+  "allowedInKernel": true,
+  "summary": "Stage 8 approved C# API contract for Runtime.",
+  "methods": [
+    {
+      "managedName": "Runtime.Initialize",
+      "typeName": "Runtime",
+      "methodName": "Initialize",
+      "signature": "void Initialize()",
+      "nativeSymbol": "Runtime_Initialize",
+      "allowedFromCSharpKernel": true,
+      "argumentTypes": [],
+      "summary": "Initializes the approved Oryn freestanding runtime contract before higher-level kernel work runs."
+    },
+    {
+      "managedName": "Runtime.MarkKernelReady",
+      "typeName": "Runtime",
+      "methodName": "MarkKernelReady",
+      "signature": "void MarkKernelReady()",
+      "nativeSymbol": "Runtime_MarkKernelReady",
+      "allowedFromCSharpKernel": true,
+      "argumentTypes": [],
+      "summary": "Records that the safe C# kernel reached the runtime-ready point."
+    }
+  ]
+}

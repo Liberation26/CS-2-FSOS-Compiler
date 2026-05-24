@@ -1,0 +1,46 @@
+{
+  "contractVersion": "0.8.0",
+  "module": "Diagnostics",
+  "namespace": "Oryn.Kernel.Diagnostics",
+  "minimumStage": 4,
+  "allowedInKernel": true,
+  "summary": "Stage 8 approved C# API contract for Diagnostics.",
+  "methods": [
+    {
+      "managedName": "Diagnostics.WriteOk",
+      "typeName": "Diagnostics",
+      "methodName": "WriteOk",
+      "signature": "void WriteOk(string Message)",
+      "nativeSymbol": "Diagnostics_WriteOk",
+      "allowedFromCSharpKernel": true,
+      "argumentTypes": [
+        "String"
+      ],
+      "summary": "Writes a successful diagnostic status line."
+    },
+    {
+      "managedName": "Diagnostics.WriteWarn",
+      "typeName": "Diagnostics",
+      "methodName": "WriteWarn",
+      "signature": "void WriteWarn(string Message)",
+      "nativeSymbol": "Diagnostics_WriteWarn",
+      "allowedFromCSharpKernel": true,
+      "argumentTypes": [
+        "String"
+      ],
+      "summary": "Writes a warning diagnostic status line."
+    },
+    {
+      "managedName": "Diagnostics.WriteFail",
+      "typeName": "Diagnostics",
+      "methodName": "WriteFail",
+      "signature": "void WriteFail(string Message)",
+      "nativeSymbol": "Diagnostics_WriteFail",
+      "allowedFromCSharpKernel": true,
+      "argumentTypes": [
+        "String"
+      ],
+      "summary": "Writes a failure diagnostic status line."
+    }
+  ]
+}

@@ -3,10 +3,12 @@ namespace Oryn.Compiler;
 internal sealed class SemanticAnalyzer
 {
     private readonly BindingCatalog BindingCatalog;
+    private readonly ModuleApiContractCatalog ApiContracts;
 
-    public SemanticAnalyzer(BindingCatalog BindingCatalog)
+    public SemanticAnalyzer(BindingCatalog BindingCatalog, ModuleApiContractCatalog ApiContracts)
     {
         this.BindingCatalog = BindingCatalog;
+        this.ApiContracts = ApiContracts;
     }
 
     public BoundKernelModel Bind(KernelAst KernelAst)
@@ -132,6 +134,7 @@ internal sealed class SemanticAnalyzer
                 }
             }
 
+            ApiContracts.RequireApprovedContract(Binding);
             return new BoundCall(Call.ManagedName, Binding.NativeSymbol, Arguments, false);
         }
 

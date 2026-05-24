@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.7.0"
+RUNQEMU_VERSION="0.8.0"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
 COMPILER_FRAMEWORK="${ORYN_COMPILER_FRAMEWORK:-net8.0}"
 COMPILER_DLL="$PROJECT_ROOT/Source/Core/Oryn.Compiler/bin/${COMPILER_CONFIGURATION}/${COMPILER_FRAMEWORK}/Oryn.Compiler.dll"
-REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage7}}"
+REQUESTED_STAGE="${1:-${ORYN_STAGE:-Stage8}}"
 
 info() { printf '[ OK ] [ RUNQEMU  ] %s\n' "$1"; }
 warn() { printf '[WARN] [ RUNQEMU  ] %s\n' "$1"; }
@@ -84,13 +84,13 @@ case "$REQUESTED_STAGE" in
     all|All|ALL)
         info "Runqemu.sh version ${RUNQEMU_VERSION}"
         info "Selected stage set: All"
-        info "Stage 7 development mode is active; running the dependency-resolved module kernel."
-        RunOneStage Stage7
-        info "Requested Stage 7 kernel completed."
+        info "Stage 8 development mode is active; running the module API contract proof kernel."
+        RunOneStage Stage8
+        info "Requested Stage 8 kernel completed."
         exit 0
         ;;
     1|stage1|Stage1|STAGE1)
-        printf '[FAIL] [ RUNQEMU  ] Stage 6 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, Stage4, Stage5, Stage6, or Stage7.\n'
+        printf '[FAIL] [ RUNQEMU  ] Stage 8 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, Stage4, Stage5, Stage6, Stage7, or Stage8.\n'
         exit 1
         ;;
     2|stage2|Stage2|STAGE2)
@@ -123,8 +123,13 @@ case "$REQUESTED_STAGE" in
         STAGE_LABEL="stage7"
         DIRECT_OBJECT_LINK=1
         ;;
+    8|stage8|Stage8|STAGE8)
+        STAGE_NAME="Stage8"
+        STAGE_LABEL="stage8"
+        DIRECT_OBJECT_LINK=1
+        ;;
     *)
-        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, Stage5, Stage6, or Stage7.\n' "$REQUESTED_STAGE"
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, Stage5, Stage6, Stage7, or Stage8.\n' "$REQUESTED_STAGE"
         exit 1
         ;;
 esac
@@ -486,7 +491,7 @@ def read_records():
             continue
         if int(item.get('stage', 0)) > stage_limit:
             continue
-        if stage_name == 'Stage7' and item.get('module') == 'ManifestLoader':
+        if stage_name in ('Stage7', 'Stage8') and item.get('module') == 'ManifestLoader':
             continue
         item['_path'] = str(path)
         item['dependsOn'] = list(item.get('dependsOn') or [])
@@ -541,7 +546,7 @@ except ManifestError as exc:
     print('[FAIL] [ MANIFEST ] ' + str(exc))
     sys.exit(2)
 
-stage_number = '7' if stage_name == 'Stage7' else '6'
+stage_number = '8' if stage_name == 'Stage8' else ('7' if stage_name == 'Stage7' else '6')
 lines = []
 lines.append('#include "Diagnostics.Native.h"')
 lines.append('#include "Runtime.Native.h"')
@@ -564,8 +569,13 @@ lines.append('        return;')
 lines.append('    }')
 lines.append('')
 lines.append('    ModuleManifestAlreadyInitialized = 1;')
-if stage_name == 'Stage7':
-    lines.append('    Diagnostics_WriteOk("[ MANIFEST ] Stage7 dependency graph loading started");')
+if stage_name in ('Stage7', 'Stage8'):
+    if stage_name == 'Stage8':
+        lines.append('    Diagnostics_WriteOk("[ CONTRACT ] Stage8 module API contract runtime proof started");')
+        lines.append('    Diagnostics_WriteOk("[ CONTRACT ] approved C# call Diagnostics.WriteOk -> Diagnostics_WriteOk");')
+        lines.append('    Diagnostics_WriteOk("[ CONTRACT ] approved C# call Runtime.MarkKernelReady -> Runtime_MarkKernelReady");')
+        lines.append('    Diagnostics_WriteOk("[ CONTRACT ] approved C# call Cpu.HaltForever -> Cpu_HaltForever");')
+    lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] {stage_name} dependency graph loading started");')
     for item in records:
         deps = item.get('dependsOn', [])
         dep_text = ', '.join(deps) if deps else '<none>'
@@ -579,15 +589,17 @@ for item in records:
     name = item.get('module', 'Unknown')
     source = item.get('nativeSource', '')
     symbol = item.get('initializerNativeSymbol') or ''
-    if stage_name != 'Stage7':
+    if stage_name not in ('Stage7', 'Stage8'):
         lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] selected {name}: {source}");')
     if symbol and name != 'ManifestLoader':
         lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] initializing {name}");')
         lines.append(f'    {symbol}();')
     elif name == 'ManifestLoader' and stage_name != 'Stage7':
         lines.append('    Diagnostics_WriteOk("[ MANIFEST ] ManifestLoader glue is active");')
-if stage_name == 'Stage7':
-    lines.append('    Diagnostics_WriteOk("[ MANIFEST ] Stage7 dependency graph runtime completed");')
+if stage_name in ('Stage7', 'Stage8'):
+    lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] {stage_name} dependency graph runtime completed");')
+    if stage_name == 'Stage8':
+        lines.append('    Diagnostics_WriteOk("[ CONTRACT ] Stage8 module API contract runtime proof completed");')
 else:
     lines.append('    Diagnostics_WriteOk("[ MANIFEST ] generated Stage 6 manifest runtime completed");')
 lines.append('}')
@@ -642,7 +654,9 @@ def visit(name):
 for item in sorted(records, key=lambda item: (int(item.get('initializeOrder', 0)), item.get('module', ''))):
     visit(item['module'])
 with out.open('w', encoding='utf-8') as handle:
-    if stage_limit >= 7:
+    if stage_limit >= 8:
+        handle.write(str(root / 'OSes' / 'Stage8' / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
+    elif stage_limit >= 7:
         handle.write(str(root / 'OSes' / 'Stage7' / 'Build' / 'Runqemu' / 'ModuleManifest.Generated.c') + '\n')
     for item in resolved:
         source = item.get('nativeSource', '')
@@ -675,6 +689,8 @@ if [ "$STAGE_NAME" = "Stage6" ]; then
     CompileManifestModules 6
 elif [ "$STAGE_NAME" = "Stage7" ]; then
     CompileManifestModules 7
+elif [ "$STAGE_NAME" = "Stage8" ]; then
+    CompileManifestModules 8
 else
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$DIAGNOSTICS_SOURCE" -o "$BUILD_ROOT/Diagnostics.Runtime.o"
     clang -m64 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -mno-red-zone -DDEBUG=1 -c "$RUNTIME_SOURCE" -o "$BUILD_ROOT/Runtime.Native.o"
@@ -689,7 +705,7 @@ if [ "${DIRECT_OBJECT_LINK:-0}" = "1" ]; then
     KERNEL_LINK_OBJECT="$KERNEL_OBJECT"
 fi
 
-if [ "$STAGE_NAME" = "Stage6" ] || [ "$STAGE_NAME" = "Stage7" ]; then
+if [ "$STAGE_NAME" = "Stage6" ] || [ "$STAGE_NAME" = "Stage7" ] || [ "$STAGE_NAME" = "Stage8" ]; then
     ld -nostdlib -T "$LINKER_SCRIPT" -o "$KERNEL_ELF" \
         "$BUILD_ROOT/Boot.o" \
         "$KERNEL_LINK_OBJECT" \
@@ -832,6 +848,12 @@ if [ "$STAGE_NAME" = "Stage4" ]; then
     if ! grep -q "Stage4 kernel is halting forever" "$PROOF_LOG" && ! grep -q "Stage4 approved Diagnostics.WriteOk call worked" "$PROOF_LOG"; then
         fail "Expected Stage4 approved module boundary completion proof was not found in: $PROOF_LOG"
     fi
+elif [ "$STAGE_NAME" = "Stage8" ]; then
+    for Required in         "Stage8 native pre-kernel handoff reached"         "Stage8 kernel entered"         "[ CONTRACT ] Stage8 module API contract runtime proof started"         "[ CONTRACT ] approved C# call Diagnostics.WriteOk -> Diagnostics_WriteOk"         "[ CONTRACT ] approved C# call Runtime.MarkKernelReady -> Runtime_MarkKernelReady"         "[ CONTRACT ] approved C# call Cpu.HaltForever -> Cpu_HaltForever"         "[ MANIFEST ] Stage8 dependency graph loading started"         "[ MANIFEST ] dependency Runtime -> <none>"         "[ MANIFEST ] dependency Diagnostics -> Runtime"         "[ MANIFEST ] dependency Memory -> Runtime, Diagnostics"         "[ MANIFEST ] dependency Panic -> Runtime, Diagnostics"         "[ MANIFEST ] dependency Cpu -> Runtime, Diagnostics"         "[ MANIFEST ] resolved initialization order: Runtime, Diagnostics, Memory, Panic, Cpu"         "[ MANIFEST ] initializing Runtime"         "[ MANIFEST ] initializing Diagnostics"         "[ MANIFEST ] initializing Memory"         "[ MANIFEST ] initializing Panic"         "[ MANIFEST ] initializing Cpu"         "[ CONTRACT ] Stage8 module API contract runtime proof completed"         "Stage8 approved module API contracts initialized"         "Stage8 kernel is halting forever"; do
+        if ! grep -Fq "$Required" "$PROOF_LOG"; then
+            fail "Expected Stage8 module API contract proof was not found: $Required in $PROOF_LOG"
+        fi
+    done
 elif [ "$STAGE_NAME" = "Stage7" ]; then
     for Required in         "Stage7 native pre-kernel handoff reached"         "Stage7 kernel entered"         "Stage7 dependency graph loading started"         "[ MANIFEST ] dependency Runtime -> <none>"         "[ MANIFEST ] dependency Diagnostics -> Runtime"         "[ MANIFEST ] dependency Memory -> Runtime, Diagnostics"         "[ MANIFEST ] dependency Panic -> Runtime, Diagnostics"         "[ MANIFEST ] dependency Cpu -> Runtime, Diagnostics"         "[ MANIFEST ] resolved initialization order: Runtime, Diagnostics, Memory, Panic, Cpu"         "[ MANIFEST ] initializing Runtime"         "[ MANIFEST ] initializing Diagnostics"         "[ MANIFEST ] initializing Memory"         "[ MANIFEST ] initializing Panic"         "[ MANIFEST ] initializing Cpu"         "Stage7 dependency-resolved modules initialized"         "Stage7 kernel is halting forever"; do
         if ! grep -Fq "$Required" "$PROOF_LOG"; then

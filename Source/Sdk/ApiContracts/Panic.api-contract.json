@@ -1,0 +1,22 @@
+{
+  "contractVersion": "0.8.0",
+  "module": "Panic",
+  "namespace": "Oryn.Kernel.Panic",
+  "minimumStage": 5,
+  "allowedInKernel": true,
+  "summary": "Stage 8 approved C# API contract for Panic.",
+  "methods": [
+    {
+      "managedName": "Panic.Halt",
+      "typeName": "Panic",
+      "methodName": "Halt",
+      "signature": "void Halt(string Reason)",
+      "nativeSymbol": "Panic_Halt",
+      "allowedFromCSharpKernel": true,
+      "argumentTypes": [
+        "String"
+      ],
+      "summary": "Writes a panic reason through the approved runtime path and halts forever."
+    }
+  ]
+}

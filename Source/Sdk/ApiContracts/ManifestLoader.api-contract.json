@@ -1,0 +1,20 @@
+{
+  "contractVersion": "0.8.0",
+  "module": "ManifestLoader",
+  "namespace": "Oryn.Kernel.ManifestLoader",
+  "minimumStage": 6,
+  "allowedInKernel": true,
+  "summary": "Stage 8 approved C# API contract for ManifestLoader.",
+  "methods": [
+    {
+      "managedName": "ManifestLoader.InitializeSelected",
+      "typeName": "ManifestLoader",
+      "methodName": "InitializeSelected",
+      "signature": "void InitializeSelected()",
+      "nativeSymbol": "ModuleManifest_InitializeSelected",
+      "allowedFromCSharpKernel": true,
+      "argumentTypes": [],
+      "summary": "Initializes the modules selected by the Stage 6 module manifest set through generated freestanding native glue."
+    }
+  ]
+}
