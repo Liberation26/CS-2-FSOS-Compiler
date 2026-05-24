@@ -1,12 +1,12 @@
 Oryn Archive Manifest
-Version: 0.4.1
-Archive: Oryn-0.4.1.zip
+Version: 0.4.2
+Archive: Oryn-0.4.2.zip
 
 Layout:
 - FullSource/: complete Oryn source tree for this delivery.
 - ChangedFiles/: files changed in this delivery, rooted exactly as they should land in the repository.
 
-Stage 4 fix delivery:
-- Corrects Stage 4 QEMU proof validation.
-- Adds standard Stage 4 entry and halt proof diagnostics.
-- Keeps approved module boundary proof compatibility.
+Stage 4 README correction delivery:
+- Replaces the root README.md with a clean end-user explanation of what Oryn is.
+- Describes what Stage 3 gives the end user.
+- Removes old workflow/project-history wording from the root README.md.

@@ -1,116 +1,67 @@
 # Oryn
 
-Oryn is a C# Operating System Development Platform from Oryn Foundry. Its purpose is to let a developer describe safe, user-facing kernel code in a restricted C# subset and have Oryn turn that code into freestanding native output for a bootable operating-system project.
+Oryn is a C# Operating System Development Platform from Oryn Foundry.
 
-## Current status
+The purpose of Oryn is to let a developer write safe, user-facing C# kernel code and turn it into freestanding native output for a bootable operating-system project. The developer should not need to write unsafe kernel-facing code directly. Unsafe, native, boot, CPU, memory, and device details are meant to live behind approved Oryn modules.
 
-Oryn has completed the Stage 3 compiler proof and now includes the Stage 4 approved module boundary.
+Oryn is not trying to be one fixed operating system. It is a generator and compiler platform for creating operating systems from selected, tested modules.
 
-### What Stage 3 already proves
+## What the app is about
 
-Stage 3 proves that Oryn is no longer only producing sketches or host-dependent output.
+Oryn is being built so that an end user can:
 
-The Stage 3 pipeline can:
+1. choose the kind of operating system they want to create;
+2. answer structured questions about the target OS and target machine;
+3. select only modules that Oryn knows are available for that target;
+4. write safe C# kernel-facing code against approved Oryn APIs;
+5. have Oryn compile that code into freestanding native output;
+6. build a bootable kernel image;
+7. run and test that generated operating-system project in a supported virtual-machine profile.
 
-1. read a safe C# kernel source file;
-2. validate the safe subset;
-3. parse variables, branches, loops, helper methods, returns, integer arithmetic, string literals, and approved module calls;
-4. lower the source into explicit Oryn IR;
-5. build a basic control-flow graph;
-6. emit readable diagnostic C and x64 assembly reference artifacts;
-7. write a real ELF64 relocatable object directly from Oryn IR;
-8. link that object with native freestanding module implementations;
-9. produce a bootable GRUB ISO;
-10. boot the generated kernel in QEMU and reach expected serial diagnostics.
+The long-term goal is that Oryn gives C# developers a practical route from safe C# OS design to a bootable freestanding kernel without exposing them to the dangerous implementation details unless they are writing approved modules themselves.
 
-Stage 3 therefore proves the core compiler path:
+## What Stage 3 gives the end user
+
+Stage 3 proves that Oryn can take real safe C# kernel code and turn it into a bootable freestanding kernel proof.
+
+For the end user, Stage 3 gives a working compiler path from:
 
 ```text
 Kernel.cs
-  -> safe-subset validation
   -> Oryn IR
-  -> control-flow graph
   -> direct ELF64 relocatable object
   -> linked freestanding kernel ELF
-  -> bootable ISO
-  -> QEMU proof output
+  -> bootable GRUB ISO
+  -> QEMU proof run
 ```
 
-The Stage 3 kernel lives in `OSes/Stage3/Source/Kernel.cs` and exercises:
+That matters because the generated kernel is no longer only a sketch, a mock-up, or host-dependent output. Stage 3 proves that Oryn can produce native freestanding kernel output that boots.
 
-- `Diagnostics.WriteOk` / `Diagnostics.WriteFail`
-- `Memory.Initialize`
-- `Cpu.HaltForever`
-- local `int` variables
-- `while` loops
-- `if` / `else` branches
-- `+`, `-`, `==`, and `<`
-- private static helper methods
-- explicit `return`
+Stage 3 supports a useful early C# subset for kernel-facing code:
 
-The Stage 3 tests live in `Tests/Compiler/Stage3/` and check IR, assembly, ELF64 sections, symbols, relocations, no compiler rebuild dependency during the proof run, feature parity, and QEMU boot diagnostics.
+- local `int` variables;
+- integer addition and subtraction;
+- integer equality checks;
+- integer less-than checks;
+- `if` and `else` branches;
+- `while` loops;
+- private static helper methods;
+- explicit `return` statements;
+- string literals passed to approved module calls;
+- approved calls such as diagnostics output, memory initialization, and CPU halt.
 
-### What Stage 4 adds
+Stage 3 also gives the end user proof artifacts they can inspect:
 
-Stage 4 introduces the approved module boundary.
+- generated Oryn IR;
+- generated control-flow output;
+- generated assembly reference output;
+- a real ELF64 object written by Oryn;
+- a linked freestanding kernel ELF;
+- a bootable ISO;
+- QEMU serial proof output.
 
-Safe user-facing C# kernel code can now call approved Oryn module APIs, while unsafe native/freestanding details stay hidden behind approved modules.
+In practical terms, Stage 3 is the point where Oryn proves the compiler pipeline can create and boot a real freestanding kernel from safe C# source.
 
-Stage 4 adds:
+## Current version
 
-- an approved module catalogue in `Source/Sdk/Bindings/*.binding.json`;
-- namespace, type, method, signature, argument-type, native-symbol, stage, and approval metadata;
-- compiler validation for approved `Oryn.Kernel.*` namespaces;
-- compiler validation for approved module calls;
-- clear failure diagnostics for unapproved calls;
-- tests proving allowed calls compile;
-- tests proving forbidden calls fail.
-
-The current approved modules are:
-
-| Module | Approved namespace | Approved API |
-| --- | --- | --- |
-| Diagnostics | `Oryn.Kernel.Diagnostics` | `Diagnostics.WriteOk(string)`, `Diagnostics.WriteWarn(string)`, `Diagnostics.WriteFail(string)` |
-| Memory | `Oryn.Kernel.Memory` | `Memory.Initialize()` |
-| Cpu | `Oryn.Kernel.Cpu` | `Cpu.HaltForever()` |
-
-This is the point where Oryn starts becoming a real OS-generation platform: end-user C# stays safe and small, and platform/native details are mediated by approved modules.
-
-## Running the current stage
-
-Build and run the current Stage 4 proof:
-
-```bash
-ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage4
-```
-
-Run only the Stage 4 compiler-boundary tests:
-
-```bash
-./Tests/Compiler/Stage4/run.sh
-```
-
-Run the Stage 3 compiler/object/boot proof tests:
-
-```bash
-./Tests/Compiler/Stage3/run.sh
-```
-
-## Repository layout
-
-| Path | Purpose |
-| --- | --- |
-| `Source/Core/Oryn.Compiler/` | The Oryn compiler. |
-| `Source/Sdk/Apis/` | Safe C# API surface for approved modules. |
-| `Source/Sdk/Bindings/` | Approved module catalogue and native binding metadata. |
-| `Source/Native/Modules/` | Freestanding native implementations hidden behind module APIs. |
-| `OSes/Stage3/` | Stage 3 direct ELF64 object writer proof kernel. |
-| `OSes/Stage4/` | Stage 4 approved module boundary proof kernel. |
-| `Tests/Compiler/Stage3/` | Stage 3 compiler, object, and boot proof tests. |
-| `Tests/Compiler/Stage4/` | Stage 4 approved/forbidden module-boundary tests. |
-| `Documents/Stages/` | Stage design notes. |
-| `Documents/ReleaseNotes/` | Versioned release notes. |
-
-## Version
-
-Current version: `0.4.1`.
+`0.4.2`
