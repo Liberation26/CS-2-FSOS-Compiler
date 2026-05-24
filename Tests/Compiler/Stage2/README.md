@@ -1,34 +1,48 @@
 # Stage 2 compiler tests
 
-Stage 2 tests should prove that the Stage 2 source tree builds through the compiler and boots through the freestanding x86_64 path.
+These tests prove the Stage 2 C# subset can be compiled into a useful freestanding x86_64 kernel and booted under QEMU.
 
-Version 0.2.7 adds real Oryn IR plus a readable control-flow graph. Exercise it with:
+Stage 1 proves approved calls can become a bootable freestanding kernel. Stage 2 proves Oryn can compile a useful C# subset with variables, branches, loops, helper methods, and module calls.
+
+Run all Stage 2 tests with:
 
 ```bash
-ORYN_SKIP_QEMU=1 ./Runqemu.sh Stage2
+Tests/Compiler/Stage2/run.sh
 ```
 
-Expected build artifacts are written under:
+## Test scripts
+
+```text
+01-compile-stage2-kernel.sh
+02-ir-output-check.sh
+03-assembly-output-check.sh
+04-qemu-stage2-boot.sh
+```
+
+## What the tests check
+
+The test set checks that:
+
+- the compiler/run pipeline exits with status 0,
+- the Stage 2 IR file exists,
+- the generated assembly file exists,
+- the ELF kernel exists,
+- the bootable ISO exists,
+- the IR includes locals, arithmetic, branches, loops, helper calls, and module calls,
+- the x64 assembly includes stack-frame locals, `.rodata` string literals, labels, jumps, helper symbols, and native module calls,
+- QEMU reaches the expected diagnostics,
+- timeout after `Cpu.HaltForever()` is treated as success.
+
+## Generated artifacts
+
+Compile/link/ISO artifacts are written under:
 
 ```text
 OSes/Stage2/Build/Runqemu/
 ```
 
-Key Stage 2 Phase 3 proof artifact:
+Test logs are written under:
 
 ```text
-OSes/Stage2/Build/Runqemu/Kernel.stage2.stage2.ir.json
+Build/Compiler/Stage2/
 ```
-
-The IR manifest should include explicit instructions such as `DeclareLocal`, `ConstInt32`, `StoreLocal`, `LoadLocal`, `AddInt32`, `CompareLessThanInt32`, `JumpIfFalse`, `Label`, `Jump`, `CompareEqualInt32`, `ConstString`, `Call`, and `Return`. It should also include `ControlFlowGraph` with named basic blocks and successor edges.
-
-The expected compiler structure includes frontend parser, safe-subset validator, semantic model, kernel AST, symbol table, Oryn IR, control-flow graph, type lowering, native x64 backend, and object backend folders under `Source/Core/Oryn.Compiler/`.
-
-Version 0.2.12 adds the Stage 2 string literal table proof. The generated assembly should contain `.section .rodata`, `.LstrN` labels, `.asciz` directives for diagnostics messages, RIP-relative `lea .LstrN(%rip), %rdi` argument loads, and calls such as `call Diagnostics_WriteOk`.
-
-
-Version 0.2.13 adds the Stage 2 static helper method proof. The generated assembly should contain `Kernel_Main:`, `Kernel_WriteBanner:`, and `call Kernel_WriteBanner`, while the manifest should contain the helper method symbol metadata.
-
-Version 0.2.14 adds the JSON module binding proof. The Stage 2 test verifies that the binding JSON files exist, the compiler can still emit calls to Diagnostics, Memory, and Cpu through those bindings, and the generated C backend no longer contains a fixed starter-module extern table.
-
-Version 0.2.16 fixes the x64 backend duplicate call emission and the runtime boot proof capture path used by `Runqemu.sh`.

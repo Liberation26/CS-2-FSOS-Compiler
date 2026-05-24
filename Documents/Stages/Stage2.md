@@ -242,3 +242,22 @@ add tests
 ```
 
 The compiler should not need a source edit just because a new approved module call has been added. During this Stage 2 development phase, `Runqemu.sh` also defaults to the second kernel only so Stage 1 is not launched before the current compiler-backed kernel proof.
+
+
+## 0.2.17 Stage 2 tests and documentation
+
+Stage 2 now has a dedicated test suite under `Tests/Compiler/Stage2/`:
+
+```text
+01-compile-stage2-kernel.sh
+02-ir-output-check.sh
+03-assembly-output-check.sh
+04-qemu-stage2-boot.sh
+```
+
+The tests check compiler success, IR emission, assembly emission, ELF creation, ISO creation, QEMU diagnostics, and the expected halt timeout success behaviour.
+
+The Stage 2 documentation now states the stage boundary clearly:
+
+- Stage 1 proves approved calls can become a bootable freestanding kernel.
+- Stage 2 proves Oryn can compile a useful C# subset with variables, branches, loops, helper methods, and module calls.

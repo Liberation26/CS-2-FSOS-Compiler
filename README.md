@@ -8,7 +8,42 @@ Oryn is not a general .NET runtime, and it is not intended to compile arbitrary 
 
 ## Version
 
-Current version: `0.2.16`
+Current version: `0.2.17`
+
+
+
+## Stage 1 and Stage 2 proofs
+
+Stage 1 proves approved Oryn SDK calls can be lowered into a bootable freestanding kernel path. It is the first end-to-end proof that user-facing C# using approved module APIs can become native kernel code.
+
+Stage 2 proves Oryn can compile a useful C# subset with variables, arithmetic, branches, loops, static helper methods, and module calls. The Stage 2 kernel lives under `OSes/Stage2/` and is the default kernel run by `./Runqemu.sh`.
+
+Stage 2 currently proves:
+
+```text
+Diagnostics.WriteOk
+Memory.Initialize
+Cpu.HaltForever
+int locals backed by rbp-relative stack slots
+integer arithmetic
+if / else
+while
+static helper methods
+.rodata string literal table emission
+JSON-loaded module bindings
+```
+
+The Stage 2 tests live under:
+
+```text
+Tests/Compiler/Stage2/
+```
+
+Run the full Stage 2 test set with:
+
+```bash
+Tests/Compiler/Stage2/run.sh
+```
 
 ## Core idea
 
@@ -626,3 +661,25 @@ The kernel proves the current Stage 2 subset at runtime: diagnostics calls, memo
 
 Version `0.2.16` fixes the Stage 2 no-output run by tightening the freestanding boot proof path and backend call emission. The x64 backend now emits each native/helper call once, the GRUB ISO boot entry uses the Multiboot v1 path, and `Runqemu.sh` captures both COM1 serial and QEMU debugcon output. Early boot and native diagnostics now mirror proof lines to debugcon so the run script can still show useful output if the serial file is unexpectedly empty.
 
+
+
+## Version 0.2.17 Stage 2 tests
+
+Version `0.2.17` adds the dedicated Stage 2 compiler and boot test suite under:
+
+```text
+Tests/Compiler/Stage2/
+```
+
+The suite contains:
+
+```text
+01-compile-stage2-kernel.sh
+02-ir-output-check.sh
+03-assembly-output-check.sh
+04-qemu-stage2-boot.sh
+```
+
+These tests check that the compiler exits successfully, the IR and assembly files exist, the ELF and ISO are created, QEMU reaches the expected diagnostics, and timeout after the halt loop is treated as success.
+
+The documentation now states the stage boundary explicitly: Stage 1 proves approved calls can become a bootable freestanding kernel; Stage 2 proves Oryn can compile a useful C# subset with variables, branches, loops, helper methods, and module calls.

@@ -1,13 +1,13 @@
-Oryn archive version 0.2.16
-Created from Oryn 0.2.15 with Stage 2 boot/output fix.
+Oryn archive version 0.2.17
+Created from Oryn 0.2.16 with Stage 2 compiler/boot tests and documentation updates.
 
 Contents:
-- FullSource/: complete source tree for Oryn 0.2.16
+- FullSource/: complete source tree for Oryn 0.2.17
 - ChangedFiles/: repository-root paths changed in this update only
 
 Key changes:
-- Fixed duplicate x64 backend native/helper call emission.
-- Changed GRUB Stage 2 ISO boot entry to use the Multiboot v1 loader path.
-- Added QEMU debugcon output capture as a fallback proof channel.
-- Mirrored early boot and native diagnostics output to debugcon.
+- Added the Stage 2 test suite under Tests/Compiler/Stage2/.
+- Added individual checks for compile/link/ISO, IR output, assembly output, and QEMU boot diagnostics.
+- Updated Stage 2 documentation and the user-facing manual.
+- Documented the Stage 1 and Stage 2 proof boundaries.
 - Kept Runqemu.sh focused on the Stage 2 kernel only.
