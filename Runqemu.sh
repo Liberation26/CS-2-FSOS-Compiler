@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.9.0"
+RUNQEMU_VERSION="0.9.1"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -90,7 +90,7 @@ case "$REQUESTED_STAGE" in
         exit 0
         ;;
     1|stage1|Stage1|STAGE1)
-        printf '[FAIL] [ RUNQEMU  ] Stage 8 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, Stage4, Stage5, Stage6, Stage7, or Stage8.\n'
+        printf '[FAIL] [ RUNQEMU  ] Stage 9 development mode is active; Stage1 is not run by this script. Use Stage2, Stage3, Stage4, Stage5, Stage6, Stage7, Stage8, or Stage9.\n'
         exit 1
         ;;
     2|stage2|Stage2|STAGE2)
@@ -128,8 +128,13 @@ case "$REQUESTED_STAGE" in
         STAGE_LABEL="stage8"
         DIRECT_OBJECT_LINK=1
         ;;
+    9|stage9|Stage9|STAGE9)
+        STAGE_NAME="Stage9"
+        STAGE_LABEL="stage9"
+        DIRECT_OBJECT_LINK=1
+        ;;
     *)
-        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, Stage5, Stage6, Stage7, or Stage8.\n' "$REQUESTED_STAGE"
+        printf '[FAIL] [ RUNQEMU  ] Unsupported stage: %s. Use All, Stage2, Stage3, Stage4, Stage5, Stage6, Stage7, Stage8, or Stage9.\n' "$REQUESTED_STAGE"
         exit 1
         ;;
 esac

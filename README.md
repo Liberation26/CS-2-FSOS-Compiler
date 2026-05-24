@@ -6,7 +6,7 @@ The goal is to let developers write an Oryn-safe subset of C# and compile it int
 
 ## Version
 
-Current version: **0.9.0**
+Current version: **0.9.1**
 
 ## Stage 9 status
 
@@ -97,7 +97,7 @@ ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage9
 Expected proof lines include:
 
 ```text
-[ OK ] [ COMPOSE  ] Oryn kernel template composer version 0.9.0
+[ OK ] [ COMPOSE  ] Oryn kernel template composer version 0.9.1
 [ OK ] [ COMPOSE  ] Selected modules: Runtime, Diagnostics, Memory, Panic, Cpu, ManifestLoader
 [SERIAL] [ OK ] [ KERNEL   ] Stage9 native pre-kernel handoff reached
 [SERIAL] [ OK ] [ KERNEL   ] Stage9 generated kernel entered
@@ -132,5 +132,6 @@ Source/Sdk/ModuleManifests/       Module metadata and dependency declarations
 Source/Native/Modules/            Freestanding native module implementations
 OSes/Stage9/                      Stage 9 generated-template proof kernel
 Tests/Compiler/Stage9/            Stage 9 automated tests
+Documents/ReleaseNotes/0.9.1.md   Stage 9 Runqemu dispatcher fix
 Documents/ReleaseNotes/0.9.0.md   Stage 9 release notes
 ```
