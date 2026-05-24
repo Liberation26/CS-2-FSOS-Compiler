@@ -3,7 +3,7 @@
 Run:
 
 ```bash
-./Oryn.sh generate --os-name MyOrynOS --kernel-name MyOrynKernel --modules Memory
+./Oryn.sh generate --os-name MyOrynOS --kernel-name MyOrynKernel --modules None
 ```
 
 Then build:
@@ -28,6 +28,6 @@ Expected serial proof includes:
 [ OK ] [ KERNEL   ] MyOrynOS mandatory kernel module: Panic
 [ OK ] [ KERNEL   ] MyOrynOS mandatory kernel module: Cpu
 [ OK ] [ KERNEL   ] MyOrynOS mandatory kernel module: ManifestLoader
-[ OK ] [ KERNEL   ] MyOrynOS user-selected module: Memory
+[ OK ] [ KERNEL   ] MyOrynOS user-selected modules: <none>
 [ OK ] [ KERNEL   ] MyOrynOS generated kernel is halting forever
 ```

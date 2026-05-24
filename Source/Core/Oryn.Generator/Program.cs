@@ -6,10 +6,11 @@ namespace Oryn.Generator;
 
 internal static class Program
 {
-    private const string Version = "1.0.5";
+    private const string Version = "1.0.6";
     private static readonly string[] MandatoryKernelModules = { "Runtime", "Diagnostics", "Panic", "Cpu", "ManifestLoader" };
-    private static readonly string[] DefaultUserSelectedModules = { "Memory" };
+    private static readonly string[] DefaultUserSelectedModules = Array.Empty<string>();
     private static readonly string[] AvailableUserSelectableModules = { "Memory" };
+    private static readonly string[] DisplayUserSelectableModules = { "None", "Memory" };
     private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
     private static int Main(string[] Args)
@@ -53,7 +54,7 @@ internal static class Program
     {
         Console.WriteLine("Usage:");
         Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate");
-        Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate --os-name <name> [--kernel-name <name>] [--modules Memory]");
+        Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- generate --os-name <name> [--kernel-name <name>] [--modules None|Memory]");
         Console.WriteLine("  dotnet run --project Source/Core/Oryn.Generator -- modules");
         Console.WriteLine();
         Console.WriteLine("Diagnostics and Panic are always enabled. Mandatory kernel modules are not user-selected modules.");
@@ -67,7 +68,8 @@ internal static class Program
             Console.WriteLine($"  [mandatory] {Module}");
         }
 
-        Console.WriteLine("[ OK ] User-selectable modules for 1.0.5:");
+        Console.WriteLine("[ OK ] User-selectable modules for 1.0.6:");
+        Console.WriteLine("  [available] None");
         foreach (string Module in AvailableUserSelectableModules)
         {
             Console.WriteLine($"  [available] {Module}");
@@ -90,10 +92,10 @@ internal static class Program
         Console.WriteLine("[ OK ] [GENERATOR] Mandatory kernel modules are always linked and hidden from user selection:");
         Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", MandatoryKernelModules));
         Console.WriteLine("[ OK ] [GENERATOR] Diagnostics and Panic are always enabled.");
-        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.5:");
-        Console.WriteLine("[ OK ] [GENERATOR]   " + string.Join(", ", AvailableUserSelectableModules));
+        Console.WriteLine("[ OK ] [GENERATOR] User-selectable modules for 1.0.6:");
+        Console.WriteLine("[ OK ] [GENERATOR]   None, " + string.Join(", ", AvailableUserSelectableModules));
 
-        string ModulesText = ReadOption(Args, "--modules") ?? Prompt("User-selected modules, comma-separated", string.Join(',', DefaultUserSelectedModules), NonInteractive);
+        string ModulesText = ReadOption(Args, "--modules") ?? Prompt("User-selected modules, comma-separated", FormatModuleDefault(DefaultUserSelectedModules), NonInteractive);
 
         string SafeOsName = SanitizeFileName(OsName);
         if (string.IsNullOrWhiteSpace(SafeOsName))
@@ -102,7 +104,7 @@ internal static class Program
         }
 
         string SafeKernelName = SanitizeIdentifier(KernelName);
-        string[] UserSelectedModules = ModulesText.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        string[] UserSelectedModules = ParseUserSelectedModules(ModulesText);
         ValidateUserSelectedModules(UserSelectedModules);
 
         string OsRoot = Path.Combine(ProjectRoot, "OSes", SafeOsName);
@@ -180,6 +182,33 @@ internal static class Program
         Console.WriteLine($"[ OK ] [GENERATOR] Loaded JSON question files: {QuestionFiles.Length}");
     }
 
+    private static string FormatModuleDefault(string[] Modules)
+    {
+        return Modules.Length == 0 ? "None" : string.Join(',', Modules);
+    }
+
+    private static string[] ParseUserSelectedModules(string ModulesText)
+    {
+        string[] RawModules = ModulesText.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (RawModules.Length == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        bool ContainsNone = RawModules.Any(Module => Module.Equals("None", StringComparison.OrdinalIgnoreCase));
+        if (ContainsNone && RawModules.Length > 1)
+        {
+            throw new InvalidOperationException("None cannot be combined with other user-selected modules.");
+        }
+
+        if (ContainsNone)
+        {
+            return Array.Empty<string>();
+        }
+
+        return RawModules;
+    }
+
     private static void ValidateUserSelectedModules(string[] Modules)
     {
         HashSet<string> Available = new(AvailableUserSelectableModules, StringComparer.Ordinal);
@@ -193,7 +222,7 @@ internal static class Program
 
             if (!Available.Contains(Module))
             {
-                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.5: {Module}");
+                throw new InvalidOperationException($"Unknown or unavailable user-selectable module for 1.0.6: {Module}");
             }
         }
     }

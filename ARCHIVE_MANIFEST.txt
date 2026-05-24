@@ -1,6 +1,12 @@
-Oryn 1.0.5
-Generated package manifest.
+Oryn 1.0.6
 
-Key fixes:
-- Manifest source path BOM trimming for generated OS runs.
-- UTF-8 no-BOM manifest source list output.
+Package layout:
+- FullSource/ contains the complete Oryn source tree for this delivery.
+- ChangedFiles/ contains only files changed for the 1.0.6 corrective delivery.
+
+1.0.6 focus:
+- Adds explicit None choice for additional user-selected modules.
+- Defaults optional modules to None.
+- Keeps mandatory kernel modules separate and always linked.
+- Keeps Diagnostics and Panic always enabled.
+- Ensures Runqemu composition and manifest glue use only mandatory + selected optional modules for generated OSes.

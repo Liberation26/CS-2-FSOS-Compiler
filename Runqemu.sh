@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="1.0.5"
+RUNQEMU_VERSION="1.0.6"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -216,11 +216,7 @@ if [ "$STAGE_NAME" = "Stage9" ] || [ "$ORYN_USER_OS_MODE" = "1" ]; then
     COMPOSE_KERNEL_NAME="${ORYN_KERNEL_NAME:-Kernel}"
     COMPOSE_STAGE="${ORYN_COMPOSE_STAGE:-Stage9}"
     COMPOSE_MANDATORY_MODULES="${ORYN_MANDATORY_MODULES:-Runtime,Diagnostics,Panic,Cpu,ManifestLoader}"
-    if [ -n "${ORYN_COMPOSE_MODULES:-}" ]; then
-        dotnet "$ORYN_COMPILER_DLL" compose-kernel --stage "$COMPOSE_STAGE" --template "$KERNEL_TEMPLATE_FILE" --output "$SOURCE_FILE" --os-name "$COMPOSE_OS_NAME" --kernel-name "$COMPOSE_KERNEL_NAME" --mandatory-modules "$COMPOSE_MANDATORY_MODULES" --modules "$ORYN_COMPOSE_MODULES"
-    else
-        dotnet "$ORYN_COMPILER_DLL" compose-kernel --stage "$COMPOSE_STAGE" --template "$KERNEL_TEMPLATE_FILE" --output "$SOURCE_FILE" --os-name "$COMPOSE_OS_NAME" --kernel-name "$COMPOSE_KERNEL_NAME"
-    fi
+    dotnet "$ORYN_COMPILER_DLL" compose-kernel --stage "$COMPOSE_STAGE" --template "$KERNEL_TEMPLATE_FILE" --output "$SOURCE_FILE" --os-name "$COMPOSE_OS_NAME" --kernel-name "$COMPOSE_KERNEL_NAME" --mandatory-modules "$COMPOSE_MANDATORY_MODULES" --modules "${ORYN_COMPOSE_MODULES:-}"
 fi
 
 [ -f "$SOURCE_FILE" ] || fail "Kernel source not found: $SOURCE_FILE"
@@ -507,7 +503,7 @@ GenerateManifestGlue() {
     local ManifestDir="$PROJECT_ROOT/Source/Sdk/ModuleManifests"
     [ -d "$ManifestDir" ] || fail "Module manifest directory not found: $ManifestDir"
 
-    python3 - "$PROJECT_ROOT" "$ManifestDir" "$GlueSource" "$StageLimit" "$STAGE_NAME" <<'PY_MANIFEST'
+    python3 - "$PROJECT_ROOT" "$ManifestDir" "$GlueSource" "$StageLimit" "$STAGE_NAME" "$ORYN_USER_OS_MODE" "${ORYN_MANDATORY_MODULES:-Runtime,Diagnostics,Panic,Cpu,ManifestLoader}" "${ORYN_COMPOSE_MODULES:-}" <<'PY_MANIFEST'
 import json
 import pathlib
 import sys
@@ -517,6 +513,9 @@ manifest_dir = pathlib.Path(sys.argv[2])
 glue = pathlib.Path(sys.argv[3])
 stage_limit = int(sys.argv[4])
 stage_name = sys.argv[5]
+user_os_mode = sys.argv[6] == '1'
+mandatory_names = [name.strip() for name in sys.argv[7].split(',') if name.strip()]
+selected_names = [name.strip() for name in sys.argv[8].split(',') if name.strip()]
 
 class ManifestError(Exception):
     pass
@@ -537,6 +536,25 @@ def read_records():
         loaded.append(item)
     if not loaded:
         raise ManifestError('no selected module manifests were loaded')
+    if user_os_mode:
+        by_name = {item.get('module', ''): item for item in loaded}
+        requested = []
+        for name in mandatory_names + selected_names:
+            if name and name not in requested:
+                requested.append(name)
+        selected = {}
+        def add_with_dependencies(name):
+            if name not in by_name:
+                raise ManifestError('generated OS selected unknown or unavailable module: ' + name)
+            if name in selected:
+                return
+            item = by_name[name]
+            for dep in item.get('dependsOn', []):
+                add_with_dependencies(dep)
+            selected[name] = item
+        for name in requested:
+            add_with_dependencies(name)
+        return list(selected.values())
     return loaded
 
 def resolve(records):
@@ -665,7 +683,7 @@ CompileManifestModules() {
     local StageLimit="$1"
     GenerateManifestGlue "$StageLimit"
     local ManifestDir="$PROJECT_ROOT/Source/Sdk/ModuleManifests"
-    python3 - "$PROJECT_ROOT" "$ManifestDir" "$BUILD_ROOT/${STAGE_NAME}.manifest.sources" "$StageLimit" "$STAGE_NAME" <<'PY_SOURCES'
+    python3 - "$PROJECT_ROOT" "$ManifestDir" "$BUILD_ROOT/${STAGE_NAME}.manifest.sources" "$StageLimit" "$STAGE_NAME" "$ORYN_USER_OS_MODE" "${ORYN_MANDATORY_MODULES:-Runtime,Diagnostics,Panic,Cpu,ManifestLoader}" "${ORYN_COMPOSE_MODULES:-}" <<'PY_SOURCES'
 import json
 import pathlib
 import sys
@@ -674,6 +692,9 @@ manifest_dir = pathlib.Path(sys.argv[2])
 out = pathlib.Path(sys.argv[3])
 stage_limit = int(sys.argv[4])
 stage_name = sys.argv[5]
+user_os_mode = sys.argv[6] == '1'
+mandatory_names = [name.strip() for name in sys.argv[7].split(',') if name.strip()]
+selected_names = [name.strip() for name in sys.argv[8].split(',') if name.strip()]
 records = []
 for path in sorted(manifest_dir.glob('*.module.json')):
     item = json.loads(path.read_text(encoding='utf-8-sig'))
@@ -681,6 +702,25 @@ for path in sorted(manifest_dir.glob('*.module.json')):
         item['dependsOn'] = list(item.get('dependsOn') or [])
         records.append(item)
 by_name = {item['module']: item for item in records}
+if user_os_mode:
+    requested = []
+    for name in mandatory_names + selected_names:
+        if name and name not in requested:
+            requested.append(name)
+    selected_records = {}
+    def add_requested_with_dependencies(name):
+        if name not in by_name:
+            raise SystemExit('[FAIL] generated OS selected unknown or unavailable module while writing sources: ' + name)
+        if name in selected_records:
+            return
+        item = by_name[name]
+        for dep in item.get('dependsOn', []):
+            add_requested_with_dependencies(dep)
+        selected_records[name] = item
+    for name in requested:
+        add_requested_with_dependencies(name)
+    records = list(selected_records.values())
+    by_name = {item['module']: item for item in records}
 state = {}
 resolved = []
 def visit(name):

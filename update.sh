@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UPDATE_VERSION="1.0.5"
+UPDATE_VERSION="1.0.6"
 REMOTE_URL="https://github.com/Liberation26/CS-2-FSOS-Compiler.git"
 REPO_DIR="${ORYN_REPO_DIR:-$HOME/Dev/OrynFoundry}"
 DOWNLOADS_DIR="${ORYN_DOWNLOADS_DIR:-$HOME/Downloads}"
@@ -215,7 +215,7 @@ LaunchGeneratedWorkflow() {
         return 0
     fi
 
-    info "Launching Oryn end-user OS generation. You will be asked the 1.0.5 generation questions."
+    info "Launching Oryn end-user OS generation. You will be asked the 1.0.6 generation questions."
     "$OrynScript" generate
 
     local OsName

@@ -1,0 +1,21 @@
+{
+  "OrynVersion": "1.0.5",
+  "OsName": "DSOOS",
+  "KernelName": "DSOOSKernel",
+  "Target": "x64-elf",
+  "DefaultBootMode": "long-mode",
+  "VmProfile": "RunQemu",
+  "BuildMode": "Debug",
+  "MandatoryKernelModules": [
+    "Runtime",
+    "Diagnostics",
+    "Panic",
+    "Cpu",
+    "ManifestLoader"
+  ],
+  "DiagnosticsAlwaysEnabled": true,
+  "PanicAlwaysEnabled": true,
+  "UserSelectedModules": [
+    "Memory"
+  ]
+}

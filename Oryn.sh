@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ORYN_VERSION="1.0.5"
+ORYN_VERSION="1.0.6"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GENERATOR_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Generator/Oryn.Generator.csproj"
 
@@ -33,13 +33,13 @@ Oryn ${ORYN_VERSION}
 
 Usage:
   ./Oryn.sh generate
-  ./Oryn.sh generate --os-name <name> [--kernel-name <name>] [--modules Memory]
+  ./Oryn.sh generate --os-name <name> [--kernel-name <name>] [--modules None|Memory]
   ./Oryn.sh build <OsName>
   ./Oryn.sh run <OsName>
   ./Oryn.sh test <OsName>
   ./Oryn.sh modules
 
-Diagnostics and Panic are always enabled. User-selected modules exclude mandatory kernel modules needed to get the kernel running.
+Diagnostics and Panic are always enabled. User-selected modules exclude mandatory kernel modules needed to get the kernel running. Use --modules None for no optional modules.
 USAGE
 }
 

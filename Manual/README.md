@@ -1,8 +1,8 @@
 # Oryn Manual
 
-Oryn 1.0.5 introduces the first end-user OS generation workflow.
+Oryn 1.0.6 introduces the first end-user OS generation workflow.
 
-## What Oryn 1.0.5 does
+## What Oryn 1.0.6 does
 
 Oryn can now create a named OS folder from JSON-backed answers, generate a kernel template and source tree, compose the final kernel from approved modules, build a bootable freestanding x64 kernel, and run it through QEMU.
 
@@ -22,12 +22,12 @@ Mandatory modules are linked automatically:
 
 Diagnostics and Panic are always enabled and are never optional user choices.
 
-For 1.0.5, Memory is the only user-selectable module.
+For 1.0.6, choose `None` for no optional modules or `Memory` to include the optional Memory module.
 
 ## Generate
 
 ```bash
-./Oryn.sh generate --os-name MyOrynOS --kernel-name MyOrynKernel --modules Memory
+./Oryn.sh generate --os-name MyOrynOS --kernel-name MyOrynKernel --modules None
 ```
 
 ## Build
