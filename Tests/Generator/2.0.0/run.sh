@@ -20,4 +20,4 @@ fi
 bash -n "$ROOT/Oryn.sh"
 bash -n "$ROOT/Runqemu.sh"
 bash -n "$ROOT/update.sh"
-ok "2.0.0 visual configurator packaging checks passed."
+ok "2.0.1 visual configurator packaging checks passed."

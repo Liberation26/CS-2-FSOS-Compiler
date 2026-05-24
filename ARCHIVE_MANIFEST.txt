@@ -1,8 +1,7 @@
-Oryn Archive Version: 2.0.0
-FullSource file count: 348
+Oryn Archive Version: 2.0.1
+Archive layout: FullSource contains the complete source tree; ChangedFiles contains this iteration delta.
 
 .gitignore
-ARCHIVE_MANIFEST.txt
 Applications/OrynVisualConfigurator/OrynVisualConfigurator.csproj
 Applications/OrynVisualConfigurator/Program.cs
 Docs/.gitkeep
@@ -74,6 +73,7 @@ Documents/ReleaseNotes/1.0.7.md
 Documents/ReleaseNotes/1.0.8.md
 Documents/ReleaseNotes/1.0.9.md
 Documents/ReleaseNotes/2.0.0.md
+Documents/ReleaseNotes/2.0.1.md
 Documents/Stages/Stage2.md
 Documents/Stages/Stage4.md
 Documents/Stages/Stage5.md
@@ -347,5 +347,6 @@ Tests/Generator/1.0.7/run.sh
 Tests/Generator/1.0.8/run.sh
 Tests/Generator/1.0.9/run.sh
 Tests/Generator/2.0.0/run.sh
+Tests/Generator/2.0.1/run.sh
 VERSION
 update.sh

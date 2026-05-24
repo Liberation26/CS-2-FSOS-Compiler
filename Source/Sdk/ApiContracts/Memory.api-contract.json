@@ -1,5 +1,5 @@
 {
-  "contractVersion": "2.0.0",
+  "contractVersion": "2.0.1",
   "module": "Memory",
   "namespace": "Oryn.Memory",
   "minimumStage": 4,

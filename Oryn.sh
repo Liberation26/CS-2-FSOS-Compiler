@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ORYN_VERSION="2.0.0"
+ORYN_VERSION="2.0.1"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GENERATOR_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Generator/Oryn.Generator.csproj"
 CONFIGURATOR_PROJECT="$PROJECT_ROOT/Applications/OrynVisualConfigurator/OrynVisualConfigurator.csproj"
@@ -105,8 +105,8 @@ Usage:
   ./Oryn.sh modules
   ./Oryn.sh sdk
 
-Oryn 2.0.0 is visual-first. New OS configuration is handled by Applications/OrynVisualConfigurator.
-The visual configurator reads the current version's Questions/*.question.json files, shows all questions, and renders known choices as choices/dropdowns in the terminal UI.
+Oryn 2.0.1 is visual-first. New OS configuration is handled by Applications/OrynVisualConfigurator.
+The visual configurator reads the current version's Questions/*.question.json files, shows all questions, and renders known choices as browser dropdowns or check boxes.
 
 Path handling:
   ./Oryn.sh configure          Detects the OS project from the current directory.

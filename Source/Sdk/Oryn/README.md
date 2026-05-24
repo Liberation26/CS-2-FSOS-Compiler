@@ -12,4 +12,4 @@ using Oryn.Runtime;
 
 These declarations are not a normal runtime library. They are an approved API surface that the Oryn compiler maps to native freestanding module symbols.
 
-For 2.0.0, the approved calls are still intentionally small and match the tested booting kernel milestone.
+For 2.0.1, the approved calls are still intentionally small and match the tested booting kernel milestone.

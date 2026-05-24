@@ -1,6 +1,6 @@
 # Oryn Manual
 
-Current version: **2.0.0**
+Current version: **2.0.1**
 
 ## Start here
 

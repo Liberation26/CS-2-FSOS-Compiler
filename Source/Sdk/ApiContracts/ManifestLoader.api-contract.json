@@ -1,5 +1,5 @@
 {
-  "contractVersion": "2.0.0",
+  "contractVersion": "2.0.1",
   "module": "ManifestLoader",
   "namespace": "Oryn.ManifestLoader",
   "minimumStage": 6,

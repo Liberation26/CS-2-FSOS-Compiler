@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UPDATE_VERSION="2.0.0"
+UPDATE_VERSION="2.0.1"
 REMOTE_URL="https://github.com/Liberation26/CS-2-FSOS-Compiler.git"
 REPO_DIR="${ORYN_REPO_DIR:-$HOME/Dev/OrynFoundry}"
 DOWNLOADS_DIR="${ORYN_DOWNLOADS_DIR:-$HOME/Downloads}"
@@ -215,7 +215,7 @@ LaunchGeneratedWorkflow() {
         return 0
     fi
 
-    info "Launching Oryn visual OS configuration for 2.0.0. Questions are loaded from Questions/*.question.json."
+    info "Launching Oryn visual OS configuration for 2.0.1. Questions are loaded from Questions/*.question.json."
     "$OrynScript" generate
 
     local OsName
