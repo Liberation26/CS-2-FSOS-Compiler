@@ -19,3 +19,8 @@ Run it with:
 ```bash
 ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage6
 ```
+
+
+## 0.6.1 fix
+
+The Stage 6 boot proof now includes a native pre-kernel handoff marker and serial GRUB diagnostics. ManifestLoader glue is generated as an idempotent dispatcher and does not initialize itself recursively.

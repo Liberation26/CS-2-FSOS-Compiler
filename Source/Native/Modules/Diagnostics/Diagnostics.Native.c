@@ -120,6 +120,12 @@ static void WriteLine(const char* Prefix, const char* Message, uint8_t Attribute
 void Diagnostics_WriteOk(const char* Message)
 {
 #if DEBUG
+    if (Message != 0 && Message[0] == '[')
+    {
+        WriteLine("[ OK ] ", Message, 0x0A);
+        return;
+    }
+
     WriteLine("[ OK ] [ KERNEL   ] ", Message, 0x0A);
 #else
     (void)Message;
@@ -129,6 +135,12 @@ void Diagnostics_WriteOk(const char* Message)
 void Diagnostics_WriteWarn(const char* Message)
 {
 #if DEBUG
+    if (Message != 0 && Message[0] == '[')
+    {
+        WriteLine("[WARN] ", Message, 0x0E);
+        return;
+    }
+
     WriteLine("[WARN] [ KERNEL   ] ", Message, 0x0E);
 #else
     (void)Message;
@@ -138,6 +150,12 @@ void Diagnostics_WriteWarn(const char* Message)
 void Diagnostics_WriteFail(const char* Message)
 {
 #if DEBUG
+    if (Message != 0 && Message[0] == '[')
+    {
+        WriteLine("[FAIL] ", Message, 0x0C);
+        return;
+    }
+
     WriteLine("[FAIL] [ KERNEL   ] ", Message, 0x0C);
 #else
     (void)Message;

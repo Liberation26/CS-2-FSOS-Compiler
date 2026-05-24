@@ -6,7 +6,7 @@ The goal is to let developers write an Oryn-safe subset of C# and compile it int
 
 ## Version
 
-Current version: **0.6.0**
+Current version: **0.6.1**
 
 ## Stage 6 status
 
@@ -81,11 +81,16 @@ ORYN_BUILD_COMPILER=1 ./Runqemu.sh Stage6
 Expected proof lines include:
 
 ```text
+[SERIAL] [ OK ] [ BOOT32   ] Multiboot entry reached; preparing long mode
+[SERIAL] [ OK ] [ BOOT     ] Long mode entered; calling Kernel_Main
+[SERIAL] [ OK ] [ KERNEL   ] Stage6 native pre-kernel handoff reached
 [SERIAL] [ OK ] [ KERNEL   ] Stage6 kernel entered
-[SERIAL] [ OK ] [ MANIFEST ] Stage6 module manifest loading started
+[SERIAL] [ OK ] [ KERNEL   ] Stage6 module manifest loading started
+[SERIAL] [ OK ] [ MANIFEST ] ManifestLoader glue is active
 [SERIAL] [ OK ] [ MANIFEST ] initializing Runtime
 [SERIAL] [ OK ] [ MANIFEST ] initializing Memory
-[SERIAL] [ OK ] [ MANIFEST ] Stage6 selected modules initialized from manifest metadata
+[SERIAL] [ OK ] [ MANIFEST ] generated Stage 6 manifest runtime completed
+[SERIAL] [ OK ] [ KERNEL   ] Stage6 selected modules initialized from manifest metadata
 [SERIAL] [ OK ] [ KERNEL   ] Stage6 runtime marked kernel ready
 [SERIAL] [ OK ] [ KERNEL   ] Stage6 kernel is halting forever
 ```
@@ -115,3 +120,9 @@ Documents/Stages/Stage6.md        Stage 6 design notes
 ## Current limitation
 
 Stage 6 proves manifest-driven selection and initialization. It does not yet provide dynamic service loading, runtime ELF service startup, dependency solving, or a production module package manager. Those are later stages.
+
+## Stage 6.1 boot proof fix
+
+Oryn 0.6.1 keeps the Stage 6 manifest-loading goal and fixes the silent QEMU proof failure found after 0.6.0. The generated ISO now enables GRUB serial output, boots the kernel through `multiboot2`, prints a native pre-kernel handoff line before `Kernel_Main`, and prevents the generated ManifestLoader glue from recursively calling itself.
+
+The Stage 6 proof now requires runtime log lines showing ManifestLoader activation, Runtime initialization, Memory initialization, manifest runtime completion, kernel readiness, and intentional halt.

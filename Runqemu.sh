@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNQEMU_VERSION="0.6.0"
+RUNQEMU_VERSION="0.6.1"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPILER_PROJECT="$PROJECT_ROOT/Source/Core/Oryn.Compiler/Oryn.Compiler.csproj"
 COMPILER_CONFIGURATION="${ORYN_COMPILER_CONFIGURATION:-Debug}"
@@ -322,6 +322,8 @@ LongModeEntry:
     call BootSerialInitialize
     lea BootSerialMessage(%rip), %rsi
     call BootSerialWriteString
+    lea BootPreKernelMessage(%rip), %rsi
+    call BootSerialWriteString
     call Kernel_Main
 BootHalt:
     hlt
@@ -395,6 +397,8 @@ Boot32SerialMessage:
     .asciz "[ OK ] [ BOOT32   ] Multiboot entry reached; preparing long mode\n"
 BootSerialMessage:
     .asciz "[ OK ] [ BOOT     ] Long mode entered; calling Kernel_Main\n"
+BootPreKernelMessage:
+    .asciz "[ OK ] [ KERNEL   ] __ORYN_STAGE_NAME__ native pre-kernel handoff reached\n"
 .align 8
 Gdt:
     .quad 0x0000000000000000
@@ -432,6 +436,7 @@ BootStack64:
     .skip 16384
 BootStackTop64:
 EOF_BOOT
+sed -i "s/__ORYN_STAGE_NAME__/${STAGE_NAME}/g" "$BOOT_SOURCE"
 
 cat > "$LINKER_SCRIPT" <<'EOF_LINK'
 ENTRY(_start)
@@ -477,20 +482,34 @@ lines.append('#include "Runtime.Native.h"')
 lines.append('#include "Memory.Native.h"')
 lines.append('')
 for item in records:
+    name = item.get('module', 'Unknown')
     symbol = item.get('initializerNativeSymbol') or ''
-    if symbol:
+    if symbol and name != 'ManifestLoader':
         lines.append(f'extern void {symbol}(void);')
+lines.append('')
+lines.append('static int ModuleManifestAlreadyInitialized = 0;')
 lines.append('')
 lines.append('void ModuleManifest_InitializeSelected(void)')
 lines.append('{')
+lines.append('    if (ModuleManifestAlreadyInitialized != 0)')
+lines.append('    {')
+lines.append('        Diagnostics_WriteOk("[ MANIFEST ] selected manifest modules already initialized");')
+lines.append('        return;')
+lines.append('    }')
+lines.append('')
+lines.append('    ModuleManifestAlreadyInitialized = 1;')
+lines.append('    Diagnostics_WriteOk("[ MANIFEST ] generated Stage 6 manifest runtime started");')
 for item in records:
     name = item.get('module', 'Unknown')
     source = item.get('nativeSource', '')
     symbol = item.get('initializerNativeSymbol') or ''
-    lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] linked {name}: {source}");')
-    if symbol:
+    lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] selected {name}: {source}");')
+    if symbol and name != 'ManifestLoader':
         lines.append(f'    Diagnostics_WriteOk("[ MANIFEST ] initializing {name}");')
         lines.append(f'    {symbol}();')
+    elif name == 'ManifestLoader':
+        lines.append('    Diagnostics_WriteOk("[ MANIFEST ] ManifestLoader glue is active");')
+lines.append('    Diagnostics_WriteOk("[ MANIFEST ] generated Stage 6 manifest runtime completed");')
 lines.append('}')
 lines.append('')
 glue.write_text('\n'.join(lines), encoding='utf-8')
@@ -587,11 +606,15 @@ BuildIso() {
     mkdir -p "$ISO_ROOT/boot/grub"
     cp "$KERNEL_ELF" "$ISO_ROOT/boot/OrynKernel.elf"
     cat > "$GRUB_CFG" <<EOF_GRUB
+serial --unit=0 --speed=115200 --word=8 --parity=no --stop=1
+terminal_input serial
+terminal_output serial
 set timeout=0
 set default=0
 
 menuentry "Oryn ${STAGE_NAME} x86_64 Kernel" {
-    multiboot /boot/OrynKernel.elf
+    echo "Loading Oryn ${STAGE_NAME} x86_64 Kernel"
+    multiboot2 /boot/OrynKernel.elf
     boot
 }
 EOF_GRUB
@@ -679,7 +702,7 @@ elif [ -s "$DEBUGCON_LOG" ]; then
     sed 's/^/[DEBUGCON] /' "$DEBUGCON_LOG"
     PROOF_LOG="$DEBUGCON_LOG"
 else
-    fail "QEMU serial and debugcon logs were empty: $SERIAL_LOG ; $DEBUGCON_LOG"
+    fail "QEMU serial and debugcon logs were empty even after GRUB serial output was enabled: $SERIAL_LOG ; $DEBUGCON_LOG"
 fi
 
 if ! grep -q '\[ OK \] \[ BOOT32   \]' "$PROOF_LOG"; then
@@ -699,7 +722,7 @@ if [ "$STAGE_NAME" = "Stage4" ]; then
         fail "Expected Stage4 approved module boundary completion proof was not found in: $PROOF_LOG"
     fi
 elif [ "$STAGE_NAME" = "Stage6" ]; then
-    for Required in         "Stage6 kernel entered"         "Stage6 module manifest loading started"         "[ MANIFEST ] initializing Runtime"         "[ MANIFEST ] initializing Memory"         "Stage6 selected modules initialized from manifest metadata"         "Stage6 kernel is halting forever"; do
+    for Required in         "Stage6 native pre-kernel handoff reached"         "Stage6 kernel entered"         "Stage6 module manifest loading started"         "[ MANIFEST ] ManifestLoader glue is active"         "[ MANIFEST ] initializing Runtime"         "[ MANIFEST ] initializing Memory"         "[ MANIFEST ] generated Stage 6 manifest runtime completed"         "Stage6 selected modules initialized from manifest metadata"         "Stage6 kernel is halting forever"; do
         if ! grep -Fq "$Required" "$PROOF_LOG"; then
             fail "Expected Stage6 manifest proof was not found: $Required in $PROOF_LOG"
         fi
