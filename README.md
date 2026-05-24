@@ -589,3 +589,23 @@ The Phase 6 stack/local model remains in place: integer locals still use 64-bit 
 Version `0.2.13` adds static helper method support to the Stage 2 compiler. A kernel can now call helper methods such as `WriteBanner();` from `Main()` and the compiler lowers those methods to generated x64 symbols such as `Kernel_WriteBanner`.
 
 Each generated method receives its own conventional rbp stack frame and local-slot table. The existing `.rodata` string literal table and approved native module bindings remain in place, so helper methods can call diagnostics safely with immutable freestanding string data.
+
+## Version 0.2.14 Stage 2 JSON module bindings
+
+Version `0.2.14` moves Stage 2 module binding information out of the compiler source and into JSON files under:
+
+```text
+Source/Sdk/Bindings/
+```
+
+The starter binding files are:
+
+```text
+Source/Sdk/Bindings/Diagnostics.binding.json
+Source/Sdk/Bindings/Cpu.binding.json
+Source/Sdk/Bindings/Memory.binding.json
+```
+
+The compiler now loads approved calls such as `Diagnostics.WriteOk`, `Memory.Initialize`, and `Cpu.HaltForever` from those JSON records. This keeps module expansion out of `Program.cs` and out of the compiler's binding catalogue implementation. The intended module expansion path is now: add an API DLL, add binding JSON, add a native implementation, and add tests.
+
+During this Stage 2 compiler phase, `Runqemu.sh` defaults to running only the second kernel. The legacy `All` selector also maps to Stage 2-only execution so the older Stage 1 kernel is not launched first.

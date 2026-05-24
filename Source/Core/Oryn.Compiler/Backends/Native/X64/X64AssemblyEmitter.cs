@@ -231,10 +231,6 @@ internal sealed class X64AssemblyEmitter
         string CallName = Instruction.ManagedName ?? Instruction.Operand ?? "<unknown>";
         string NativeSymbol = Instruction.NativeSymbol ?? throw new OrynCompileException($"Call IR instruction is missing native symbol for {CallName}.");
         int ArgumentCount = Instruction.Arguments.Count;
-        if (ArgumentCount == 0 && Instruction.ManagedName is not null && Instruction.ManagedName.StartsWith("Diagnostics.", StringComparison.Ordinal))
-        {
-            ArgumentCount = 1;
-        }
 
         if (ArgumentCount > 1)
         {

@@ -11,9 +11,10 @@ dotnet run -- compile "$ROOT_DIR/OSes/Stage2/Source/Kernel.cs" --target x64-elf 
 MANIFEST="$OUTPUT_DIR/Kernel.stage2.ir.json"
 DIAGNOSTICS="$OUTPUT_DIR/Kernel.diagnostics.log"
 ASSEMBLY="$OUTPUT_DIR/Kernel.generated.S"
+GENERATED_C="$OUTPUT_DIR/Kernel.generated.c"
 
 test -f "$MANIFEST"
-test -f "$OUTPUT_DIR/Kernel.generated.c"
+test -f "$GENERATED_C"
 test -f "$ASSEMBLY"
 test -f "$OUTPUT_DIR/Kernel.o"
 
@@ -46,5 +47,15 @@ grep -q '^\.Lstr[0-9][0-9]*:' "$ASSEMBLY"
 grep -q '\.[a]sciz "Hello from helper method"' "$ASSEMBLY"
 grep -q 'lea \.Lstr[0-9][0-9]*(%rip), %rdi' "$ASSEMBLY"
 grep -q 'call Diagnostics_WriteOk' "$ASSEMBLY"
+grep -q 'call Memory_Initialize' "$ASSEMBLY"
 
-printf '[ OK ] Stage 2 CFG, stack/local, string literal, and static helper proof outputs written to: %s\n' "$OUTPUT_DIR"
+test -f "$ROOT_DIR/Source/Sdk/Bindings/Diagnostics.binding.json"
+test -f "$ROOT_DIR/Source/Sdk/Bindings/Cpu.binding.json"
+test -f "$ROOT_DIR/Source/Sdk/Bindings/Memory.binding.json"
+grep -q '"managedName": "Diagnostics.WriteOk"' "$ROOT_DIR/Source/Sdk/Bindings/Diagnostics.binding.json"
+grep -q '"nativeSymbol": "Diagnostics_WriteOk"' "$ROOT_DIR/Source/Sdk/Bindings/Diagnostics.binding.json"
+grep -q '"managedName": "Cpu.HaltForever"' "$ROOT_DIR/Source/Sdk/Bindings/Cpu.binding.json"
+grep -q '"managedName": "Memory.Initialize"' "$ROOT_DIR/Source/Sdk/Bindings/Memory.binding.json"
+! grep -q 'extern void Memory_Initialize(void);.*extern void Cpu_HaltForever(void);' "$GENERATED_C"
+
+printf '[ OK ] Stage 2 CFG, stack/local, string literal, static helper, and JSON binding proof outputs written to: %s\n' "$OUTPUT_DIR"

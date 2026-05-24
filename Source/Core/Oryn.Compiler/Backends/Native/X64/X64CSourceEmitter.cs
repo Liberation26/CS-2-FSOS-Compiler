@@ -5,16 +5,30 @@ namespace Oryn.Compiler.Backends.Native.X64;
 
 internal sealed class X64CSourceEmitter
 {
+    private sealed record NativeCallExtern(string NativeSymbol, int ArgumentCount);
+
     public string Emit(OrynIrModule Module)
     {
         StringBuilder Builder = new();
         Builder.AppendLine("#include <stdint.h>");
         Builder.AppendLine();
-        Builder.AppendLine("extern void Diagnostics_WriteOk(const char* Message);");
-        Builder.AppendLine("extern void Diagnostics_WriteWarn(const char* Message);");
-        Builder.AppendLine("extern void Diagnostics_WriteFail(const char* Message);");
-        Builder.AppendLine("extern void Memory_Initialize(void);");
-        Builder.AppendLine("extern void Cpu_HaltForever(void);");
+
+        foreach (NativeCallExtern Extern in CollectNativeCallExterns(Module))
+        {
+            if (Extern.ArgumentCount == 0)
+            {
+                Builder.AppendLine($"extern void {Extern.NativeSymbol}(void);");
+            }
+            else if (Extern.ArgumentCount == 1)
+            {
+                Builder.AppendLine($"extern void {Extern.NativeSymbol}(const char* Argument0);");
+            }
+            else
+            {
+                throw new OrynCompileException($"Stage 2 C backend currently supports up to one native call argument: {Extern.NativeSymbol}");
+            }
+        }
+
         foreach (OrynIrMethod Method in Module.Methods)
         {
             Builder.AppendLine($"void {Method.NativeSymbol}(void);");
@@ -27,6 +41,39 @@ internal sealed class X64CSourceEmitter
         }
 
         return Builder.ToString();
+    }
+
+    private static IReadOnlyList<NativeCallExtern> CollectNativeCallExterns(OrynIrModule Module)
+    {
+        Dictionary<string, NativeCallExtern> Externs = new(StringComparer.Ordinal);
+        HashSet<string> MethodSymbols = Module.Methods.Select(Method => Method.NativeSymbol).ToHashSet(StringComparer.Ordinal);
+
+        foreach (IrInstruction Instruction in Module.Methods.SelectMany(Method => Method.Instructions))
+        {
+            if (Instruction.OpCode != "Call" || string.IsNullOrWhiteSpace(Instruction.NativeSymbol))
+            {
+                continue;
+            }
+
+            if (MethodSymbols.Contains(Instruction.NativeSymbol))
+            {
+                continue;
+            }
+
+            int ArgumentCount = Instruction.Arguments.Count;
+            if (!Externs.TryGetValue(Instruction.NativeSymbol, out NativeCallExtern? Existing))
+            {
+                Externs.Add(Instruction.NativeSymbol, new NativeCallExtern(Instruction.NativeSymbol, ArgumentCount));
+                continue;
+            }
+
+            if (Existing.ArgumentCount != ArgumentCount)
+            {
+                throw new OrynCompileException($"Native binding has inconsistent argument counts in IR: {Instruction.NativeSymbol}");
+            }
+        }
+
+        return Externs.Values.OrderBy(Extern => Extern.NativeSymbol, StringComparer.Ordinal).ToList();
     }
 
     private static void EmitMethod(StringBuilder Builder, OrynIrMethod Method)
@@ -111,10 +158,6 @@ internal sealed class X64CSourceEmitter
     private static void EmitCall(StringBuilder Builder, Stack<string> ExpressionStack, IrInstruction Instruction)
     {
         int ArgumentCount = Instruction.Arguments.Count;
-        if (ArgumentCount == 0 && Instruction.ManagedName is not null && Instruction.ManagedName.StartsWith("Diagnostics.", StringComparison.Ordinal))
-        {
-            ArgumentCount = 1;
-        }
 
         List<string> Arguments = new();
         for (int Index = 0; Index < ArgumentCount; Index++)

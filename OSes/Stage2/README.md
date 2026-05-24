@@ -71,3 +71,9 @@ Stage 2 generated assembly now contains a real `.rodata` string literal table. D
 ## Stage 2 static helper method proof
 
 The Stage 2 sample kernel now calls `WriteBanner();` from `Main()`. The compiler emits a separate `Kernel_WriteBanner` x64 function and a `call Kernel_WriteBanner` instruction from `Kernel_Main`, proving that user kernel code is no longer forced to keep every statement inside `Main()`.
+
+## Stage 2 JSON module binding proof
+
+Stage 2 approved module calls are now loaded from JSON files under `Source/Sdk/Bindings/` instead of a hardcoded compiler binding table. The current starter files bind Diagnostics, Cpu, and Memory calls to their native symbols. This lets future modules be added by adding API DLLs, binding JSON, native implementations, and tests rather than editing compiler source for each module.
+
+`Runqemu.sh` now defaults to Stage 2 and its legacy `All` selector runs only the second kernel during this compiler stage.

@@ -219,3 +219,26 @@ Kernel_WriteBanner:
 ```
 
 Each helper method is emitted as its own function and gets the same rbp prologue/epilogue shape as `Kernel_Main`.
+
+## JSON module bindings
+
+Stage 2 module binding records now live under `Source/Sdk/Bindings/` instead of being hardcoded in compiler source. The compiler loads every `*.binding.json` file it finds there and uses those records to resolve approved kernel calls.
+
+Starter binding files:
+
+```text
+Source/Sdk/Bindings/Diagnostics.binding.json
+Source/Sdk/Bindings/Cpu.binding.json
+Source/Sdk/Bindings/Memory.binding.json
+```
+
+The intended expansion model is now:
+
+```text
+add API DLL
+add binding JSON
+add native implementation
+add tests
+```
+
+The compiler should not need a source edit just because a new approved module call has been added. During this Stage 2 development phase, `Runqemu.sh` also defaults to the second kernel only so Stage 1 is not launched before the current compiler-backed kernel proof.
